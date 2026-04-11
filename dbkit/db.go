@@ -1,0 +1,114 @@
+// Package dbkit provides database connection helpers, safe query enforcement
+// (prepared statements only), and migration management built on sqlx and
+// golang-migrate/migrate.
+package dbkit
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+)
+
+// Config holds database connection configuration.
+type Config struct {
+	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
+	Driver string
+	// DSN is the data source name / connection string.
+	DSN string
+	// MaxOpenConns is the maximum number of open connections.
+	MaxOpenConns int
+	// MaxIdleConns is the maximum number of idle connections.
+	MaxIdleConns int
+	// ConnMaxLifetime is the maximum duration a connection can be reused.
+	ConnMaxLifetime time.Duration
+	// ConnMaxIdleTime is the maximum duration a connection can be idle.
+	ConnMaxIdleTime time.Duration
+}
+
+// DefaultConfig returns a sensible default configuration.
+func DefaultConfig(driver, dsn string) Config {
+	return Config{
+		Driver:          driver,
+		DSN:             dsn,
+		MaxOpenConns:    25,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 5 * time.Minute,
+		ConnMaxIdleTime: 1 * time.Minute,
+	}
+}
+
+// Option is a functional option for configuring the database connection.
+type Option func(*Config)
+
+// WithMaxOpenConns sets the maximum number of open connections.
+func WithMaxOpenConns(n int) Option {
+	return func(c *Config) {
+		c.MaxOpenConns = n
+	}
+}
+
+// WithMaxIdleConns sets the maximum number of idle connections.
+func WithMaxIdleConns(n int) Option {
+	return func(c *Config) {
+		c.MaxIdleConns = n
+	}
+}
+
+// WithConnMaxLifetime sets the maximum duration a connection can be reused.
+func WithConnMaxLifetime(d time.Duration) Option {
+	return func(c *Config) {
+		c.ConnMaxLifetime = d
+	}
+}
+
+// WithConnMaxIdleTime sets the maximum duration a connection can be idle.
+func WithConnMaxIdleTime(d time.Duration) Option {
+	return func(c *Config) {
+		c.ConnMaxIdleTime = d
+	}
+}
+
+// Connect opens a new database connection with the given configuration.
+// It verifies connectivity via Ping.
+func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) {
+	if driver == "" {
+		return nil, errors.New("dbkit: driver is required")
+	}
+	if dsn == "" {
+		return nil, errors.New("dbkit: dsn is required")
+	}
+
+	cfg := DefaultConfig(driver, dsn)
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	db, err := sqlx.ConnectContext(ctx, cfg.Driver, cfg.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	db.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+
+	return db, nil
+}
+
+// MustConnect is like Connect but panics on error. Suitable for
+// application startup where a missing database is fatal.
+func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
+	db, err := Connect(ctx, driver, dsn, opts...)
+	if err != nil {
+		panic("dbkit: " + err.Error())
+	}
+	return db
+}
+
+// HealthCheck verifies the database is reachable.
+func HealthCheck(ctx context.Context, db *sqlx.DB) error {
+	return db.PingContext(ctx)
+}

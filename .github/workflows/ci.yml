@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ──────────────────────────────────────────────────
+  # Linting
+  # ──────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  # ──────────────────────────────────────────────────
+  # Tests (cross-platform)
+  # ──────────────────────────────────────────────────
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -cover -race -count=1 -timeout=120s -coverprofile=coverage.out ./...
+
+      - name: Upload coverage (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.out
+
+  # ──────────────────────────────────────────────────
+  # Fuzz Tests
+  # ──────────────────────────────────────────────────
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Fuzz result
+        run: go test -fuzz=. -fuzztime=60s ./result/
+
+      - name: Fuzz retry
+        run: go test -fuzz=. -fuzztime=60s ./retry/
+
+      - name: Fuzz circuitbreaker
+        run: go test -fuzz=. -fuzztime=60s ./circuitbreaker/
+
+      - name: Fuzz guard
+        run: go test -fuzz=. -fuzztime=60s ./guard/
+
+      - name: Fuzz jsonutil
+        run: go test -fuzz=. -fuzztime=60s ./jsonutil/
+
+  # ──────────────────────────────────────────────────
+  # Security Analysis (gosec)
+  # ──────────────────────────────────────────────────
+  security:
+    name: Security (gosec)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Run gosec
+        uses: securego/gosec@master
+        with:
+          args: "-fmt sarif -out results.sarif -quiet ./..."
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+  # ──────────────────────────────────────────────────
+  # Vulnerability Check (govulncheck)
+  # ──────────────────────────────────────────────────
+  vulncheck:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
