@@ -174,8 +174,18 @@ func calculateDelay(cfg *Config, attempt int) time.Duration {
 	case StrategyConstant:
 		delay = cfg.InitialDelay
 	case StrategyExponential:
-		multiplier := math.Pow(2, float64(attempt))
-		delay = time.Duration(float64(cfg.InitialDelay) * multiplier)
+		// Cap attempt at 62 to prevent math.Pow(2, 63) from overflowing float64 -> int64 duration casting
+		safeAttempt := attempt
+		if safeAttempt > 62 {
+			safeAttempt = 62
+		}
+		multiplier := math.Pow(2, float64(safeAttempt))
+		calc := float64(cfg.InitialDelay) * multiplier
+		if calc > float64(cfg.MaxDelay) {
+			delay = cfg.MaxDelay
+		} else {
+			delay = time.Duration(calc)
+		}
 	default:
 		delay = cfg.InitialDelay
 	}
@@ -186,6 +196,7 @@ func calculateDelay(cfg *Config, attempt int) time.Duration {
 
 	if cfg.Jitter && delay > 0 {
 		// Full jitter: random value between 0 and delay.
+		// #nosec G404 -- Weak random is acceptable for jitter
 		delay = time.Duration(rand.Int64N(int64(delay)))
 	}
 

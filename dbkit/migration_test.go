@@ -115,6 +115,7 @@ func TestRunMigrationsNoChange(t *testing.T) {
 func TestRunMigrationsInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
+	defer db.Close()
 	driver := newDriver(t, db)
 
 	err := RunMigrations(sqlx.NewDb(db, "sqlite3"), "sqlite3", driver, "file://nonexistent/path")
@@ -207,6 +208,7 @@ func TestRollbackMigrationsSteps(t *testing.T) {
 func TestRollbackMigrationsInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
+	defer db.Close()
 	driver := newDriver(t, db)
 
 	err := RollbackMigrations(sqlx.NewDb(db, "sqlite3"), "sqlite3", driver, "file://nonexistent/path", 1)
@@ -262,6 +264,7 @@ func TestGetMigrationVersionNoMigrations(t *testing.T) {
 func TestGetMigrationVersionInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
+	defer db.Close()
 	driver := newDriver(t, db)
 
 	_, err := GetMigrationVersion("sqlite3", driver, "file://nonexistent/path")
