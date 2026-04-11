@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 type testStruct struct {
@@ -136,6 +137,9 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 	f.Add("", 0)
 	f.Add("José María", -1)
 	f.Fuzz(func(t *testing.T, name string, age int) {
+		if !utf8.ValidString(name) {
+			t.Skip("invalid utf-8 name")
+		}
 		original := testStruct{Name: name, Age: age}
 		data, err := Marshal(original)
 		if err != nil {
