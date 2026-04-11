@@ -1,8 +1,0 @@
-﻿2026-04-11T23:11:38.5500715Z Post job cleanup.
-2026-04-11T23:11:38.8991714Z [command]C:\hostedtoolcache\windows\go\1.26.2\x64\bin\go.exe env GOMODCACHE
-2026-04-11T23:11:38.9087249Z [command]C:\hostedtoolcache\windows\go\1.26.2\x64\bin\go.exe env GOCACHE
-2026-04-11T23:11:38.9345424Z C:\Users\runneradmin\go\pkg\mod
-2026-04-11T23:11:38.9383646Z C:\Users\runneradmin\AppData\Local\go-build
-2026-04-11T23:11:39.0325959Z [command]"C:\Program Files\Git\usr\bin\tar.exe" --posix -cf cache.tzst --exclude cache.tzst -P -C D:/a/GopherCore/GopherCore --files-from manifest.txt --force-local --use-compress-program "zstd -T0"
-2026-04-11T23:11:42.6083729Z Sent 78261788 of 78261788 (100.0%), 78.1 MBs/sec
-2026-04-11T23:11:42.6929029Z Cache saved with the key: setup-go-Windows-x64-go-1.26.2-573c4e9693ec5b8c8b3f8ae6f4f27eaa749279d144c9953dbb07fd3beec3a932

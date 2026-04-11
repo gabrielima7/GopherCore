@@ -1,4 +1,0 @@
-﻿2026-04-11T23:09:55.1990767Z ##[group]Run go mod download
-2026-04-11T23:09:55.1991158Z [36;1mgo mod download[0m
-2026-04-11T23:09:55.2018521Z shell: /usr/bin/bash -e {0}
-2026-04-11T23:09:55.2018805Z ##[endgroup]
