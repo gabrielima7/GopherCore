@@ -1,0 +1,12 @@
+﻿2026-04-11T23:10:19.1875556Z ##[group]Run go test -cover -race -count=1 -timeout=120s -coverprofile coverage.out ./...
+2026-04-11T23:10:19.1876217Z [36;1mgo test -cover -race -count=1 -timeout=120s -coverprofile coverage.out ./...[0m
+2026-04-11T23:10:19.1889691Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-04-11T23:10:19.1890071Z ##[endgroup]
+2026-04-11T23:10:37.5713452Z ok  	github.com/gabrielima7/GopherCore/async	1.115s	coverage: 100.0% of statements
+2026-04-11T23:10:37.9006373Z ok  	github.com/gabrielima7/GopherCore/circuitbreaker	1.387s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8781080Z ok  	github.com/gabrielima7/GopherCore/dbkit	2.788s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8781943Z ok  	github.com/gabrielima7/GopherCore/guard	1.055s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8782804Z ok  	github.com/gabrielima7/GopherCore/httpkit	1.056s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8783574Z ok  	github.com/gabrielima7/GopherCore/jsonutil	1.054s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8785043Z ok  	github.com/gabrielima7/GopherCore/result	1.042s	coverage: 100.0% of statements
+2026-04-11T23:11:37.8785867Z ok  	github.com/gabrielima7/GopherCore/retry	1.087s	coverage: 100.0% of statements

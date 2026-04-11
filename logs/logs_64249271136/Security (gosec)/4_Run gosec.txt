@@ -1,0 +1,8 @@
+﻿2026-04-11T23:09:52.6352956Z ##[group]Run curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+2026-04-11T23:09:52.6353941Z [36;1mcurl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin[0m
+2026-04-11T23:09:52.6354579Z [36;1mgosec -fmt sarif -out results.sarif -quiet ./...[0m
+2026-04-11T23:09:52.6384027Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:09:52.6384317Z ##[endgroup]
+2026-04-11T23:09:52.6958466Z securego/gosec info checking GitHub for latest tag
+2026-04-11T23:09:52.8216705Z securego/gosec info found version: 2.25.0 for v2.25.0/linux/amd64
+2026-04-11T23:09:53.6110406Z securego/gosec info installed /home/runner/go/bin/gosec

@@ -1,0 +1,29 @@
+﻿2026-04-11T23:12:05.1613536Z ##[group]Run go test -fuzz=. -fuzztime=60s ./circuitbreaker/
+2026-04-11T23:12:05.1614336Z [36;1mgo test -fuzz=. -fuzztime=60s ./circuitbreaker/[0m
+2026-04-11T23:12:05.1646630Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:12:05.1647034Z ##[endgroup]
+2026-04-11T23:12:05.7546566Z fuzz: elapsed: 0s, gathering baseline coverage: 0/1 completed
+2026-04-11T23:12:05.7620041Z fuzz: elapsed: 0s, gathering baseline coverage: 1/1 completed, now fuzzing with 4 workers
+2026-04-11T23:12:08.7597105Z fuzz: elapsed: 3s, execs: 206223 (68740/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:11.7563240Z fuzz: elapsed: 6s, execs: 416719 (70146/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:14.7561113Z fuzz: elapsed: 9s, execs: 630468 (71260/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:17.7559913Z fuzz: elapsed: 12s, execs: 839308 (69610/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:20.7566935Z fuzz: elapsed: 15s, execs: 1049203 (69926/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:23.7572548Z fuzz: elapsed: 18s, execs: 1260738 (70553/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:26.7550064Z fuzz: elapsed: 21s, execs: 1472988 (70755/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:29.7550371Z fuzz: elapsed: 24s, execs: 1687679 (71556/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:32.7547810Z fuzz: elapsed: 27s, execs: 1896577 (69640/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:35.7552422Z fuzz: elapsed: 30s, execs: 2109880 (71089/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:38.7549877Z fuzz: elapsed: 33s, execs: 2320234 (70124/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:41.7549946Z fuzz: elapsed: 36s, execs: 2532205 (70657/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:44.7558658Z fuzz: elapsed: 39s, execs: 2741648 (69807/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:47.7568755Z fuzz: elapsed: 42s, execs: 2953763 (70702/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:50.7571996Z fuzz: elapsed: 45s, execs: 3164075 (70114/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:53.7551367Z fuzz: elapsed: 48s, execs: 3375888 (70611/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:56.7561895Z fuzz: elapsed: 51s, execs: 3589299 (71119/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:59.7574791Z fuzz: elapsed: 54s, execs: 3801078 (70587/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:02.7550404Z fuzz: elapsed: 57s, execs: 4014004 (70994/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.7548736Z fuzz: elapsed: 1m0s, execs: 4226497 (70836/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.8458662Z fuzz: elapsed: 1m0s, execs: 4226497 (0/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.8459578Z PASS
+2026-04-11T23:13:05.8465758Z ok  	github.com/gabrielima7/GopherCore/circuitbreaker	60.397s

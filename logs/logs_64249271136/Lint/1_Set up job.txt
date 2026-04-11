@@ -1,0 +1,32 @@
+﻿2026-04-11T23:09:42.2897864Z Current runner version: '2.333.1'
+2026-04-11T23:09:42.2933213Z ##[group]Runner Image Provisioner
+2026-04-11T23:09:42.2934626Z Hosted Compute Agent
+2026-04-11T23:09:42.2935526Z Version: 20260213.493
+2026-04-11T23:09:42.2936519Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-11T23:09:42.2937779Z Build Date: 2026-02-13T00:28:41Z
+2026-04-11T23:09:42.2938952Z Worker ID: {c7d631a5-8cc1-4f78-aa64-8fcc9e400ec8}
+2026-04-11T23:09:42.2940089Z Azure Region: eastus2
+2026-04-11T23:09:42.2941189Z ##[endgroup]
+2026-04-11T23:09:42.2943764Z ##[group]Operating System
+2026-04-11T23:09:42.2944778Z Ubuntu
+2026-04-11T23:09:42.2945742Z 24.04.4
+2026-04-11T23:09:42.2946488Z LTS
+2026-04-11T23:09:42.2947373Z ##[endgroup]
+2026-04-11T23:09:42.2948271Z ##[group]Runner Image
+2026-04-11T23:09:42.2949157Z Image: ubuntu-24.04
+2026-04-11T23:09:42.2949916Z Version: 20260406.80.1
+2026-04-11T23:09:42.2951935Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260406.80/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-11T23:09:42.2954745Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260406.80
+2026-04-11T23:09:42.2956333Z ##[endgroup]
+2026-04-11T23:09:42.2958184Z ##[group]GITHUB_TOKEN Permissions
+2026-04-11T23:09:42.2960915Z Contents: read
+2026-04-11T23:09:42.2962039Z Metadata: read
+2026-04-11T23:09:42.2962939Z SecurityEvents: write
+2026-04-11T23:09:42.2963760Z ##[endgroup]
+2026-04-11T23:09:42.2966693Z Secret source: Actions
+2026-04-11T23:09:42.2967954Z Prepare workflow directory
+2026-04-11T23:09:42.3443918Z Prepare all required actions
+2026-04-11T23:09:42.3502293Z Getting action download info
+2026-04-11T23:09:42.6088148Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-04-11T23:09:42.7461458Z Download action repository 'actions/setup-go@v5' (SHA:40f1582b2485089dde7abd97c1529aa768e1baff)
+2026-04-11T23:09:43.1148137Z Complete job name: Lint
