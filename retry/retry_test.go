@@ -270,6 +270,24 @@ func TestCalculateDelayMaxCap(t *testing.T) {
 	if delay != 5*time.Second {
 		t.Fatalf("expected max delay 5s, got %v", delay)
 	}
+
+	// Also test an extremely large attempt that hits the 62 cap.
+	delayLarge := calculateDelay(cfg, 100)
+	if delayLarge != 5*time.Second {
+		t.Fatalf("expected max delay 5s for huge attempt, got %v", delayLarge)
+	}
+}
+
+func TestCalculateDelayInitialExceedsMax(t *testing.T) {
+	cfg := &Config{
+		InitialDelay: 10 * time.Second,
+		MaxDelay:     5 * time.Second,
+		Strategy:     StrategyConstant,
+	}
+	delay := calculateDelay(cfg, 1)
+	if delay != 5*time.Second {
+		t.Fatalf("expected max delay 5s when initial > max, got %v", delay)
+	}
 }
 
 func TestCalculateDelayUnknownStrategy(t *testing.T) {
