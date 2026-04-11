@@ -1,0 +1,20 @@
+﻿2026-04-11T23:10:48.8440257Z ##[group]Run actions/upload-artifact@v4
+2026-04-11T23:10:48.8440554Z with:
+2026-04-11T23:10:48.8440751Z   name: coverage-report
+2026-04-11T23:10:48.8440961Z   path: coverage.out
+2026-04-11T23:10:48.8441163Z   if-no-files-found: warn
+2026-04-11T23:10:48.8441378Z   compression-level: 6
+2026-04-11T23:10:48.8441569Z   overwrite: false
+2026-04-11T23:10:48.8441769Z   include-hidden-files: false
+2026-04-11T23:10:48.8442007Z ##[endgroup]
+2026-04-11T23:10:49.0582779Z With the provided path, there will be 1 file uploaded
+2026-04-11T23:10:49.0588385Z Artifact name is valid!
+2026-04-11T23:10:49.0589531Z Root directory input is valid!
+2026-04-11T23:10:49.1416918Z Beginning upload of artifact content to blob storage
+2026-04-11T23:10:49.2049124Z Uploaded bytes 3008
+2026-04-11T23:10:49.2190430Z Finished uploading artifact content to blob storage!
+2026-04-11T23:10:49.2193687Z SHA256 digest of uploaded artifact zip is e340628611b52fc8ccc0e6aaefadc675c10a70e04ad04c0d3c59279f019cac78
+2026-04-11T23:10:49.2195999Z Finalizing artifact upload
+2026-04-11T23:10:49.2898118Z Artifact coverage-report.zip successfully finalized. Artifact ID 6388720416
+2026-04-11T23:10:49.2899567Z Artifact coverage-report has been successfully uploaded! Final size is 3008 bytes. Artifact ID is 6388720416
+2026-04-11T23:10:49.2905706Z Artifact download URL: https://github.com/gabrielima7/GopherCore/actions/runs/24293685036/artifacts/6388720416

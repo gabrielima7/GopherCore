@@ -1,0 +1,29 @@
+﻿2026-04-11T23:13:05.8540372Z ##[group]Run go test -fuzz=. -fuzztime=60s ./guard/
+2026-04-11T23:13:05.8540785Z [36;1mgo test -fuzz=. -fuzztime=60s ./guard/[0m
+2026-04-11T23:13:05.8562260Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:13:05.8562511Z ##[endgroup]
+2026-04-11T23:13:14.2842311Z fuzz: elapsed: 0s, gathering baseline coverage: 0/4 completed
+2026-04-11T23:13:14.3029648Z fuzz: elapsed: 0s, gathering baseline coverage: 4/4 completed, now fuzzing with 4 workers
+2026-04-11T23:13:17.2887068Z fuzz: elapsed: 3s, execs: 82753 (27582/sec), new interesting: 33 (total: 37)
+2026-04-11T23:13:20.2896115Z fuzz: elapsed: 6s, execs: 158168 (25138/sec), new interesting: 38 (total: 42)
+2026-04-11T23:13:23.2842570Z fuzz: elapsed: 9s, execs: 351502 (64448/sec), new interesting: 49 (total: 53)
+2026-04-11T23:13:26.2846621Z fuzz: elapsed: 12s, execs: 477363 (41949/sec), new interesting: 59 (total: 63)
+2026-04-11T23:13:29.2853987Z fuzz: elapsed: 15s, execs: 593515 (38719/sec), new interesting: 62 (total: 66)
+2026-04-11T23:13:32.2844473Z fuzz: elapsed: 18s, execs: 706993 (37827/sec), new interesting: 69 (total: 73)
+2026-04-11T23:13:35.2847528Z fuzz: elapsed: 21s, execs: 808939 (33978/sec), new interesting: 69 (total: 73)
+2026-04-11T23:13:38.2865949Z fuzz: elapsed: 24s, execs: 923509 (38189/sec), new interesting: 70 (total: 74)
+2026-04-11T23:13:41.2854545Z fuzz: elapsed: 27s, execs: 1047510 (41335/sec), new interesting: 71 (total: 75)
+2026-04-11T23:13:44.2876549Z fuzz: elapsed: 30s, execs: 1141973 (31487/sec), new interesting: 71 (total: 75)
+2026-04-11T23:13:47.2857490Z fuzz: elapsed: 33s, execs: 1258829 (38947/sec), new interesting: 72 (total: 76)
+2026-04-11T23:13:50.2849389Z fuzz: elapsed: 36s, execs: 1370191 (37125/sec), new interesting: 75 (total: 79)
+2026-04-11T23:13:53.2872283Z fuzz: elapsed: 39s, execs: 1486636 (38818/sec), new interesting: 76 (total: 80)
+2026-04-11T23:13:56.2858234Z fuzz: elapsed: 42s, execs: 1588197 (33857/sec), new interesting: 77 (total: 81)
+2026-04-11T23:13:59.2866086Z fuzz: elapsed: 45s, execs: 1707584 (39779/sec), new interesting: 78 (total: 82)
+2026-04-11T23:14:02.2856722Z fuzz: elapsed: 48s, execs: 1810213 (34218/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:05.2865667Z fuzz: elapsed: 51s, execs: 1930392 (40058/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:08.2866665Z fuzz: elapsed: 54s, execs: 2039867 (36471/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:11.2889350Z fuzz: elapsed: 57s, execs: 2147491 (35850/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.2868221Z fuzz: elapsed: 1m0s, execs: 2254441 (35703/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.3892035Z fuzz: elapsed: 1m0s, execs: 2254441 (0/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.3892477Z PASS
+2026-04-11T23:14:14.3910822Z ok  	github.com/gabrielima7/GopherCore/guard	60.111s

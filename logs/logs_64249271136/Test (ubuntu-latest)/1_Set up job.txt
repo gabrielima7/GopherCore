@@ -1,0 +1,33 @@
+﻿2026-04-11T23:09:42.3882974Z Current runner version: '2.333.1'
+2026-04-11T23:09:42.3921622Z ##[group]Runner Image Provisioner
+2026-04-11T23:09:42.3922977Z Hosted Compute Agent
+2026-04-11T23:09:42.3923951Z Version: 20260213.493
+2026-04-11T23:09:42.3925088Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-11T23:09:42.3926094Z Build Date: 2026-02-13T00:28:41Z
+2026-04-11T23:09:42.3927189Z Worker ID: {5215ef52-9efc-4346-b21d-ecf05b12815d}
+2026-04-11T23:09:42.3928171Z Azure Region: eastus
+2026-04-11T23:09:42.3928984Z ##[endgroup]
+2026-04-11T23:09:42.3931191Z ##[group]Operating System
+2026-04-11T23:09:42.3932094Z Ubuntu
+2026-04-11T23:09:42.3932728Z 24.04.4
+2026-04-11T23:09:42.3933555Z LTS
+2026-04-11T23:09:42.3934245Z ##[endgroup]
+2026-04-11T23:09:42.3935198Z ##[group]Runner Image
+2026-04-11T23:09:42.3936212Z Image: ubuntu-24.04
+2026-04-11T23:09:42.3936931Z Version: 20260406.80.1
+2026-04-11T23:09:42.3938600Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260406.80/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-11T23:09:42.3941255Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260406.80
+2026-04-11T23:09:42.3942890Z ##[endgroup]
+2026-04-11T23:09:42.3944563Z ##[group]GITHUB_TOKEN Permissions
+2026-04-11T23:09:42.3947395Z Contents: read
+2026-04-11T23:09:42.3948199Z Metadata: read
+2026-04-11T23:09:42.3948878Z SecurityEvents: write
+2026-04-11T23:09:42.3949853Z ##[endgroup]
+2026-04-11T23:09:42.3952908Z Secret source: Actions
+2026-04-11T23:09:42.3953949Z Prepare workflow directory
+2026-04-11T23:09:42.4440444Z Prepare all required actions
+2026-04-11T23:09:42.4497988Z Getting action download info
+2026-04-11T23:09:42.6767722Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-04-11T23:09:42.8443923Z Download action repository 'actions/setup-go@v5' (SHA:40f1582b2485089dde7abd97c1529aa768e1baff)
+2026-04-11T23:09:43.0974694Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-04-11T23:09:43.3367213Z Complete job name: Test (ubuntu-latest)

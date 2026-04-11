@@ -1,0 +1,354 @@
+﻿2026-04-11T23:09:42.6445615Z Current runner version: '2.333.1'
+2026-04-11T23:09:42.6482880Z ##[group]Runner Image Provisioner
+2026-04-11T23:09:42.6484260Z Hosted Compute Agent
+2026-04-11T23:09:42.6485579Z Version: 20260213.493
+2026-04-11T23:09:42.6486573Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-11T23:09:42.6487922Z Build Date: 2026-02-13T00:28:41Z
+2026-04-11T23:09:42.6489028Z Worker ID: {b7e4d859-8983-4de8-ba3b-09d138521a69}
+2026-04-11T23:09:42.6490273Z Azure Region: northcentralus
+2026-04-11T23:09:42.6491385Z ##[endgroup]
+2026-04-11T23:09:42.6493552Z ##[group]Operating System
+2026-04-11T23:09:42.6494648Z Ubuntu
+2026-04-11T23:09:42.6495780Z 24.04.4
+2026-04-11T23:09:42.6496619Z LTS
+2026-04-11T23:09:42.6497375Z ##[endgroup]
+2026-04-11T23:09:42.6498395Z ##[group]Runner Image
+2026-04-11T23:09:42.6499253Z Image: ubuntu-24.04
+2026-04-11T23:09:42.6499846Z Version: 20260406.80.1
+2026-04-11T23:09:42.6501075Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260406.80/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-11T23:09:42.6502517Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260406.80
+2026-04-11T23:09:42.6503447Z ##[endgroup]
+2026-04-11T23:09:42.6504597Z ##[group]GITHUB_TOKEN Permissions
+2026-04-11T23:09:42.6507057Z Contents: read
+2026-04-11T23:09:42.6507726Z Metadata: read
+2026-04-11T23:09:42.6508209Z SecurityEvents: write
+2026-04-11T23:09:42.6508848Z ##[endgroup]
+2026-04-11T23:09:42.6510967Z Secret source: Actions
+2026-04-11T23:09:42.6511729Z Prepare workflow directory
+2026-04-11T23:09:42.7428245Z Prepare all required actions
+2026-04-11T23:09:42.7467209Z Getting action download info
+2026-04-11T23:09:43.0084638Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-04-11T23:09:43.5600766Z Download action repository 'actions/setup-go@v5' (SHA:40f1582b2485089dde7abd97c1529aa768e1baff)
+2026-04-11T23:09:44.1658643Z Complete job name: Fuzz
+2026-04-11T23:09:44.2549231Z ##[group]Run actions/checkout@v4
+2026-04-11T23:09:44.2550599Z with:
+2026-04-11T23:09:44.2551425Z   repository: gabrielima7/GopherCore
+2026-04-11T23:09:44.2552764Z   token: ***
+2026-04-11T23:09:44.2553525Z   ssh-strict: true
+2026-04-11T23:09:44.2554300Z   ssh-user: git
+2026-04-11T23:09:44.2555354Z   persist-credentials: true
+2026-04-11T23:09:44.2556268Z   clean: true
+2026-04-11T23:09:44.2557076Z   sparse-checkout-cone-mode: true
+2026-04-11T23:09:44.2558064Z   fetch-depth: 1
+2026-04-11T23:09:44.2558833Z   fetch-tags: false
+2026-04-11T23:09:44.2559636Z   show-progress: true
+2026-04-11T23:09:44.2560444Z   lfs: false
+2026-04-11T23:09:44.2561198Z   submodules: false
+2026-04-11T23:09:44.2562012Z   set-safe-directory: true
+2026-04-11T23:09:44.2563180Z ##[endgroup]
+2026-04-11T23:09:44.3680632Z Syncing repository: gabrielima7/GopherCore
+2026-04-11T23:09:44.3683394Z ##[group]Getting Git version info
+2026-04-11T23:09:44.3684808Z Working directory is '/home/runner/work/GopherCore/GopherCore'
+2026-04-11T23:09:44.3687168Z [command]/usr/bin/git version
+2026-04-11T23:09:44.3717184Z git version 2.53.0
+2026-04-11T23:09:44.3744709Z ##[endgroup]
+2026-04-11T23:09:44.3760738Z Temporarily overriding HOME='/home/runner/work/_temp/57ba4874-4b5b-4a22-a019-2c4cf822d84d' before making global git config changes
+2026-04-11T23:09:44.3763627Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-11T23:09:44.3776770Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/GopherCore/GopherCore
+2026-04-11T23:09:44.3810147Z Deleting the contents of '/home/runner/work/GopherCore/GopherCore'
+2026-04-11T23:09:44.3813882Z ##[group]Initializing the repository
+2026-04-11T23:09:44.3818345Z [command]/usr/bin/git init /home/runner/work/GopherCore/GopherCore
+2026-04-11T23:09:44.3903272Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-04-11T23:09:44.3906374Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-04-11T23:09:44.3908335Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-04-11T23:09:44.3910914Z hint: call:
+2026-04-11T23:09:44.3912320Z hint:
+2026-04-11T23:09:44.3913574Z hint: 	git config --global init.defaultBranch <name>
+2026-04-11T23:09:44.3915153Z hint:
+2026-04-11T23:09:44.3916999Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-04-11T23:09:44.3919594Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-04-11T23:09:44.3921242Z hint:
+2026-04-11T23:09:44.3921994Z hint: 	git branch -m <name>
+2026-04-11T23:09:44.3922867Z hint:
+2026-04-11T23:09:44.3924067Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-04-11T23:09:44.3926645Z Initialized empty Git repository in /home/runner/work/GopherCore/GopherCore/.git/
+2026-04-11T23:09:44.3931582Z [command]/usr/bin/git remote add origin https://github.com/gabrielima7/GopherCore
+2026-04-11T23:09:44.3950223Z ##[endgroup]
+2026-04-11T23:09:44.3952491Z ##[group]Disabling automatic garbage collection
+2026-04-11T23:09:44.3954547Z [command]/usr/bin/git config --local gc.auto 0
+2026-04-11T23:09:44.3983513Z ##[endgroup]
+2026-04-11T23:09:44.3985535Z ##[group]Setting up auth
+2026-04-11T23:09:44.3989814Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-11T23:09:44.4022538Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-11T23:09:44.4308392Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-11T23:09:44.4342012Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-11T23:09:44.4563343Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-11T23:09:44.4595958Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-11T23:09:44.4832051Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-04-11T23:09:44.4868921Z ##[endgroup]
+2026-04-11T23:09:44.4871430Z ##[group]Fetching the repository
+2026-04-11T23:09:44.4881220Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ada58fd1a59416d4ff0aab20a20c08d241d92801:refs/remotes/origin/main
+2026-04-11T23:09:44.7511221Z From https://github.com/gabrielima7/GopherCore
+2026-04-11T23:09:44.7512849Z  * [new ref]         ada58fd1a59416d4ff0aab20a20c08d241d92801 -> origin/main
+2026-04-11T23:09:44.7539945Z ##[endgroup]
+2026-04-11T23:09:44.7541688Z ##[group]Determining the checkout info
+2026-04-11T23:09:44.7543446Z ##[endgroup]
+2026-04-11T23:09:44.7547597Z [command]/usr/bin/git sparse-checkout disable
+2026-04-11T23:09:44.7587118Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-04-11T23:09:44.7619580Z ##[group]Checking out the ref
+2026-04-11T23:09:44.7621986Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-04-11T23:09:44.7695180Z Switched to a new branch 'main'
+2026-04-11T23:09:44.7703526Z branch 'main' set up to track 'origin/main'.
+2026-04-11T23:09:44.7708377Z ##[endgroup]
+2026-04-11T23:09:44.7743976Z [command]/usr/bin/git log -1 --format=%H
+2026-04-11T23:09:44.7767180Z ada58fd1a59416d4ff0aab20a20c08d241d92801
+2026-04-11T23:09:44.8128532Z ##[group]Run actions/setup-go@v5
+2026-04-11T23:09:44.8131596Z with:
+2026-04-11T23:09:44.8132754Z   go-version: 1.26
+2026-04-11T23:09:44.8134209Z   check-latest: false
+2026-04-11T23:09:44.8136546Z   token: ***
+2026-04-11T23:09:44.8138854Z   cache: true
+2026-04-11T23:09:44.8150137Z ##[endgroup]
+2026-04-11T23:09:44.9862003Z Setup go version spec 1.26
+2026-04-11T23:09:45.0261276Z Attempting to download 1.26...
+2026-04-11T23:09:45.4790820Z matching 1.26...
+2026-04-11T23:09:45.4802682Z Acquiring 1.26.2 from https://github.com/actions/go-versions/releases/download/1.26.2-24114135105/go-1.26.2-linux-x64.tar.gz
+2026-04-11T23:09:46.1618604Z Extracting Go...
+2026-04-11T23:09:46.1738014Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/377a6d1a-1161-4252-b2e0-9e75c1fd7ff5 -f /home/runner/work/_temp/225541b6-06cd-47b5-a285-1e8985cbccf4
+2026-04-11T23:09:47.8063843Z Successfully extracted go to /home/runner/work/_temp/377a6d1a-1161-4252-b2e0-9e75c1fd7ff5
+2026-04-11T23:09:47.8064853Z Adding to the cache ...
+2026-04-11T23:09:53.4639074Z Successfully cached go to /opt/hostedtoolcache/go/1.26.2/x64
+2026-04-11T23:09:53.4640664Z Added go to the path
+2026-04-11T23:09:53.4643771Z Successfully set up Go version 1.26
+2026-04-11T23:09:53.4863722Z [command]/opt/hostedtoolcache/go/1.26.2/x64/bin/go env GOMODCACHE
+2026-04-11T23:09:53.4894082Z [command]/opt/hostedtoolcache/go/1.26.2/x64/bin/go env GOCACHE
+2026-04-11T23:09:53.4945967Z /home/runner/go/pkg/mod
+2026-04-11T23:09:53.4965879Z /home/runner/.cache/go-build
+2026-04-11T23:09:53.5975003Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.26.2-979ce10b8bf1ad5bf7709ed24ae6b72cf28ebba05f3a2bfd48cf5566be97e5f3
+2026-04-11T23:09:54.4424340Z Received 75791200 of 75791200 (100.0%), 98.5 MBs/sec
+2026-04-11T23:09:54.4425644Z Cache Size: ~72 MB (75791200 B)
+2026-04-11T23:09:54.4545680Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d2dc501b-f219-431a-89ba-8cfd7be21c30/cache.tzst -P -C /home/runner/work/GopherCore/GopherCore --use-compress-program unzstd
+2026-04-11T23:09:55.1339345Z Cache restored successfully
+2026-04-11T23:09:55.1381994Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.26.2-979ce10b8bf1ad5bf7709ed24ae6b72cf28ebba05f3a2bfd48cf5566be97e5f3
+2026-04-11T23:09:55.1409537Z go version go1.26.2 linux/amd64
+2026-04-11T23:09:55.1409756Z 
+2026-04-11T23:09:55.1410039Z ##[group]go env
+2026-04-11T23:09:55.1815624Z AR='ar'
+2026-04-11T23:09:55.1815985Z CC='gcc'
+2026-04-11T23:09:55.1816243Z CGO_CFLAGS='-O2 -g'
+2026-04-11T23:09:55.1816544Z CGO_CPPFLAGS=''
+2026-04-11T23:09:55.1816817Z CGO_CXXFLAGS='-O2 -g'
+2026-04-11T23:09:55.1817101Z CGO_ENABLED='1'
+2026-04-11T23:09:55.1817341Z CGO_FFLAGS='-O2 -g'
+2026-04-11T23:09:55.1817602Z CGO_LDFLAGS='-O2 -g'
+2026-04-11T23:09:55.1817846Z CXX='g++'
+2026-04-11T23:09:55.1818064Z GCCGO='gccgo'
+2026-04-11T23:09:55.1818301Z GO111MODULE=''
+2026-04-11T23:09:55.1818549Z GOAMD64='v1'
+2026-04-11T23:09:55.1818795Z GOARCH='amd64'
+2026-04-11T23:09:55.1819053Z GOAUTH='netrc'
+2026-04-11T23:09:55.1819290Z GOBIN=''
+2026-04-11T23:09:55.1819550Z GOCACHE='/home/runner/.cache/go-build'
+2026-04-11T23:09:55.1819877Z GOCACHEPROG=''
+2026-04-11T23:09:55.1820110Z GODEBUG=''
+2026-04-11T23:09:55.1820379Z GOENV='/home/runner/.config/go/env'
+2026-04-11T23:09:55.1820681Z GOEXE=''
+2026-04-11T23:09:55.1820899Z GOEXPERIMENT=''
+2026-04-11T23:09:55.1821136Z GOFIPS140='off'
+2026-04-11T23:09:55.1821357Z GOFLAGS=''
+2026-04-11T23:09:55.1822164Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build83144928=/tmp/go-build -gno-record-gcc-switches'
+2026-04-11T23:09:55.1823027Z GOHOSTARCH='amd64'
+2026-04-11T23:09:55.1823293Z GOHOSTOS='linux'
+2026-04-11T23:09:55.1823525Z GOINSECURE=''
+2026-04-11T23:09:55.1823845Z GOMOD='/home/runner/work/GopherCore/GopherCore/go.mod'
+2026-04-11T23:09:55.1824259Z GOMODCACHE='/home/runner/go/pkg/mod'
+2026-04-11T23:09:55.1824574Z GONOPROXY=''
+2026-04-11T23:09:55.1824804Z GONOSUMDB=''
+2026-04-11T23:09:55.1825362Z GOOS='linux'
+2026-04-11T23:09:55.1825881Z GOPATH='/home/runner/go'
+2026-04-11T23:09:55.1826171Z GOPRIVATE=''
+2026-04-11T23:09:55.1826492Z GOPROXY='https://proxy.golang.org,direct'
+2026-04-11T23:09:55.1826942Z GOROOT='/opt/hostedtoolcache/go/1.26.2/x64'
+2026-04-11T23:09:55.1827312Z GOSUMDB='sum.golang.org'
+2026-04-11T23:09:55.1827594Z GOTELEMETRY='local'
+2026-04-11T23:09:55.1827911Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2026-04-11T23:09:55.1828271Z GOTMPDIR=''
+2026-04-11T23:09:55.1828462Z GOTOOLCHAIN='auto'
+2026-04-11T23:09:55.1828829Z GOTOOLDIR='/opt/hostedtoolcache/go/1.26.2/x64/pkg/tool/linux_amd64'
+2026-04-11T23:09:55.1829359Z GOVCS=''
+2026-04-11T23:09:55.1829575Z GOVERSION='go1.26.2'
+2026-04-11T23:09:55.1829779Z GOWORK=''
+2026-04-11T23:09:55.1829966Z PKG_CONFIG='pkg-config'
+2026-04-11T23:09:55.1830110Z 
+2026-04-11T23:09:55.1830429Z ##[endgroup]
+2026-04-11T23:09:55.1990783Z ##[group]Run go mod download
+2026-04-11T23:09:55.1991161Z [36;1mgo mod download[0m
+2026-04-11T23:09:55.2018533Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:09:55.2018809Z ##[endgroup]
+2026-04-11T23:09:55.4341596Z ##[group]Run go test -fuzz=. -fuzztime=60s ./result/
+2026-04-11T23:09:55.4342009Z [36;1mgo test -fuzz=. -fuzztime=60s ./result/[0m
+2026-04-11T23:09:55.4363688Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:09:55.4363946Z ##[endgroup]
+2026-04-11T23:10:04.5643439Z fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+2026-04-11T23:10:04.5703060Z fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 4 workers
+2026-04-11T23:10:07.5662184Z fuzz: elapsed: 3s, execs: 297955 (99299/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:10.5653876Z fuzz: elapsed: 6s, execs: 604461 (102165/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:13.5650270Z fuzz: elapsed: 9s, execs: 912325 (102621/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:16.5644329Z fuzz: elapsed: 12s, execs: 1212801 (100178/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:19.5667620Z fuzz: elapsed: 15s, execs: 1519302 (102090/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:22.5644727Z fuzz: elapsed: 18s, execs: 1807177 (96032/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:25.5650251Z fuzz: elapsed: 21s, execs: 2114622 (102478/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:28.5662001Z fuzz: elapsed: 24s, execs: 2419712 (101697/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:31.5648565Z fuzz: elapsed: 27s, execs: 2724309 (101521/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:34.5650091Z fuzz: elapsed: 30s, execs: 3037835 (104503/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:37.5653781Z fuzz: elapsed: 33s, execs: 3339039 (100414/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:40.5659387Z fuzz: elapsed: 36s, execs: 3648610 (103151/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:43.5655461Z fuzz: elapsed: 39s, execs: 3959004 (103479/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:46.5653106Z fuzz: elapsed: 42s, execs: 4258867 (99964/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:49.5649894Z fuzz: elapsed: 45s, execs: 4569984 (103710/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:52.5652786Z fuzz: elapsed: 48s, execs: 4876546 (102178/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:55.5662237Z fuzz: elapsed: 51s, execs: 5182008 (101822/sec), new interesting: 0 (total: 3)
+2026-04-11T23:10:58.5668132Z fuzz: elapsed: 54s, execs: 5489966 (102657/sec), new interesting: 0 (total: 3)
+2026-04-11T23:11:01.5675943Z fuzz: elapsed: 57s, execs: 5796279 (102116/sec), new interesting: 0 (total: 3)
+2026-04-11T23:11:04.5662623Z fuzz: elapsed: 1m0s, execs: 6102740 (102161/sec), new interesting: 0 (total: 3)
+2026-04-11T23:11:04.6430540Z fuzz: elapsed: 1m0s, execs: 6102740 (0/sec), new interesting: 0 (total: 3)
+2026-04-11T23:11:04.6431372Z PASS
+2026-04-11T23:11:04.6438058Z ok  	github.com/gabrielima7/GopherCore/result	60.082s
+2026-04-11T23:11:04.6724283Z ##[group]Run go test -fuzz=. -fuzztime=60s ./retry/
+2026-04-11T23:11:04.6724654Z [36;1mgo test -fuzz=. -fuzztime=60s ./retry/[0m
+2026-04-11T23:11:04.6746052Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:11:04.6746296Z ##[endgroup]
+2026-04-11T23:11:05.0837109Z fuzz: elapsed: 0s, gathering baseline coverage: 0/2 completed
+2026-04-11T23:11:05.0896760Z fuzz: elapsed: 0s, gathering baseline coverage: 2/2 completed, now fuzzing with 4 workers
+2026-04-11T23:11:08.0856036Z fuzz: elapsed: 3s, execs: 230713 (76882/sec), new interesting: 8 (total: 10)
+2026-04-11T23:11:11.0885567Z fuzz: elapsed: 6s, execs: 471704 (80353/sec), new interesting: 8 (total: 10)
+2026-04-11T23:11:14.0866594Z fuzz: elapsed: 9s, execs: 710896 (79714/sec), new interesting: 8 (total: 10)
+2026-04-11T23:11:17.0847239Z fuzz: elapsed: 12s, execs: 956964 (82014/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:20.0856068Z fuzz: elapsed: 15s, execs: 1188303 (77114/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:23.0847441Z fuzz: elapsed: 18s, execs: 1425481 (79077/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:26.0838705Z fuzz: elapsed: 21s, execs: 1660460 (78330/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:29.0844430Z fuzz: elapsed: 24s, execs: 1901796 (80433/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:32.0843718Z fuzz: elapsed: 27s, execs: 2137257 (78486/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:35.0847714Z fuzz: elapsed: 30s, execs: 2378824 (80513/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:38.0868757Z fuzz: elapsed: 33s, execs: 2615590 (78924/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:41.0842200Z fuzz: elapsed: 36s, execs: 2852145 (78864/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:44.0865999Z fuzz: elapsed: 39s, execs: 3092395 (80086/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:47.0844234Z fuzz: elapsed: 42s, execs: 3333886 (80489/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:50.0839356Z fuzz: elapsed: 45s, execs: 3573274 (79810/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:53.0857894Z fuzz: elapsed: 48s, execs: 3811645 (79408/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:56.0840073Z fuzz: elapsed: 51s, execs: 4043958 (77482/sec), new interesting: 9 (total: 11)
+2026-04-11T23:11:59.0908706Z fuzz: elapsed: 54s, execs: 4284501 (80174/sec), new interesting: 9 (total: 11)
+2026-04-11T23:12:02.0887136Z fuzz: elapsed: 57s, execs: 4522365 (79283/sec), new interesting: 9 (total: 11)
+2026-04-11T23:12:05.0850625Z fuzz: elapsed: 1m0s, execs: 4758946 (78879/sec), new interesting: 9 (total: 11)
+2026-04-11T23:12:05.1510839Z fuzz: elapsed: 1m0s, execs: 4758946 (0/sec), new interesting: 9 (total: 11)
+2026-04-11T23:12:05.1511317Z PASS
+2026-04-11T23:12:05.1517151Z ok  	github.com/gabrielima7/GopherCore/retry	60.101s
+2026-04-11T23:12:05.1613553Z ##[group]Run go test -fuzz=. -fuzztime=60s ./circuitbreaker/
+2026-04-11T23:12:05.1614344Z [36;1mgo test -fuzz=. -fuzztime=60s ./circuitbreaker/[0m
+2026-04-11T23:12:05.1646639Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:12:05.1647039Z ##[endgroup]
+2026-04-11T23:12:05.7546610Z fuzz: elapsed: 0s, gathering baseline coverage: 0/1 completed
+2026-04-11T23:12:05.7620094Z fuzz: elapsed: 0s, gathering baseline coverage: 1/1 completed, now fuzzing with 4 workers
+2026-04-11T23:12:08.7597156Z fuzz: elapsed: 3s, execs: 206223 (68740/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:11.7563299Z fuzz: elapsed: 6s, execs: 416719 (70146/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:14.7561162Z fuzz: elapsed: 9s, execs: 630468 (71260/sec), new interesting: 22 (total: 23)
+2026-04-11T23:12:17.7559961Z fuzz: elapsed: 12s, execs: 839308 (69610/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:20.7567076Z fuzz: elapsed: 15s, execs: 1049203 (69926/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:23.7572602Z fuzz: elapsed: 18s, execs: 1260738 (70553/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:26.7550116Z fuzz: elapsed: 21s, execs: 1472988 (70755/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:29.7550423Z fuzz: elapsed: 24s, execs: 1687679 (71556/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:32.7547865Z fuzz: elapsed: 27s, execs: 1896577 (69640/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:35.7552473Z fuzz: elapsed: 30s, execs: 2109880 (71089/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:38.7549927Z fuzz: elapsed: 33s, execs: 2320234 (70124/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:41.7549989Z fuzz: elapsed: 36s, execs: 2532205 (70657/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:44.7558707Z fuzz: elapsed: 39s, execs: 2741648 (69807/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:47.7568801Z fuzz: elapsed: 42s, execs: 2953763 (70702/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:50.7572091Z fuzz: elapsed: 45s, execs: 3164075 (70114/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:53.7551417Z fuzz: elapsed: 48s, execs: 3375888 (70611/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:56.7561944Z fuzz: elapsed: 51s, execs: 3589299 (71119/sec), new interesting: 23 (total: 24)
+2026-04-11T23:12:59.7574843Z fuzz: elapsed: 54s, execs: 3801078 (70587/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:02.7550450Z fuzz: elapsed: 57s, execs: 4014004 (70994/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.7548788Z fuzz: elapsed: 1m0s, execs: 4226497 (70836/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.8458721Z fuzz: elapsed: 1m0s, execs: 4226497 (0/sec), new interesting: 23 (total: 24)
+2026-04-11T23:13:05.8459590Z PASS
+2026-04-11T23:13:05.8465785Z ok  	github.com/gabrielima7/GopherCore/circuitbreaker	60.397s
+2026-04-11T23:13:05.8540388Z ##[group]Run go test -fuzz=. -fuzztime=60s ./guard/
+2026-04-11T23:13:05.8540788Z [36;1mgo test -fuzz=. -fuzztime=60s ./guard/[0m
+2026-04-11T23:13:05.8562268Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:13:05.8562513Z ##[endgroup]
+2026-04-11T23:13:14.2842357Z fuzz: elapsed: 0s, gathering baseline coverage: 0/4 completed
+2026-04-11T23:13:14.3029698Z fuzz: elapsed: 0s, gathering baseline coverage: 4/4 completed, now fuzzing with 4 workers
+2026-04-11T23:13:17.2887113Z fuzz: elapsed: 3s, execs: 82753 (27582/sec), new interesting: 33 (total: 37)
+2026-04-11T23:13:20.2896164Z fuzz: elapsed: 6s, execs: 158168 (25138/sec), new interesting: 38 (total: 42)
+2026-04-11T23:13:23.2842617Z fuzz: elapsed: 9s, execs: 351502 (64448/sec), new interesting: 49 (total: 53)
+2026-04-11T23:13:26.2846681Z fuzz: elapsed: 12s, execs: 477363 (41949/sec), new interesting: 59 (total: 63)
+2026-04-11T23:13:29.2854038Z fuzz: elapsed: 15s, execs: 593515 (38719/sec), new interesting: 62 (total: 66)
+2026-04-11T23:13:32.2844609Z fuzz: elapsed: 18s, execs: 706993 (37827/sec), new interesting: 69 (total: 73)
+2026-04-11T23:13:35.2847585Z fuzz: elapsed: 21s, execs: 808939 (33978/sec), new interesting: 69 (total: 73)
+2026-04-11T23:13:38.2865998Z fuzz: elapsed: 24s, execs: 923509 (38189/sec), new interesting: 70 (total: 74)
+2026-04-11T23:13:41.2854593Z fuzz: elapsed: 27s, execs: 1047510 (41335/sec), new interesting: 71 (total: 75)
+2026-04-11T23:13:44.2876601Z fuzz: elapsed: 30s, execs: 1141973 (31487/sec), new interesting: 71 (total: 75)
+2026-04-11T23:13:47.2857536Z fuzz: elapsed: 33s, execs: 1258829 (38947/sec), new interesting: 72 (total: 76)
+2026-04-11T23:13:50.2849434Z fuzz: elapsed: 36s, execs: 1370191 (37125/sec), new interesting: 75 (total: 79)
+2026-04-11T23:13:53.2872329Z fuzz: elapsed: 39s, execs: 1486636 (38818/sec), new interesting: 76 (total: 80)
+2026-04-11T23:13:56.2858281Z fuzz: elapsed: 42s, execs: 1588197 (33857/sec), new interesting: 77 (total: 81)
+2026-04-11T23:13:59.2866351Z fuzz: elapsed: 45s, execs: 1707584 (39779/sec), new interesting: 78 (total: 82)
+2026-04-11T23:14:02.2856769Z fuzz: elapsed: 48s, execs: 1810213 (34218/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:05.2865722Z fuzz: elapsed: 51s, execs: 1930392 (40058/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:08.2866714Z fuzz: elapsed: 54s, execs: 2039867 (36471/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:11.2889396Z fuzz: elapsed: 57s, execs: 2147491 (35850/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.2868272Z fuzz: elapsed: 1m0s, execs: 2254441 (35703/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.3892075Z fuzz: elapsed: 1m0s, execs: 2254441 (0/sec), new interesting: 82 (total: 86)
+2026-04-11T23:14:14.3892480Z PASS
+2026-04-11T23:14:14.3910846Z ok  	github.com/gabrielima7/GopherCore/guard	60.111s
+2026-04-11T23:14:14.4191291Z ##[group]Run go test -fuzz=. -fuzztime=60s ./jsonutil/
+2026-04-11T23:14:14.4191686Z [36;1mgo test -fuzz=. -fuzztime=60s ./jsonutil/[0m
+2026-04-11T23:14:14.4212758Z shell: /usr/bin/bash -e {0}
+2026-04-11T23:14:14.4212998Z ##[endgroup]
+2026-04-11T23:14:30.7186050Z fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+2026-04-11T23:14:30.7348397Z fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 4 workers
+2026-04-11T23:14:33.7225928Z fuzz: elapsed: 3s, execs: 72414 (24131/sec), new interesting: 70 (total: 73)
+2026-04-11T23:14:36.7188326Z fuzz: elapsed: 6s, execs: 101123 (9572/sec), new interesting: 74 (total: 77)
+2026-04-11T23:14:39.7216005Z fuzz: elapsed: 9s, execs: 101123 (0/sec), new interesting: 74 (total: 77)
+2026-04-11T23:14:42.7211501Z fuzz: elapsed: 12s, execs: 175604 (24836/sec), new interesting: 75 (total: 78)
+2026-04-11T23:14:45.7196052Z fuzz: elapsed: 15s, execs: 205683 (10029/sec), new interesting: 77 (total: 80)
+2026-04-11T23:14:48.7206187Z fuzz: elapsed: 18s, execs: 225181 (6500/sec), new interesting: 81 (total: 84)
+2026-04-11T23:14:51.7222930Z fuzz: elapsed: 21s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:14:54.7216187Z fuzz: elapsed: 24s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:14:57.7213247Z fuzz: elapsed: 27s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:00.7260116Z fuzz: elapsed: 30s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:03.7214733Z fuzz: elapsed: 33s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:06.7220670Z fuzz: elapsed: 36s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:09.7260691Z fuzz: elapsed: 39s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:12.7235602Z fuzz: elapsed: 42s, execs: 225181 (0/sec), new interesting: 81 (total: 84)
+2026-04-11T23:15:15.7211977Z fuzz: elapsed: 45s, execs: 448133 (74352/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:18.7222430Z fuzz: elapsed: 48s, execs: 451225 (1030/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:21.7210007Z fuzz: elapsed: 51s, execs: 451225 (0/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:24.7209249Z fuzz: elapsed: 54s, execs: 451225 (0/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:27.7226209Z fuzz: elapsed: 57s, execs: 451225 (0/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:30.7225500Z fuzz: elapsed: 1m0s, execs: 451225 (0/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:31.7263045Z fuzz: elapsed: 1m1s, execs: 451225 (0/sec), new interesting: 88 (total: 91)
+2026-04-11T23:15:31.7263449Z PASS
+2026-04-11T23:15:31.7265503Z ok  	github.com/gabrielima7/GopherCore/jsonutil	61.011s
+2026-04-11T23:15:31.7454582Z Post job cleanup.
+2026-04-11T23:15:31.9048523Z [command]/opt/hostedtoolcache/go/1.26.2/x64/bin/go env GOMODCACHE
+2026-04-11T23:15:31.9102820Z [command]/opt/hostedtoolcache/go/1.26.2/x64/bin/go env GOCACHE
+2026-04-11T23:15:31.9113493Z /home/runner/go/pkg/mod
+2026-04-11T23:15:31.9139708Z /home/runner/.cache/go-build
+2026-04-11T23:15:31.9145854Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.26.2-979ce10b8bf1ad5bf7709ed24ae6b72cf28ebba05f3a2bfd48cf5566be97e5f3, not saving cache.
+2026-04-11T23:15:31.9278950Z Post job cleanup.
+2026-04-11T23:15:32.0255517Z [command]/usr/bin/git version
+2026-04-11T23:15:32.0293483Z git version 2.53.0
+2026-04-11T23:15:32.0340372Z Temporarily overriding HOME='/home/runner/work/_temp/c65448e8-b37c-46af-82d3-becd678c31ad' before making global git config changes
+2026-04-11T23:15:32.0341772Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-11T23:15:32.0355596Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/GopherCore/GopherCore
+2026-04-11T23:15:32.0392909Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-11T23:15:32.0427460Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-11T23:15:32.0684207Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-11T23:15:32.0710421Z http.https://github.com/.extraheader
+2026-04-11T23:15:32.0727162Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-04-11T23:15:32.0764124Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-11T23:15:32.1014795Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-11T23:15:32.1052258Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-11T23:15:32.1427714Z Cleaning up orphan processes
+2026-04-11T23:15:32.1694272Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-go@v5. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

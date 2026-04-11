@@ -1,0 +1,73 @@
+﻿2026-04-11T23:09:43.8874580Z ##[group]Run actions/checkout@v4
+2026-04-11T23:09:43.8875120Z with:
+2026-04-11T23:09:43.8875420Z   repository: gabrielima7/GopherCore
+2026-04-11T23:09:43.8875960Z   token: ***
+2026-04-11T23:09:43.8876240Z   ssh-strict: true
+2026-04-11T23:09:43.8876510Z   ssh-user: git
+2026-04-11T23:09:43.8876790Z   persist-credentials: true
+2026-04-11T23:09:43.8877110Z   clean: true
+2026-04-11T23:09:43.8877400Z   sparse-checkout-cone-mode: true
+2026-04-11T23:09:43.8877740Z   fetch-depth: 1
+2026-04-11T23:09:43.8878010Z   fetch-tags: false
+2026-04-11T23:09:43.8878300Z   show-progress: true
+2026-04-11T23:09:43.8878580Z   lfs: false
+2026-04-11T23:09:43.8878850Z   submodules: false
+2026-04-11T23:09:43.8879140Z   set-safe-directory: true
+2026-04-11T23:09:43.8879550Z ##[endgroup]
+2026-04-11T23:09:44.1965530Z Syncing repository: gabrielima7/GopherCore
+2026-04-11T23:09:44.1967630Z ##[group]Getting Git version info
+2026-04-11T23:09:44.1968410Z Working directory is '/Users/runner/work/GopherCore/GopherCore'
+2026-04-11T23:09:44.1969580Z [command]/opt/homebrew/bin/git version
+2026-04-11T23:09:44.2795410Z git version 2.53.0
+2026-04-11T23:09:44.2833880Z ##[endgroup]
+2026-04-11T23:09:44.2839710Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/6a91817c-18e9-44a4-8241-6328d7b85f3e/.gitconfig'
+2026-04-11T23:09:44.2846140Z Temporarily overriding HOME='/Users/runner/work/_temp/6a91817c-18e9-44a4-8241-6328d7b85f3e' before making global git config changes
+2026-04-11T23:09:44.2847870Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-11T23:09:44.2854220Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/GopherCore/GopherCore
+2026-04-11T23:09:44.2952130Z Deleting the contents of '/Users/runner/work/GopherCore/GopherCore'
+2026-04-11T23:09:44.2954540Z ##[group]Initializing the repository
+2026-04-11T23:09:44.2958590Z [command]/opt/homebrew/bin/git init /Users/runner/work/GopherCore/GopherCore
+2026-04-11T23:09:44.3132170Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-04-11T23:09:44.3134070Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-04-11T23:09:44.3135580Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-04-11T23:09:44.3136820Z hint: call:
+2026-04-11T23:09:44.3137340Z hint:
+2026-04-11T23:09:44.3138080Z hint: 	git config --global init.defaultBranch <name>
+2026-04-11T23:09:44.3139100Z hint:
+2026-04-11T23:09:44.3139990Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-04-11T23:09:44.3141530Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-04-11T23:09:44.3142740Z hint:
+2026-04-11T23:09:44.3143310Z hint: 	git branch -m <name>
+2026-04-11T23:09:44.3143980Z hint:
+2026-04-11T23:09:44.3144930Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-04-11T23:09:44.3146770Z Initialized empty Git repository in /Users/runner/work/GopherCore/GopherCore/.git/
+2026-04-11T23:09:44.3149810Z [command]/opt/homebrew/bin/git remote add origin https://github.com/gabrielima7/GopherCore
+2026-04-11T23:09:44.3213570Z ##[endgroup]
+2026-04-11T23:09:44.3214730Z ##[group]Disabling automatic garbage collection
+2026-04-11T23:09:44.3215890Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-04-11T23:09:44.3278510Z ##[endgroup]
+2026-04-11T23:09:44.3279620Z ##[group]Setting up auth
+2026-04-11T23:09:44.3283780Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-11T23:09:44.3339070Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-11T23:09:44.4134380Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-11T23:09:44.4185260Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-11T23:09:44.4834180Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-11T23:09:44.4884860Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-11T23:09:44.5548820Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-04-11T23:09:44.5603190Z ##[endgroup]
+2026-04-11T23:09:44.5604170Z ##[group]Fetching the repository
+2026-04-11T23:09:44.5612420Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ada58fd1a59416d4ff0aab20a20c08d241d92801:refs/remotes/origin/main
+2026-04-11T23:09:45.2620960Z From https://github.com/gabrielima7/GopherCore
+2026-04-11T23:09:45.2622740Z  * [new ref]         ada58fd1a59416d4ff0aab20a20c08d241d92801 -> origin/main
+2026-04-11T23:09:45.2695290Z ##[endgroup]
+2026-04-11T23:09:45.2696280Z ##[group]Determining the checkout info
+2026-04-11T23:09:45.2697280Z ##[endgroup]
+2026-04-11T23:09:45.2698790Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-04-11T23:09:45.2758610Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-04-11T23:09:45.2806230Z ##[group]Checking out the ref
+2026-04-11T23:09:45.2808330Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-04-11T23:09:45.2930360Z Switched to a new branch 'main'
+2026-04-11T23:09:45.2937810Z branch 'main' set up to track 'origin/main'.
+2026-04-11T23:09:45.2942520Z ##[endgroup]
+2026-04-11T23:09:45.3005670Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-04-11T23:09:45.3053380Z ada58fd1a59416d4ff0aab20a20c08d241d92801
