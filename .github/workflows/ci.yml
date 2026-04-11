@@ -27,9 +27,9 @@ jobs:
           go-version: "1.26"
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+          golangci-lint run ./...
 
   # ──────────────────────────────────────────────────
   # Tests (cross-platform)
@@ -54,7 +54,8 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test -cover -race -count=1 -timeout=120s -coverprofile=coverage.out ./...
+        shell: bash
+        run: go test -cover -race -count=1 -timeout=120s -coverprofile coverage.out ./...
 
       - name: Upload coverage (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -112,9 +113,9 @@ jobs:
           go-version: "1.26"
 
       - name: Run gosec
-        uses: securego/gosec@master
-        with:
-          args: "-fmt sarif -out results.sarif -quiet ./..."
+        run: |
+          curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+          gosec -fmt sarif -out results.sarif -quiet ./...
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
