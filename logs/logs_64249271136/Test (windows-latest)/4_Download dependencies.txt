@@ -1,4 +1,0 @@
-﻿2026-04-11T23:10:12.5038141Z ##[group]Run go mod download
-2026-04-11T23:10:12.5038476Z [36;1mgo mod download[0m
-2026-04-11T23:10:12.5104499Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-2026-04-11T23:10:12.5104860Z ##[endgroup]
