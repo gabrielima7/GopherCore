@@ -1,8 +1,13 @@
 package httpkit
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"runtime"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -107,5 +112,78 @@ func TestDefaultRouterConfig(t *testing.T) {
 	}
 	if !cfg.EnableLogger {
 		t.Fatal("expected logger enabled by default")
+	}
+}
+
+func TestGracefulShutdown_Signal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Signal not supported on Windows")
+	}
+
+	srv := &http.Server{
+		Addr:    "127.0.0.1:0", // Listen on any available port
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond) // Simulate work
+			w.WriteHeader(http.StatusOK)
+		}),
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- GracefulShutdown(srv, 5*time.Second)
+	}()
+
+	// Give the server time to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Send SIGINT
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("failed to find process: %v", err)
+	}
+	if err := p.Signal(syscall.SIGINT); err != nil {
+		t.Fatalf("failed to send signal: %v", err)
+	}
+
+	// Wait for GracefulShutdown to return
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("expected nil error, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for GracefulShutdown to return")
+	}
+}
+
+func TestGracefulShutdown_ServerError(t *testing.T) {
+	// Start a dummy server to occupy a port
+	dummy := &http.Server{Addr: "127.0.0.1:0"}
+	ln, err := net.Listen("tcp", dummy.Addr)
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer ln.Close()
+	go dummy.Serve(ln)
+	defer dummy.Shutdown(context.Background())
+
+	// Try to start a server on the same address to cause an error
+	srv := &http.Server{
+		Addr:    ln.Addr().String(),
+		Handler: http.DefaultServeMux,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- GracefulShutdown(srv, 5*time.Second)
+	}()
+
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("expected error due to port already in use, got nil")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for GracefulShutdown to return error")
 	}
 }

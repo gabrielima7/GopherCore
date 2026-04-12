@@ -4,7 +4,12 @@
 package httpkit
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -136,5 +141,31 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 		Handler:      handler,
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
+	}
+}
+
+// GracefulShutdown intercepts OS signals (SIGINT, SIGTERM) and performs a graceful
+// shutdown of the server using server.Shutdown. It waits up to the specified
+// timeout for ongoing requests to complete.
+func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- srv.ListenAndServe()
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	case <-quit:
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		return srv.Shutdown(ctx)
 	}
 }
