@@ -84,14 +84,20 @@ func WithLogger(enabled bool) RouterOption {
 	}
 }
 
-// NewRouter creates a new chi.Mux with security middleware pre-configured.
-// It includes: RequestID, RealIP, Recoverer, SecurityHeaders, and optionally
-// Logger, RateLimit, and CORS based on configuration.
-func NewRouter(opts ...RouterOption) *chi.Mux {
+// parseOptions initializes the default configuration and applies the provided options.
+func parseOptions(opts ...RouterOption) RouterConfig {
 	cfg := DefaultRouterConfig()
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	return cfg
+}
+
+// NewRouter creates a new chi.Mux with security middleware pre-configured.
+// It includes: RequestID, RealIP, Recoverer, SecurityHeaders, and optionally
+// Logger, RateLimit, and CORS based on configuration.
+func NewRouter(opts ...RouterOption) *chi.Mux {
+	cfg := parseOptions(opts...)
 
 	r := chi.NewRouter()
 
@@ -127,10 +133,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 
 // NewServer creates an http.Server with the given router and configuration timeouts.
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
-	cfg := DefaultRouterConfig()
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	cfg := parseOptions(opts...)
 	return &http.Server{
 		Addr:         addr,
 		Handler:      handler,
