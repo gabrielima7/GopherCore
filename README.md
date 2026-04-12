@@ -33,6 +33,7 @@ GopherCore is a collection of production-ready Go packages designed to accelerat
 | [`httpkit`](#http-toolkit) | Chi router with security middleware, rate limiting, CORS |
 | [`dbkit`](#database-toolkit) | Database connections via sqlx + migration management |
 | [`async`](#async-helpers) | Safe goroutine management with panic recovery |
+| [`config`](#configuration-management) | Environment variable loading with secure validation |
 
 ---
 
@@ -264,6 +265,30 @@ errs := g.Wait()
 results, err := async.Map(ctx, items, 10, func(ctx context.Context, item Item) (Result, error) {
     return process(ctx, item)
 })
+```
+
+### Configuration Management
+
+Load configuration securely from environment variables, using validation to ensure requirements are met (like vital DB credentials).
+
+```go
+import "github.com/gabrielima7/GopherCore/config"
+
+type Config struct {
+    Port  int    `env:"PORT" envDefault:"8080"`
+    Debug bool   `env:"DEBUG" envDefault:"false"`
+    DB    struct {
+        Host     string `env:"DB_HOST" envDefault:"localhost"`
+        User     string `env:"DB_USER" validate:"required"`
+        Password string `env:"DB_PASSWORD" validate:"required"`
+    }
+}
+
+var cfg Config
+if err := config.Load(&cfg); err != nil {
+    // API won't start if DB_USER or DB_PASSWORD is not set
+    log.Fatalf("failed to load config: %v", err)
+}
 ```
 
 ---
