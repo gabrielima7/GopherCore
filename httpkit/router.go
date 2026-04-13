@@ -88,7 +88,9 @@ func WithLogger(enabled bool) RouterOption {
 func parseOptions(opts ...RouterOption) RouterConfig {
 	cfg := DefaultRouterConfig()
 	for _, opt := range opts {
-		opt(&cfg)
+		if opt != nil {
+			opt(&cfg)
+		}
 	}
 	return cfg
 }
