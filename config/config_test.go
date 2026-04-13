@@ -63,3 +63,88 @@ func TestLoad_Success(t *testing.T) {
 		t.Errorf("expected DB.Password secret, got %s", cfg.DB.Password)
 	}
 }
+
+func TestLoad_Defaults(t *testing.T) {
+	os.Setenv("DB_USER", "admin")
+	os.Setenv("DB_PASSWORD", "secret")
+	defer os.Clearenv()
+
+	var cfg AppConfig
+	if err := config.Load(&cfg); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.Port != 8080 {
+		t.Errorf("expected Port 8080, got %d", cfg.Port)
+	}
+	if cfg.Debug {
+		t.Errorf("expected Debug false, got true")
+	}
+	if cfg.Timeout != 30*time.Second {
+		t.Errorf("expected Timeout 30s, got %v", cfg.Timeout)
+	}
+	if len(cfg.AllowedHosts) != 1 || cfg.AllowedHosts[0] != "localhost" {
+		t.Errorf("expected AllowedHosts [localhost], got %v", cfg.AllowedHosts)
+	}
+	if cfg.DB.Host != "localhost" {
+		t.Errorf("expected DB.Host localhost, got %s", cfg.DB.Host)
+	}
+	if cfg.DB.Port != 5432 {
+		t.Errorf("expected DB.Port 5432, got %d", cfg.DB.Port)
+	}
+}
+
+func TestLoad_ValidationFails(t *testing.T) {
+	os.Clearenv() // Missing DB_USER and DB_PASSWORD
+
+	var cfg AppConfig
+	err := config.Load(&cfg)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	// Verify the error is of type validator.ValidationErrors
+	_, ok := err.(validator.ValidationErrors)
+	if !ok {
+		t.Fatalf("expected validator.ValidationErrors, got %T: %v", err, err)
+	}
+}
+
+func TestLoad_InvalidType(t *testing.T) {
+	var cfg AppConfig
+	err := config.Load(cfg) // Passing by value instead of pointer
+	if err == nil || err.Error() != "cfg must be a non-nil pointer to a struct" {
+		t.Errorf("expected 'cfg must be a non-nil pointer to a struct', got %v", err)
+	}
+
+	var str string
+	err = config.Load(&str)
+	if err == nil || err.Error() != "cfg must be a pointer to a struct" {
+		t.Errorf("expected 'cfg must be a pointer to a struct', got %v", err)
+	}
+}
+
+func TestLoad_NestedPtr(t *testing.T) {
+	type PtrConfig struct {
+		DB *DatabaseConfig
+	}
+
+	os.Setenv("DB_USER", "admin")
+	os.Setenv("DB_PASSWORD", "secret")
+	defer os.Clearenv()
+
+	var cfg PtrConfig
+	if err := config.Load(&cfg); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.DB == nil {
+		t.Fatalf("expected DB pointer to be populated, got nil")
+	}
+	if cfg.DB.Host != "localhost" {
+		t.Errorf("expected DB.Host localhost, got %s", cfg.DB.Host)
+	}
+	if cfg.DB.User != "admin" {
+		t.Errorf("expected DB.User admin, got %s", cfg.DB.User)
+	}
+}
