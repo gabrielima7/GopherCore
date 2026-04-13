@@ -33,6 +33,7 @@ GopherCore is a collection of production-ready Go packages designed to accelerat
 | [`httpkit`](#http-toolkit) | Chi router with security middleware, rate limiting, CORS |
 | [`dbkit`](#database-toolkit) | Database connections via sqlx + migration management |
 | [`async`](#async-helpers) | Safe goroutine management with panic recovery |
+| [`logkit`](#structured-logs) | Structured logging in JSON format via `log/slog` |
 
 ---
 
@@ -238,6 +239,27 @@ err = dbkit.RunMigrations(db, "postgres", pgDriver, "file://./migrations")
 
 // Health check
 err = dbkit.HealthCheck(ctx, db)
+```
+
+### Structured Logs
+
+A simple configuration using Go's native `log/slog` to output application logs in JSON format, making them easier to ingest by platforms like Datadog or Elasticsearch.
+
+```go
+import "github.com/gabrielima7/GopherCore/logkit"
+import "log/slog"
+
+// Initialize the global logger
+logkit.Initialize(
+    logkit.WithLevel(slog.LevelInfo),
+)
+
+slog.Info("user logged in", "user_id", 123, "ip", "192.168.1.1")
+// Output: {"time":"2023-10-27T10:00:00Z","level":"INFO","msg":"user logged in","user_id":123,"ip":"192.168.1.1"}
+
+// Or create a local logger
+logger := logkit.NewLogger(logkit.WithLevel(slog.LevelDebug))
+logger.Debug("debugging request")
 ```
 
 ### Async Helpers
