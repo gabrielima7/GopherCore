@@ -165,7 +165,7 @@ func TestStripHTML(t *testing.T) {
 	}{
 		{"no html", "hello world", "hello world"},
 		{"simple tag", "<b>bold</b>", "bold"},
-		{"script tag", "<script>alert('xss')</script>", "alert('xss')"},
+		{"script tag", "<script>alert('xss')</script>", ""},
 		{"nested", "<div><p>text</p></div>", "text"},
 		{"empty", "", ""},
 		{"attributes", `<a href="url">link</a>`, "link"},

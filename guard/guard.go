@@ -9,10 +9,14 @@ import (
 	"unicode"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 // validate is the singleton validator instance.
 var validate = validator.New()
+
+// htmlPolicy is the singleton bluemonday strict policy instance.
+var htmlPolicy = bluemonday.StrictPolicy()
 
 // ValidationError represents a single field validation failure.
 type ValidationError struct {
@@ -83,26 +87,11 @@ func SanitizeString(s string) string {
 	return strings.TrimSpace(b.String())
 }
 
-// StripHTML removes HTML tags from the input string.
-// This is a simple approach — for untrusted HTML, use a proper
-// sanitization library like bluemonday.
+// StripHTML removes HTML tags from the input string using the rigorous
+// bluemonday strict policy, which is suitable for untrusted HTML and
+// mitigating XSS risks.
 func StripHTML(s string) string {
-	var (
-		b      strings.Builder
-		inTag  bool
-	)
-	b.Grow(len(s))
-	for _, r := range s {
-		switch {
-		case r == '<':
-			inTag = true
-		case r == '>':
-			inTag = false
-		case !inTag:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
+	return htmlPolicy.Sanitize(s)
 }
 
 // formatValidationError returns a human-readable error message for a validator.FieldError.
