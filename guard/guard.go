@@ -56,7 +56,7 @@ func Validate(s any) error {
 		return err
 	}
 
-	var errs ValidationErrors
+	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{
 			Field:   fe.Field(),
