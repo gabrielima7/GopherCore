@@ -328,4 +328,5 @@ func TestLoad_Coverage(t *testing.T) {
 	if len(cfg.SliceVal) != 2 || cfg.SliceVal[0] != 1 || cfg.SliceVal[1] != 2 {
 		t.Errorf("expected SliceVal [1 2], got %v", cfg.SliceVal)
 	}
+	_ = cfg.unexported
 }
