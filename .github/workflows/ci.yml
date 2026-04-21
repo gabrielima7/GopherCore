@@ -86,19 +86,19 @@ jobs:
         run: go mod download
 
       - name: Fuzz result
-        run: go test -fuzz=. -fuzztime=60s ./result/
+        run: go test -fuzz=. -fuzztime=100000x ./result/
 
       - name: Fuzz retry
-        run: go test -fuzz=. -fuzztime=60s ./retry/
+        run: go test -fuzz=. -fuzztime=100000x ./retry/
 
       - name: Fuzz circuitbreaker
-        run: go test -fuzz=. -fuzztime=60s ./circuitbreaker/
+        run: go test -fuzz=. -fuzztime=100000x ./circuitbreaker/
 
       - name: Fuzz guard
-        run: go test -fuzz=. -fuzztime=60s ./guard/
+        run: go test -fuzz=. -fuzztime=100000x ./guard/
 
       - name: Fuzz jsonutil
-        run: go test -fuzz=. -fuzztime=60s ./jsonutil/
+        run: go test -fuzz=. -fuzztime=100000x ./jsonutil/
 
   # ──────────────────────────────────────────────────
   # Security Analysis (gosec)
