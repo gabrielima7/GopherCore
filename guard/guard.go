@@ -18,7 +18,8 @@ var validate = validator.New()
 // htmlPolicy is the singleton bluemonday strict policy instance.
 var htmlPolicy = bluemonday.StrictPolicy()
 
-// ValidationError represents a single field validation failure.
+// ValidationError encapsulates the details of a single struct field validation failure,
+// structurally mapping the field name, failed tag, rejected value, and a human-readable message.
 type ValidationError struct {
 	Field   string `json:"field"`
 	Tag     string `json:"tag"`
@@ -26,15 +27,18 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// Error implements the error interface.
+// Error implements the standard error interface, returning the human-readable
+// message specific to this single validation failure.
 func (v ValidationError) Error() string {
 	return v.Message
 }
 
-// ValidationErrors is a collection of validation errors.
+// ValidationErrors represents a collection of one or more ValidationError instances,
+// typically resulting from a multi-field struct validation failure.
 type ValidationErrors []ValidationError
 
-// Error implements the error interface.
+// Error implements the standard error interface, aggregating all underlying
+// individual field validation messages into a single semicolon-separated string.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
 	for _, e := range ve {
@@ -43,8 +47,12 @@ func (ve ValidationErrors) Error() string {
 	return strings.Join(msgs, "; ")
 }
 
-// Validate validates a struct using its field tags and returns structured
-// validation errors. Returns nil if validation passes.
+// Validate inspects a given struct using its reflection-based `validate` tags.
+// If the struct violates any tags, it aggregates all failures into a ValidationErrors
+// slice which implements the error interface. It returns nil if the struct perfectly
+// satisfies all validation constraints.
+//
+// The input `s` MUST be a struct or a pointer to a struct.
 func Validate(s any) error {
 	err := validate.Struct(s)
 	if err == nil {
@@ -68,14 +76,19 @@ func Validate(s any) error {
 	return errs
 }
 
-// RegisterValidation registers a custom validation function.
+// RegisterValidation registers a custom, user-defined validation function mapped to
+// a specific tag name. Once registered, this tag can be used in struct fields
+// throughout the application. It returns an error if the tag name is already registered.
 func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
 
-// SanitizeString removes control characters and trims whitespace
-// from the input string. This is a basic sanitization — not a replacement
-// for proper escaping at the boundary (SQL, HTML, etc.).
+// SanitizeString performs primitive input scrubbing by stripping out invisible
+// Unicode control characters and aggressively trimming leading/trailing whitespace.
+//
+// Security Warning: This is purely a basic data-hygiene mechanism and absolutely
+// MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
+// Context-aware escaping at the respective boundaries is still strictly required.
 func SanitizeString(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
@@ -87,14 +100,19 @@ func SanitizeString(s string) string {
 	return strings.TrimSpace(b.String())
 }
 
-// StripHTML removes HTML tags from the input string using the rigorous
-// bluemonday strict policy, which is suitable for untrusted HTML and
-// mitigating XSS risks.
+// StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
+// payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
+// It is explicitly designed to safely handle untrusted user input and mitigate
+// Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving
+// only plain text.
 func StripHTML(s string) string {
 	return htmlPolicy.Sanitize(s)
 }
 
-// formatValidationError returns a human-readable error message for a validator.FieldError.
+// formatValidationError analyzes the specific tag that failed validation
+// and maps it to a clear, human-readable error message.
+// It acts as the central translation layer between raw validator errors
+// and client-friendly HTTP response messages.
 func formatValidationError(fe validator.FieldError) string {
 	switch fe.Tag() {
 	case "required":

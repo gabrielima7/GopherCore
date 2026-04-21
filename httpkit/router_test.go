@@ -121,7 +121,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 	}
 
 	srv := &http.Server{
-		Addr:    "127.0.0.1:0", // Listen on any available port
+		Addr: "127.0.0.1:0", // Listen on any available port
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(100 * time.Millisecond) // Simulate work
 			w.WriteHeader(http.StatusOK)

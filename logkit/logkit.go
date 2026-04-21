@@ -6,30 +6,35 @@ import (
 	"os"
 )
 
-// Config holds the configuration for the structured logger.
+// Config holds the configuration options necessary for initializing a new
+// structured slog.Logger instance.
 type Config struct {
 	Level  slog.Level
 	Writer io.Writer
 }
 
-// Option represents a configuration option for the logger.
+// Option defines a functional option signature for configuring the logger.
 type Option func(*Config)
 
-// WithLevel sets the minimum log level.
+// WithLevel dynamically sets the minimum severity level for the logger
+// (e.g., slog.LevelDebug, slog.LevelInfo). Logs below this level are discarded.
 func WithLevel(level slog.Level) Option {
 	return func(c *Config) {
 		c.Level = level
 	}
 }
 
-// WithWriter sets the output writer for the logger.
+// WithWriter overrides the default output destination (os.Stdout) for the logger.
+// Common targets include file handles, network sockets, or buffer streams.
 func WithWriter(w io.Writer) Option {
 	return func(c *Config) {
 		c.Writer = w
 	}
 }
 
-// NewLogger creates a new structured JSON logger with the provided options.
+// NewLogger creates and returns an isolated, structured JSON logger initialized
+// with the provided functional options. It defaults to writing to os.Stdout
+// at the Info level. The returned logger is safe for concurrent use.
 func NewLogger(opts ...Option) *slog.Logger {
 	config := Config{
 		Level:  slog.LevelInfo, // Default level
@@ -47,7 +52,9 @@ func NewLogger(opts ...Option) *slog.Logger {
 	return slog.New(handler)
 }
 
-// Initialize sets the default global logger to a structured JSON logger.
+// Initialize instantiates a new logger and explicitly overwrites the global
+// slog.Default() logger. This function mutates global application state and
+// should typically only be called once during the application's bootstrap phase.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
 	slog.SetDefault(logger)

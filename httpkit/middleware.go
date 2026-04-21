@@ -7,15 +7,18 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// SecurityHeadersMiddleware sets HTTP security headers on every response.
+// SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
+// into every outbound response. It mitigates common web vulnerabilities like
+// MIME-sniffing, clickjacking, and XSS.
+//
 // Headers set:
-//   - Strict-Transport-Security (HSTS)
-//   - X-Content-Type-Options
-//   - X-Frame-Options
-//   - Referrer-Policy
-//   - Permissions-Policy
-//   - X-XSS-Protection
-//   - Content-Security-Policy (basic default)
+//   - Strict-Transport-Security (HSTS): Forces HTTPS.
+//   - X-Content-Type-Options: Prevents MIME-sniffing.
+//   - X-Frame-Options: Denies framing (Clickjacking protection).
+//   - Referrer-Policy: Restricts referrer data leakage.
+//   - Permissions-Policy: Disables camera, microphone, and geolocation access.
+//   - X-XSS-Protection: Enables legacy XSS filtering.
+//   - Content-Security-Policy: Restricts resource loading to 'self'.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
@@ -29,8 +32,10 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RateLimitMiddleware enforces rate limiting using golang.org/x/time/rate.
-// When the rate limit is exceeded, it responds with HTTP 429 Too Many Requests.
+// RateLimitMiddleware enforces global inbound request rate limiting using a token
+// bucket algorithm (golang.org/x/time/rate). If a request exceeds the permissible
+// limit, it is immediately aborted, and an HTTP 429 (Too Many Requests) response
+// is returned to the client along with a Retry-After header.
 func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +49,10 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 	}
 }
 
-// CORSMiddleware handles CORS preflight requests and sets CORS headers.
+// CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
+// It verifies the Origin header against a pre-configured whitelist. It automatically
+// intercepts and responds to HTTP OPTIONS preflight requests without passing them down
+// the middleware chain.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	originsSet := make(map[string]bool, len(allowedOrigins))
 	allowAll := false

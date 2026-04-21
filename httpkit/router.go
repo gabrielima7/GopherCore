@@ -17,7 +17,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// RouterConfig holds configuration options for the router.
+// RouterConfig holds configuration options for building and mounting the core
+// application router, including CORS, rate limiting, and HTTP timeouts.
 type RouterConfig struct {
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	AllowedOrigins []string
@@ -37,7 +38,8 @@ type RouterConfig struct {
 	EnableLogger bool
 }
 
-// DefaultRouterConfig returns a sensible default configuration.
+// DefaultRouterConfig returns a secure and sensible baseline configuration
+// for the HTTP router.
 func DefaultRouterConfig() RouterConfig {
 	return RouterConfig{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
@@ -50,17 +52,19 @@ func DefaultRouterConfig() RouterConfig {
 	}
 }
 
-// RouterOption is a functional option for configuring the router.
+// RouterOption defines a functional option signature for configuring the router instance.
 type RouterOption func(*RouterConfig)
 
-// WithCORS sets the allowed CORS origins.
+// WithCORS restricts the Cross-Origin Resource Sharing policy to only accept
+// preflight and incoming requests from the strictly allowed array of origins.
 func WithCORS(origins ...string) RouterOption {
 	return func(c *RouterConfig) {
 		c.AllowedOrigins = origins
 	}
 }
 
-// WithRateLimit sets the rate limit (requests per second) and burst size.
+// WithRateLimit configures global inbound traffic limits by specifying the allowed
+// requests per second (rps) and a maximum concurrent burst size.
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
@@ -68,28 +72,32 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 	}
 }
 
-// WithReadTimeout sets the HTTP server read timeout.
+// WithReadTimeout strictly enforces the maximum duration the server will wait
+// while reading the full client HTTP request headers and body payload.
 func WithReadTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadTimeout = d
 	}
 }
 
-// WithWriteTimeout sets the HTTP server write timeout.
+// WithWriteTimeout strictly enforces the maximum duration the server is allowed
+// to spend generating and writing the HTTP response back to the connected client.
 func WithWriteTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.WriteTimeout = d
 	}
 }
 
-// WithLogger enables or disables the request logger.
+// WithLogger toggles the attachment of the chi structured HTTP request logging
+// middleware on the internal Mux router.
 func WithLogger(enabled bool) RouterOption {
 	return func(c *RouterConfig) {
 		c.EnableLogger = enabled
 	}
 }
 
-// parseOptions initializes the default configuration and applies the provided options.
+// parseOptions is an internal helper that initializes the DefaultRouterConfig
+// and then safely applies all provided functional options.
 func parseOptions(opts ...RouterOption) RouterConfig {
 	cfg := DefaultRouterConfig()
 	for _, opt := range opts {
@@ -100,9 +108,11 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 	return cfg
 }
 
-// NewRouter creates a new chi.Mux with security middleware pre-configured.
-// It includes: RequestID, RealIP, Recoverer, SecurityHeaders, and optionally
-// Logger, RateLimit, and CORS based on configuration.
+// NewRouter constructs and returns a highly-opinionated `chi.Mux` router
+// bundled with a robust, pre-configured middleware stack.
+// The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
+// panic safety (Recoverer), and strict security headers. Optional middlewares
+// (Logger, RateLimit, CORS) are injected based on the provided options.
 func NewRouter(opts ...RouterOption) *chi.Mux {
 	cfg := parseOptions(opts...)
 
@@ -138,7 +148,9 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	return r
 }
 
-// NewServer creates an http.Server with the given router and configuration timeouts.
+// NewServer creates and returns an `http.Server` bound to the provided network address.
+// It applies the read/write timeouts derived from the router options to prevent
+// slowloris and other resource exhaustion attacks.
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
 	cfg := parseOptions(opts...)
 	return &http.Server{
@@ -149,9 +161,10 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 	}
 }
 
-// GracefulShutdown intercepts OS signals (SIGINT, SIGTERM) and performs a graceful
-// shutdown of the server using server.Shutdown. It waits up to the specified
-// timeout for ongoing requests to complete.
+// GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
+// for OS termination signals (SIGINT, SIGTERM). Upon receiving a termination signal, it invokes
+// the server's Shutdown method, giving ongoing active requests up to the specified timeout
+// duration to complete before forcing a closure.
 func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	serverErr := make(chan error, 1)
 	go func() {
