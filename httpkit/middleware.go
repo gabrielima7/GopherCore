@@ -7,16 +7,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var (
-	headerSTS = []string{"max-age=63072000; includeSubDomains; preload"}
-	headerCTO = []string{"nosniff"}
-	headerXFO = []string{"DENY"}
-	headerRP  = []string{"strict-origin-when-cross-origin"}
-	headerPP  = []string{"camera=(), microphone=(), geolocation=()"}
-	headerXXP = []string{"1; mode=block"}
-	headerCSP = []string{"default-src 'self'"}
-)
-
 // SecurityHeadersMiddleware sets HTTP security headers on every response.
 // Headers set:
 //   - Strict-Transport-Security (HSTS)
@@ -28,14 +18,13 @@ var (
 //   - Content-Security-Policy (basic default)
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h["Strict-Transport-Security"] = headerSTS
-		h["X-Content-Type-Options"] = headerCTO
-		h["X-Frame-Options"] = headerXFO
-		h["Referrer-Policy"] = headerRP
-		h["Permissions-Policy"] = headerPP
-		h["X-Xss-Protection"] = headerXXP
-		h["Content-Security-Policy"] = headerCSP
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -66,24 +55,20 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 		originsSet[o] = true
 	}
 
-	methodsSlice := []string{strings.Join(allowedMethods, ", ")}
-	headersSlice := []string{strings.Join(allowedHeaders, ", ")}
-	credSlice := []string{"true"}
-	maxAgeSlice := []string{"86400"}
-	varySlice := []string{"Origin"}
+	methodsStr := strings.Join(allowedMethods, ", ")
+	headersStr := strings.Join(allowedHeaders, ", ")
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 
 			if origin != "" && (allowAll || originsSet[origin]) {
-				h := w.Header()
-				h["Access-Control-Allow-Origin"] = []string{origin}
-				h["Access-Control-Allow-Methods"] = methodsSlice
-				h["Access-Control-Allow-Headers"] = headersSlice
-				h["Access-Control-Allow-Credentials"] = credSlice
-				h["Access-Control-Max-Age"] = maxAgeSlice
-				h["Vary"] = varySlice
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Methods", methodsStr)
+				w.Header().Set("Access-Control-Allow-Headers", headersStr)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Max-Age", "86400")
+				w.Header().Set("Vary", "Origin")
 			}
 
 			// Handle preflight.
