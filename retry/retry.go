@@ -4,9 +4,10 @@ package retry
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"math"
-	"math/rand/v2"
+	"math/big"
 	"time"
 )
 
@@ -25,7 +26,7 @@ const (
 
 // Config holds the configuration for a retry operation.
 type Config struct {
-	MaxAttempts int
+	MaxAttempts  int
 	InitialDelay time.Duration
 	MaxDelay     time.Duration
 	Strategy     Strategy
@@ -196,8 +197,10 @@ func calculateDelay(cfg *Config, attempt int) time.Duration {
 
 	if cfg.Jitter && delay > 0 {
 		// Full jitter: random value between 0 and delay.
-		// #nosec G404 -- Weak random is acceptable for jitter
-		delay = time.Duration(rand.Int64N(int64(delay)))
+		jitterVal, err := rand.Int(rand.Reader, big.NewInt(int64(delay)))
+		if err == nil {
+			delay = time.Duration(jitterVal.Int64())
+		}
 	}
 
 	return delay
