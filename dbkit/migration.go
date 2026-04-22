@@ -1,3 +1,5 @@
+// Package dbkit provides thread-safe database connection management, robust connection pooling defaults,
+// and safe schema migration orchestration built upon sqlx and golang-migrate/migrate.
 package dbkit
 
 import (
@@ -22,6 +24,8 @@ type MigrationConfig struct {
 // It relies on golang-migrate to orchestrate the internal schema_migrations table safely.
 // Note that schema migrations often perform DDL operations that cannot be fully encapsulated in
 // a transaction depending on the underlying database engine. Ensure backups are available.
+// Operations are inherently stateful on the database side; concurrent migration execution from
+// multiple nodes is usually handled safely by golang-migrate's internal advisory locks.
 func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) error {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -41,7 +45,8 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 // corresponding "down" migration files. If the steps parameter is exactly 0, it will
 // systematically revert all previously applied migrations.
 // Like RunMigrations, destructive DDL side-effects may occur and not all databases support
-// rolling back these types of operations transactionally.
+// rolling back these types of operations transactionally. Concurrent execution relies on
+// the underlying golang-migrate locks.
 func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) error {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {

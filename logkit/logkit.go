@@ -1,3 +1,6 @@
+// Package logkit provides structured JSON logging capabilities using the standard
+// library's log/slog package. It offers a simple configuration API to easily
+// initialize thread-safe, JSON-formatted loggers suitable for production environments.
 package logkit
 
 import (
@@ -55,6 +58,8 @@ func NewLogger(opts ...Option) *slog.Logger {
 // Initialize instantiates a new logger and explicitly overwrites the global
 // slog.Default() logger. This function mutates global application state and
 // should typically only be called once during the application's bootstrap phase.
+// Modifying the global logger concurrently is generally safe as slog.SetDefault
+// handles its own internal locks.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
 	slog.SetDefault(logger)

@@ -23,7 +23,7 @@ func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 
 // Unmarshal parses the JSON-encoded data and stores the result
 // in the value pointed to by v. It uses goccy/go-json for high-performance,
-// thread-safe parsing and decoding.
+// thread-safe parsing and decoding. The target value v must be a non-nil pointer.
 func Unmarshal(data []byte, v any) error {
 	return gojson.Unmarshal(data, v)
 }
