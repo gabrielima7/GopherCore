@@ -1,6 +1,5 @@
-// Package dbkit provides database connection helpers, safe query enforcement
-// (prepared statements only), and migration management built on sqlx and
-// golang-migrate/migrate.
+// Package dbkit provides thread-safe database connection management, robust connection pooling defaults,
+// and safe schema migration orchestration built upon sqlx and golang-migrate/migrate.
 package dbkit
 
 import (
@@ -70,8 +69,10 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 	}
 }
 
-// Connect opens a new database connection with the given configuration.
-// It verifies connectivity via Ping.
+// Connect safely initializes and establishes a new, connection-pooled database connection
+// using the provided driver and DSN. It fully respects the provided context for timeout/cancellation
+// during connection and subsequent connectivity verification (PingContext). The returned *sqlx.DB
+// is safe for concurrent access across multiple goroutines.
 func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) {
 	if driver == "" {
 		return nil, errors.New("dbkit: driver is required")
@@ -98,8 +99,10 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 	return db, nil
 }
 
-// MustConnect is like Connect but panics on error. Suitable for
-// application startup where a missing database is fatal.
+// MustConnect acts exactly like Connect, but instead of returning an error, it deliberately panics
+// if the connection or ping fails. This is intended solely for application startup phases where
+// the inability to reach the primary database is considered a fatal, unrecoverable state.
+// Like Connect, the returned connection pool is inherently thread-safe.
 func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
 	db, err := Connect(ctx, driver, dsn, opts...)
 	if err != nil {
@@ -108,7 +111,9 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 	return db
 }
 
-// HealthCheck verifies the database is reachable.
+// HealthCheck executes a lightweight ping against the configured database to ensure the
+// connection remains active and the underlying database is currently reachable. It respects
+// context timeouts and cancellations to prevent unbounded blocking.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }

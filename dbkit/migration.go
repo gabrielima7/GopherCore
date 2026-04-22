@@ -18,8 +18,10 @@ type MigrationConfig struct {
 	DatabaseName string
 }
 
-// RunMigrations applies all pending migrations.
-// The migrationsPath should be a URL like "file://./migrations".
+// RunMigrations incrementally applies all pending "up" migrations located at the specified sourceURL.
+// It relies on golang-migrate to orchestrate the internal schema_migrations table safely.
+// Note that schema migrations often perform DDL operations that cannot be fully encapsulated in
+// a transaction depending on the underlying database engine. Ensure backups are available.
 func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) error {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -35,8 +37,11 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 	return nil
 }
 
-// RollbackMigrations rolls back N migration steps.
-// If steps is 0, it rolls back all migrations.
+// RollbackMigrations selectively reverts the last N migration steps by executing their
+// corresponding "down" migration files. If the steps parameter is exactly 0, it will
+// systematically revert all previously applied migrations.
+// Like RunMigrations, destructive DDL side-effects may occur and not all databases support
+// rolling back these types of operations transactionally.
 func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) error {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -65,7 +70,9 @@ type MigrationVersion struct {
 	Dirty   bool
 }
 
-// GetMigrationVersion returns the current migration version and dirty flag.
+// GetMigrationVersion queries the underlying migrate state machine to retrieve the current
+// active schema version. It also returns a "dirty" boolean flag, which if true, indicates that
+// the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
 func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (MigrationVersion, error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {

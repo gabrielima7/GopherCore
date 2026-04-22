@@ -14,7 +14,8 @@ import (
 // ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
 var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 
-// Strategy defines the backoff strategy for retries.
+// Strategy defines the backoff algorithm used to calculate the delay
+// between consecutive retry attempts.
 type Strategy int
 
 const (
@@ -24,7 +25,8 @@ const (
 	StrategyExponential
 )
 
-// Config holds the configuration for a retry operation.
+// Config strictly holds the configuration parameters that govern
+// the behavior of a retry operation, including backoff algorithms and constraints.
 type Config struct {
 	MaxAttempts  int
 	InitialDelay time.Duration
@@ -34,7 +36,7 @@ type Config struct {
 	RetryIf      func(error) bool
 }
 
-// Option is a functional option for configuring retry behavior.
+// Option defines a functional option signature for configuring retry behavior.
 type Option func(*Config)
 
 // defaultConfig returns sensible default configuration.
@@ -94,8 +96,9 @@ func WithRetryIf(fn func(error) bool) Option {
 	}
 }
 
-// Do executes fn, retrying on failure according to the provided options.
-// It respects context cancellation and deadlines.
+// Do repeatedly executes the provided function fn until it succeeds,
+// the maximum number of attempts is exhausted, or the context is canceled.
+// It applies the configured backoff strategy between attempts.
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -130,7 +133,9 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 	return errors.Join(ErrMaxAttemptsReached, lastErr)
 }
 
-// DoWithValue executes fn which returns a value and an error, retrying on failure.
+// DoWithValue acts identical to Do, but is designed for functions that return
+// both a value and an error. It repeatedly executes fn until it succeeds and
+// returns the result, or fails after exhausting all attempts.
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -168,7 +173,9 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 	return zero, errors.Join(ErrMaxAttemptsReached, lastErr)
 }
 
-// calculateDelay computes the backoff delay for the given attempt.
+// calculateDelay is an internal helper that computes the exact backoff delay
+// for the current attempt based on the chosen strategy, applying limits
+// and cryptographic jitter if enabled.
 func calculateDelay(cfg *Config, attempt int) time.Duration {
 	var delay time.Duration
 	switch cfg.Strategy {

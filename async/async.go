@@ -10,21 +10,25 @@ import (
 	"sync"
 )
 
-// PanicError wraps a recovered panic value with its stack trace.
+// PanicError wraps a recovered panic value with its corresponding stack trace.
+// This allows callers to inspect the exact location and cause of the panic
+// without terminating the entire application.
 type PanicError struct {
 	Value any
 	Stack string
 }
 
-// Error implements the error interface.
+// Error implements the error interface for PanicError, returning a formatted
+// string containing the panic value and the full stack trace.
 func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
 
-// Go launches a goroutine with automatic panic recovery.
-// If the goroutine panics, the panic is captured and passed to
-// the optional onPanic callback. If no callback is provided,
-// the panic is silently recovered.
+// Go launches a new goroutine safely with automatic panic recovery.
+// If the provided function fn panics during execution, the panic is gracefully
+// caught and converted into a PanicError. This error is then passed to the
+// optional onPanic callback functions, if any are provided. If no callback
+// is provided, the panic is silently recovered, preventing the program from crashing.
 func Go(fn func(), onPanic ...func(err error)) {
 	go func() {
 		defer func() {
@@ -42,8 +46,10 @@ func Go(fn func(), onPanic ...func(err error)) {
 	}()
 }
 
-// GoErr launches a goroutine that returns an error. The result is
-// sent to the returned channel. Panics are recovered and returned as errors.
+// GoErr launches a new goroutine safely that executes fn and returns an error.
+// The result of fn is sent to the returned channel, which is buffered to prevent
+// goroutine leaks if the caller does not read from it immediately.
+// If the goroutine panics, the panic is recovered and sent to the channel as a PanicError.
 func GoErr(fn func() error) <-chan error {
 	ch := make(chan error, 1)
 	go func() {
@@ -57,20 +63,26 @@ func GoErr(fn func() error) <-chan error {
 	return ch
 }
 
-// Group manages a collection of goroutines and collects their errors.
-// It is similar to errgroup but with panic recovery built in.
+// Group manages a collection of goroutines and collects all errors returned by them.
+// It is structurally similar to golang.org/x/sync/errgroup but natively includes
+// built-in panic recovery for every launched goroutine. It is safe for concurrent
+// execution and error collection.
 type Group struct {
 	wg   sync.WaitGroup
 	mu   sync.Mutex
 	errs []error
 }
 
-// NewGroup creates a new Group.
+// NewGroup creates and returns a new Group instance ready for managing
+// a collection of goroutines.
 func NewGroup() *Group {
 	return &Group{}
 }
 
-// Go launches a goroutine within the Group with panic recovery.
+// Go launches a goroutine within the Group to execute the provided function fn.
+// It automatically handles panic recovery by capturing the panic and appending
+// it to the Group's internal error slice as a PanicError. All concurrent accesses
+// to the internal error slice are safely synchronized via a mutex lock.
 func (g *Group) Go(fn func() error) {
 	g.wg.Add(1)
 	go func() {
@@ -90,8 +102,9 @@ func (g *Group) Go(fn func() error) {
 	}()
 }
 
-// Wait blocks until all goroutines in the Group have completed.
-// Returns all collected errors (nil if no errors occurred).
+// Wait blocks the calling goroutine until all goroutines launched within the Group
+// have completed execution. It returns a slice containing all collected errors,
+// including any recovered panics. If no errors occurred, it returns nil.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
 	g.mu.Lock()
@@ -102,8 +115,12 @@ func (g *Group) Wait() []error {
 	return g.errs
 }
 
-// Map applies fn to each item in items concurrently with bounded parallelism.
-// It respects context cancellation and recovers from panics.
+// Map applies the function fn to each item in the items slice concurrently,
+// enforcing a strict bounded parallelism limit based on the concurrency parameter.
+// It respects context cancellation, immediately halting further processing if the
+// context is canceled. Any panics within individual workers are recovered and
+// returned as errors. It returns the mapped results in the same order as the input
+// items, or the first encountered error.
 func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -115,17 +132,22 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
 
+	// Launch workers to process items concurrently.
 	for i, item := range items {
+		// Fast-path context cancellation check before spawning.
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 
+		// Acquire semaphore slot to enforce bounded concurrency limit.
 		sem <- struct{}{}
 		wg.Add(1)
 
 		go func(idx int, val T) {
 			defer wg.Done()
+			// Release the semaphore slot back to the channel.
 			defer func() { <-sem }()
+			// Recover panics gracefully without bringing down the application.
 			defer func() {
 				if r := recover(); r != nil {
 					errs[idx] = &PanicError{Value: r, Stack: string(debug.Stack())}
@@ -154,8 +176,11 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	return results, nil
 }
 
-// Fan launches fn for each item in items concurrently with no bound.
-// Use Map for bounded concurrency.
+// Fan launches the provided function fn for each item in the items slice concurrently
+// with no upper bound on parallelism (unbounded concurrency). It respects context
+// cancellation, aborting the launch loop early if the context is canceled.
+// It safely collects and returns all errors encountered, including recovered panics.
+// For bounded concurrency, prefer using Map.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
 		wg   sync.WaitGroup
@@ -163,7 +188,9 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 		errs []error
 	)
 
+	// Iterate through the items and launch a goroutine for each.
 	for _, item := range items {
+		// Stop launching new goroutines if the context is already canceled.
 		if ctx.Err() != nil {
 			mu.Lock()
 			errs = append(errs, ctx.Err())
@@ -174,6 +201,7 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 		wg.Add(1)
 		go func(val T) {
 			defer wg.Done()
+			// Recover from panics inside the fan worker goroutine.
 			defer func() {
 				if r := recover(); r != nil {
 					mu.Lock()
@@ -181,6 +209,7 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 					mu.Unlock()
 				}
 			}()
+			// Execute the worker logic and capture returned errors.
 			if err := fn(ctx, val); err != nil {
 				mu.Lock()
 				errs = append(errs, err)
@@ -189,6 +218,7 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 		}(item)
 	}
 
+	// Wait for all unbounded worker goroutines to finish execution.
 	wg.Wait()
 	return errs
 }

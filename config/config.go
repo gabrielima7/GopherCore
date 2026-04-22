@@ -1,3 +1,8 @@
+// Package config provides a unified, reflection-based configuration loader.
+// It parses environment variables directly into structured Go types and enforces
+// validation constraints via the github.com/go-playground/validator/v10 library,
+// ensuring that the application fails to start if vital configurations are missing
+// or malformed.
 package config
 
 import (
@@ -14,9 +19,17 @@ import (
 
 var validate = validator.New()
 
-// Load parses environment variables into a struct and validates it using go-playground/validator/v10.
-// It uses `env` to lookup environment variables and `envDefault` for default values.
-// `validate` tag is used to enforce validation rules.
+// Load reflects upon the provided cfg parameter, recursively parsing environment
+// variables into its exported fields. It then validates the populated struct against
+// its `validate` tags using the go-playground/validator library.
+//
+// The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
+// reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
+//
+// Tag Usage:
+//   - `env:"NAME"`: Binds the struct field to the environment variable NAME.
+//   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
+//   - `validate:"rule"`: Applies standard go-playground validation rules.
 func Load(cfg any) error {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
@@ -35,16 +48,21 @@ func Load(cfg any) error {
 	return validate.Struct(cfg)
 }
 
+// populate iterates over the fields of the reflected struct, recursively
+// diving into nested structs and pointers to structs. It extracts values
+// from the environment and attempts to parse and set them.
 func populate(v reflect.Value) error {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
+		// Ignore unexported or otherwise unsettable fields.
 		if !fieldValue.CanSet() {
 			continue
 		}
 
+		// Handle nested struct values recursively.
 		if fieldValue.Kind() == reflect.Struct {
 			if err := populate(fieldValue); err != nil {
 				return err
@@ -52,6 +70,7 @@ func populate(v reflect.Value) error {
 			continue
 		}
 
+		// Handle nested pointers to structs recursively, allocating if nil.
 		if fieldValue.Kind() == reflect.Ptr && fieldValue.Type().Elem().Kind() == reflect.Struct {
 			if fieldValue.IsNil() {
 				fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
@@ -62,6 +81,7 @@ func populate(v reflect.Value) error {
 			continue
 		}
 
+		// Skip fields that do not have an explicit `env` tag mapping.
 		envKey := field.Tag.Get("env")
 		if envKey == "" {
 			continue
@@ -83,6 +103,8 @@ func populate(v reflect.Value) error {
 	return nil
 }
 
+// setField parses the string value obtained from the environment and assigns it
+// to the reflected target value, strictly checking for numeric overflows.
 func setField(v reflect.Value, value string) error {
 	switch v.Kind() {
 	case reflect.String:
