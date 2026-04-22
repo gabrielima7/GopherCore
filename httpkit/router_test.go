@@ -129,7 +129,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 	}
 
 	srv := &http.Server{
-		Addr:    "127.0.0.1:0", // Listen on any available port
+		Addr: "127.0.0.1:0", // Listen on any available port
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(100 * time.Millisecond) // Simulate work
 			w.WriteHeader(http.StatusOK)
@@ -201,5 +201,48 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for GracefulShutdown to return error")
+	}
+}
+
+func TestGracefulShutdown_ServerClosed(t *testing.T) {
+	tests := []struct {
+		name    string
+		timeout time.Duration
+		wantErr bool
+	}{
+		{
+			name:    "Server natively closed returns ErrServerClosed handled as nil",
+			timeout: 5 * time.Second,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &http.Server{
+				Addr:    "127.0.0.1:0",
+				Handler: http.DefaultServeMux,
+			}
+
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- GracefulShutdown(srv, tt.timeout)
+			}()
+
+			time.Sleep(50 * time.Millisecond)
+
+			if err := srv.Close(); err != nil {
+				t.Fatalf("failed to close server: %v", err)
+			}
+
+			select {
+			case err := <-errCh:
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GracefulShutdown() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("timeout waiting for GracefulShutdown to handle ErrServerClosed")
+			}
+		})
 	}
 }
