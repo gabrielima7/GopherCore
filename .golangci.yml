@@ -8,11 +8,16 @@ run:
 linters:
   enable:
     - errcheck
+    - nilnil
     - nilerr
     - staticcheck
     - govet
     - unused
     - ineffassign
+  settings:
+    govet:
+      enable:
+        - nilness
 
 issues:
   max-same-issues: 0
