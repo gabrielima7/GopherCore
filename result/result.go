@@ -5,31 +5,36 @@ package result
 
 import "fmt"
 
-// Result represents the outcome of an operation that can either
-// succeed with a value of type T, or fail with an error.
+// Result is a generic container representing the outcome of an operation
+// that can either succeed with a value of type T, or fail with an error.
+// It encourages explicit error handling and functional transformations.
 type Result[T any] struct {
 	value T
 	err   error
 	ok    bool
 }
 
-// Ok creates a successful Result containing the given value.
+// Ok creates and returns a successful Result encapsulating the provided value.
+// The internal error state is implicitly nil.
 func Ok[T any](value T) Result[T] {
 	return Result[T]{value: value, ok: true}
 }
 
-// Err creates a failed Result containing the given error.
+// Err creates and returns a failed Result encapsulating the provided error.
+// The internal value state is the zero value for type T.
 func Err[T any](err error) Result[T] {
 	return Result[T]{err: err, ok: false}
 }
 
-// Errf creates a failed Result with a formatted error message.
+// Errf constructs and returns a failed Result containing a formatted error message.
+// It is a convenience wrapper around fmt.Errorf and Err.
 func Errf[T any](format string, args ...any) Result[T] {
 	return Result[T]{err: fmt.Errorf(format, args...), ok: false}
 }
 
-// Of creates a Result from a value and error pair, which is the
-// standard Go return pattern: val, err := someFunc().
+// Of builds a Result by seamlessly encapsulating the standard Go tuple
+// return pattern (value T, err error). If err is non-nil, it returns an Err
+// result. Otherwise, it wraps the value in an Ok result.
 func Of[T any](value T, err error) Result[T] {
 	if err != nil {
 		return Err[T](err)
@@ -37,23 +42,28 @@ func Of[T any](value T, err error) Result[T] {
 	return Ok(value)
 }
 
-// IsOk returns true if the Result contains a successful value.
+// IsOk evaluates the internal state and returns true exclusively if the
+// Result represents a successful outcome containing a value.
 func (r Result[T]) IsOk() bool {
 	return r.ok
 }
 
-// IsErr returns true if the Result contains an error.
+// IsErr evaluates the internal state and returns true exclusively if the
+// Result encapsulates a failure or an error.
 func (r Result[T]) IsErr() bool {
 	return !r.ok
 }
 
-// Unwrap returns the value and error. This follows Go's idiomatic
-// (value, error) return pattern.
+// Unwrap safely extracts and returns both the internal value and the error.
+// This allows the Result container to be bridged back into standard, idiomatic
+// Go error handling logic (value, err).
 func (r Result[T]) Unwrap() (T, error) {
 	return r.value, r.err
 }
 
-// UnwrapOr returns the value if Ok, or the provided fallback if Err.
+// UnwrapOr safely extracts the value if the Result is successful. If the Result
+// encapsulates an error, it ignores the error and immediately returns the
+// explicitly provided fallback value instead.
 func (r Result[T]) UnwrapOr(fallback T) T {
 	if r.ok {
 		return r.value
@@ -61,7 +71,9 @@ func (r Result[T]) UnwrapOr(fallback T) T {
 	return fallback
 }
 
-// UnwrapOrElse returns the value if Ok, or calls fn to produce a fallback.
+// UnwrapOrElse acts like UnwrapOr, but instead of taking a static fallback value,
+// it invokes the provided function fn with the encapsulated error to lazily compute
+// and return a dynamic fallback value.
 func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 	if r.ok {
 		return r.value
@@ -69,13 +81,15 @@ func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 	return fn(r.err)
 }
 
-// Error returns the error if present, or nil if Ok.
+// Error implements a safety accessor, returning the encapsulated error if the
+// Result represents a failure, or nil if the operation was successful.
 func (r Result[T]) Error() error {
 	return r.err
 }
 
-// Map transforms the value inside a Result using fn, if Ok.
-// If the Result is Err, the error is propagated unchanged.
+// Map transforms the underlying value of a successful Result[T] into a Result[U]
+// by applying the provided function fn. If the original Result is an Err, the
+// error is propagated unchanged and fn is never executed.
 func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 	if r.ok {
 		return Ok(fn(r.value))
@@ -83,8 +97,10 @@ func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 	return Err[U](r.err)
 }
 
-// FlatMap transforms the value inside a Result using fn that itself
-// returns a Result. This enables chaining fallible operations.
+// FlatMap applies a fallible function fn to the underlying value of a successful
+// Result[T], returning the resulting Result[U]. This enables elegant chaining of
+// multiple operations that might fail. If the original Result is an Err, the
+// error is propagated unchanged.
 func FlatMap[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 	if r.ok {
 		return fn(r.value)
@@ -92,7 +108,8 @@ func FlatMap[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 	return Err[U](r.err)
 }
 
-// String returns a human-readable representation of the Result.
+// String implements the fmt.Stringer interface to provide a clear, human-readable
+// representation of the Result's internal state (e.g., "Ok(value)" or "Err(error)").
 func (r Result[T]) String() string {
 	if r.ok {
 		return fmt.Sprintf("Ok(%v)", r.value)
