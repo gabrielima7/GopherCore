@@ -11,6 +11,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func mustClose(t *testing.T, closer interface{ Close() error }) {
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Fatalf("close failed: %v", err)
+	}
+}
+
 // newTestDB creates a temporary SQLite3 database for testing.
 func newTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
@@ -19,7 +26,7 @@ func newTestDB(t *testing.T) *sqlx.DB {
 	if err != nil {
 		t.Fatalf("failed to create test db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { mustClose(t, db) })
 	return db
 }
 
@@ -57,7 +64,7 @@ func TestConnectSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+	defer mustClose(t, db)
 
 	// Verify the connection actually works.
 	if err := db.PingContext(ctx); err != nil {
@@ -85,7 +92,7 @@ func TestConnectWithOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+	defer mustClose(t, db)
 
 	// Verify connection pool settings by using the database.
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
@@ -120,7 +127,7 @@ func TestMustConnectSuccess(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "must_connect_test.db")
 	ctx := context.Background()
 	db := MustConnect(ctx, "sqlite3", dbPath)
-	defer db.Close()
+	defer mustClose(t, db)
 
 	if err := db.PingContext(ctx); err != nil {
 		t.Fatalf("ping failed: %v", err)
@@ -169,7 +176,7 @@ func TestHealthCheckFailsAfterClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create db: %v", err)
 	}
-	db.Close() // Close it.
+	mustClose(t, db) // Close it.
 
 	err = HealthCheck(context.Background(), db)
 	if err == nil {
@@ -184,7 +191,7 @@ func TestConnectWithPreparedStatements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+	defer mustClose(t, db)
 
 	// Create a table.
 	_, err = db.Exec("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
@@ -197,7 +204,7 @@ func TestConnectWithPreparedStatements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("prepare failed: %v", err)
 	}
-	defer stmt.Close()
+	defer mustClose(t, stmt)
 
 	_, err = stmt.Exec("test_item")
 	if err != nil {
@@ -222,7 +229,7 @@ func TestConnectWithSQLInjectionPrevention(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+	defer mustClose(t, db)
 
 	_, _ = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
 	_, _ = db.Exec("INSERT INTO users (name) VALUES (?)", "alice")
@@ -254,7 +261,7 @@ func TestConnectCancelledContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create db file: %v", err)
 	}
-	f.Close()
+	mustClose(t, f)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
