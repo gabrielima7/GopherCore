@@ -92,12 +92,15 @@ func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	r := NewRouter(WithLogger(false))
-	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithWriteTimeout(5*time.Second))
+	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithReadHeaderTimeout(2*time.Second), WithWriteTimeout(5*time.Second))
 	if srv.Addr != ":8080" {
 		t.Fatalf("expected :8080, got %s", srv.Addr)
 	}
 	if srv.ReadTimeout != 5*time.Second {
 		t.Fatalf("expected 5s read timeout, got %v", srv.ReadTimeout)
+	}
+	if srv.ReadHeaderTimeout != 2*time.Second {
+		t.Fatalf("expected 2s read header timeout, got %v", srv.ReadHeaderTimeout)
 	}
 	if srv.WriteTimeout != 5*time.Second {
 		t.Fatalf("expected 5s write timeout, got %v", srv.WriteTimeout)
@@ -114,6 +117,9 @@ func TestDefaultRouterConfig(t *testing.T) {
 	}
 	if cfg.ReadTimeout != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", cfg.ReadTimeout)
+	}
+	if cfg.ReadHeaderTimeout != 5*time.Second {
+		t.Fatalf("expected 5s read header timeout, got %v", cfg.ReadHeaderTimeout)
 	}
 	if cfg.WriteTimeout != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", cfg.WriteTimeout)
