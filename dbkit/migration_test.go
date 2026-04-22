@@ -454,7 +454,7 @@ func TestGetMigrationVersionDBError(t *testing.T) {
 	realDriver := newDriver(t, db)
 
 	wrapped := &errVersionDriver{
-		Driver:   realDriver,
+		Driver:     realDriver,
 		versionErr: errors.New("simulated driver version error"),
 	}
 

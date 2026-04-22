@@ -83,11 +83,11 @@ type Breaker struct {
 	mu     sync.Mutex
 	config Config
 
-	state             State
-	failureCount      int
-	successCount      int
-	halfOpenRequests   int
-	lastFailureTime   time.Time
+	state            State
+	failureCount     int
+	successCount     int
+	halfOpenRequests int
+	lastFailureTime  time.Time
 }
 
 // New creates a new Breaker with the given configuration.
