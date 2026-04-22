@@ -13,6 +13,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func mustCloseMigration(t *testing.T, closer interface{ Close() error }) {
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Fatalf("close failed: %v", err)
+	}
+}
+
 // newTestMigrationEnv creates a temp SQLite DB and returns the sqlx.DB,
 // the raw *sql.DB (for creating fresh migrate drivers), and the DB path.
 // NOTE: migrate.Close() closes the underlying database, so for tests that
@@ -29,7 +36,7 @@ func newTestMigrationEnv(t *testing.T) (dbPath string) {
 	if err := db.Ping(); err != nil {
 		t.Fatalf("failed to ping db: %v", err)
 	}
-	db.Close()
+	mustCloseMigration(t, db)
 	return dbPath
 }
 
@@ -71,7 +78,7 @@ func TestRunMigrations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect for query: %v", err)
 	}
-	defer queryDB.Close()
+	defer mustCloseMigration(t, queryDB)
 
 	// Verify tables were created.
 	var count int
@@ -115,7 +122,7 @@ func TestRunMigrationsNoChange(t *testing.T) {
 func TestRunMigrationsInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
-	defer db.Close()
+	defer mustCloseMigration(t, db)
 	driver := newDriver(t, db)
 
 	err := RunMigrations(sqlx.NewDb(db, "sqlite3"), "sqlite3", driver, "file://nonexistent/path")
@@ -148,7 +155,7 @@ func TestRollbackMigrationsAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer queryDB.Close()
+	defer mustCloseMigration(t, queryDB)
 
 	var count int
 	err = queryDB.Get(&count, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'")
@@ -183,7 +190,7 @@ func TestRollbackMigrationsSteps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer queryDB.Close()
+	defer mustCloseMigration(t, queryDB)
 
 	// Users table should still exist.
 	var count int
@@ -208,7 +215,7 @@ func TestRollbackMigrationsSteps(t *testing.T) {
 func TestRollbackMigrationsInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
-	defer db.Close()
+	defer mustCloseMigration(t, db)
 	driver := newDriver(t, db)
 
 	err := RollbackMigrations(sqlx.NewDb(db, "sqlite3"), "sqlite3", driver, "file://nonexistent/path", 1)
@@ -264,7 +271,7 @@ func TestGetMigrationVersionNoMigrations(t *testing.T) {
 func TestGetMigrationVersionInvalidSource(t *testing.T) {
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
-	defer db.Close()
+	defer mustCloseMigration(t, db)
 	driver := newDriver(t, db)
 
 	_, err := GetMigrationVersion("sqlite3", driver, "file://nonexistent/path")
@@ -419,7 +426,7 @@ func TestGetMigrationVersionDirtyDB(t *testing.T) {
 		t.Fatalf("failed to connect: %v", err2)
 	}
 	_, _ = db2.Exec("UPDATE schema_migrations SET dirty = 1")
-	db2.Close()
+	mustCloseMigration(t, db2)
 
 	// Now query version — should report dirty.
 	db3 := openDB(t, dbPath)
