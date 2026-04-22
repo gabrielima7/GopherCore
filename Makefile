@@ -42,19 +42,23 @@ vet:
 ## nilaway: Run NilAway static nil dereference analysis
 nilaway:
 	@echo "==> Running NilAway..."
-	go install go.uber.org/nilaway/cmd/nilaway@latest
-	nilaway ./...
+	@go install go.uber.org/nilaway/cmd/nilaway@latest
+	@GOBIN_PATH="$$(go env GOBIN)"; \
+	if [ -z "$$GOBIN_PATH" ]; then \
+		GOBIN_PATH="$$(go env GOPATH)/bin"; \
+	fi; \
+	"$$GOBIN_PATH/nilaway" ./...
 
 ## lint: Run golangci-lint + NilAway
 lint:
 	@echo "==> Running linters..."
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \
 	fi; \
 	"$$GOBIN_PATH/golangci-lint" run ./...
-	$(MAKE) nilaway
+	@$(MAKE) nilaway
 
 ## test: Run tests with coverage and race detector
 test:
@@ -72,12 +76,22 @@ fuzz:
 ## security: Run gosec static security analysis
 security:
 	@echo "==> Running gosec..."
-	gosec -quiet ./...
+	@go install github.com/securego/gosec/v2/cmd/gosec@latest
+	@GOBIN_PATH="$$(go env GOBIN)"; \
+	if [ -z "$$GOBIN_PATH" ]; then \
+		GOBIN_PATH="$$(go env GOPATH)/bin"; \
+	fi; \
+	"$$GOBIN_PATH/gosec" -quiet ./...
 
 ## vulncheck: Run govulncheck dependency vulnerability check
 vulncheck:
 	@echo "==> Running govulncheck..."
-	govulncheck ./...
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	@GOBIN_PATH="$$(go env GOBIN)"; \
+	if [ -z "$$GOBIN_PATH" ]; then \
+		GOBIN_PATH="$$(go env GOPATH)/bin"; \
+	fi; \
+	"$$GOBIN_PATH/govulncheck" ./...
 
 ## tidy: Clean up go.mod and go.sum
 tidy:
