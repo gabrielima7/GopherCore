@@ -32,6 +32,8 @@ type RouterConfig struct {
 	RateBurst int
 	// ReadTimeout for the HTTP server.
 	ReadTimeout time.Duration
+	// ReadHeaderTimeout for the HTTP server.
+	ReadHeaderTimeout time.Duration
 	// WriteTimeout for the HTTP server.
 	WriteTimeout time.Duration
 	// EnableLogger enables the chi request logger middleware.
@@ -42,13 +44,14 @@ type RouterConfig struct {
 // for the HTTP router.
 func DefaultRouterConfig() RouterConfig {
 	return RouterConfig{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
-		RateLimit:      100,
-		RateBurst:      200,
-		ReadTimeout:    15 * time.Second,
-		WriteTimeout:   15 * time.Second,
-		EnableLogger:   true,
+		AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowedHeaders:    []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		RateLimit:         100,
+		RateBurst:         200,
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		EnableLogger:      true,
 	}
 }
 
@@ -77,6 +80,14 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 func WithReadTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadTimeout = d
+	}
+}
+
+// WithReadHeaderTimeout strictly enforces the maximum duration the server will wait
+// while reading the HTTP request headers, helping to mitigate Slowloris-style attacks.
+func WithReadHeaderTimeout(d time.Duration) RouterOption {
+	return func(c *RouterConfig) {
+		c.ReadHeaderTimeout = d
 	}
 }
 
@@ -154,10 +165,11 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
 	cfg := parseOptions(opts...)
 	return &http.Server{
-		Addr:         addr,
-		Handler:      handler,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
+		Addr:              addr,
+		Handler:           handler,
+		ReadTimeout:       cfg.ReadTimeout,
+		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+		WriteTimeout:      cfg.WriteTimeout,
 	}
 }
 

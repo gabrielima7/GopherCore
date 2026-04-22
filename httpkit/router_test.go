@@ -2,6 +2,7 @@ package httpkit
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,13 @@ import (
 	"testing"
 	"time"
 )
+
+func mustCloseRouterTest(t *testing.T, closer interface{ Close() error }) {
+	t.Helper()
+	if err := closer.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("close failed: %v", err)
+	}
+}
 
 func TestNewRouter(t *testing.T) {
 	r := NewRouter(
@@ -84,12 +92,15 @@ func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	r := NewRouter(WithLogger(false))
-	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithWriteTimeout(5*time.Second))
+	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithReadHeaderTimeout(2*time.Second), WithWriteTimeout(5*time.Second))
 	if srv.Addr != ":8080" {
 		t.Fatalf("expected :8080, got %s", srv.Addr)
 	}
 	if srv.ReadTimeout != 5*time.Second {
 		t.Fatalf("expected 5s read timeout, got %v", srv.ReadTimeout)
+	}
+	if srv.ReadHeaderTimeout != 2*time.Second {
+		t.Fatalf("expected 2s read header timeout, got %v", srv.ReadHeaderTimeout)
 	}
 	if srv.WriteTimeout != 5*time.Second {
 		t.Fatalf("expected 5s write timeout, got %v", srv.WriteTimeout)
@@ -106,6 +117,9 @@ func TestDefaultRouterConfig(t *testing.T) {
 	}
 	if cfg.ReadTimeout != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", cfg.ReadTimeout)
+	}
+	if cfg.ReadHeaderTimeout != 5*time.Second {
+		t.Fatalf("expected 5s read header timeout, got %v", cfg.ReadHeaderTimeout)
 	}
 	if cfg.WriteTimeout != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", cfg.WriteTimeout)
@@ -163,9 +177,17 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
 	}
-	defer ln.Close()
-	go dummy.Serve(ln)
-	defer dummy.Shutdown(context.Background())
+	defer mustCloseRouterTest(t, ln)
+	go func() {
+		if serveErr := dummy.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			t.Errorf("dummy server failed: %v", serveErr)
+		}
+	}()
+	defer func() {
+		if shutdownErr := dummy.Shutdown(context.Background()); shutdownErr != nil {
+			t.Fatalf("failed to shutdown dummy server: %v", shutdownErr)
+		}
+	}()
 
 	// Try to start a server on the same address to cause an error
 	srv := &http.Server{
@@ -185,5 +207,48 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for GracefulShutdown to return error")
+	}
+}
+
+func TestGracefulShutdown_ServerClosed(t *testing.T) {
+	tests := []struct {
+		name    string
+		timeout time.Duration
+		wantErr bool
+	}{
+		{
+			name:    "Server natively closed returns ErrServerClosed handled as nil",
+			timeout: 5 * time.Second,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &http.Server{
+				Addr:    "127.0.0.1:0",
+				Handler: http.DefaultServeMux,
+			}
+
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- GracefulShutdown(srv, tt.timeout)
+			}()
+
+			time.Sleep(50 * time.Millisecond)
+
+			if err := srv.Close(); err != nil {
+				t.Fatalf("failed to close server: %v", err)
+			}
+
+			select {
+			case err := <-errCh:
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GracefulShutdown() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("timeout waiting for GracefulShutdown to handle ErrServerClosed")
+			}
+		})
 	}
 }
