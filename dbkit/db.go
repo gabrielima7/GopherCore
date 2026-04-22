@@ -113,7 +113,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 
 // HealthCheck executes a lightweight ping against the configured database to ensure the
 // connection remains active and the underlying database is currently reachable. It respects
-// context timeouts and cancellations to prevent unbounded blocking.
+// context timeouts and cancellations to prevent unbounded blocking. Safe for concurrent use.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }

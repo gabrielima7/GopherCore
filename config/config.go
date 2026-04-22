@@ -25,6 +25,8 @@ var validate = validator.New()
 //
 // The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
+// Note that Load relies on a global, thread-safe validator instance. Safe for concurrent use,
+// though normally invoked once at application startup.
 //
 // Tag Usage:
 //   - `env:"NAME"`: Binds the struct field to the environment variable NAME.

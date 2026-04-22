@@ -52,7 +52,8 @@ func (ve ValidationErrors) Error() string {
 // slice which implements the error interface. It returns nil if the struct perfectly
 // satisfies all validation constraints.
 //
-// The input `s` MUST be a struct or a pointer to a struct.
+// The input `s` MUST be a struct or a pointer to a struct. It relies on a globally
+// initialized validator instance and is entirely thread-safe for concurrent use.
 func Validate(s any) error {
 	err := validate.Struct(s)
 	if err == nil {
@@ -79,6 +80,9 @@ func Validate(s any) error {
 // RegisterValidation registers a custom, user-defined validation function mapped to
 // a specific tag name. Once registered, this tag can be used in struct fields
 // throughout the application. It returns an error if the tag name is already registered.
+// This function modifies the global validator instance and is generally NOT thread-safe
+// to call concurrently with active `Validate` calls. It should be invoked strictly
+// during application startup initialization.
 func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
@@ -104,7 +108,8 @@ func SanitizeString(s string) string {
 // payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
 // It is explicitly designed to safely handle untrusted user input and mitigate
 // Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving
-// only plain text.
+// only plain text. It leverages a globally instantiated policy and is fully
+// safe for concurrent execution across multiple goroutines.
 func StripHTML(s string) string {
 	return htmlPolicy.Sanitize(s)
 }
