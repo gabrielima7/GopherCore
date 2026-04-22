@@ -1,4 +1,4 @@
-.PHONY: all lint test fuzz security vulncheck audit tidy fmt vet install-tools help
+.PHONY: all lint nilaway test fuzz security vulncheck audit tidy fmt vet install-tools help
 
 # Default target
 all: audit
@@ -7,7 +7,8 @@ all: audit
 help:
 	@echo "GopherCore — Makefile targets:"
 	@echo ""
-	@echo "  make lint        Run golangci-lint"
+	@echo "  make lint        Run golangci-lint + NilAway"
+	@echo "  make nilaway     Run NilAway static nil analysis"
 	@echo "  make test        Run tests with coverage and race detector"
 	@echo "  make fuzz        Run fuzz tests (30s per target)"
 	@echo "  make security    Run gosec security analysis"
@@ -19,10 +20,11 @@ help:
 	@echo "  make install-tools  Install required development tools"
 	@echo ""
 
-## install-tools: Install golangci-lint, gosec, govulncheck
+## install-tools: Install golangci-lint, nilaway, gosec, govulncheck
 install-tools:
 	@echo "==> Installing development tools..."
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	go install go.uber.org/nilaway/cmd/nilaway@latest
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 	@echo "==> Done."
@@ -37,10 +39,22 @@ vet:
 	@echo "==> Running go vet..."
 	go vet ./...
 
-## lint: Run golangci-lint
+## nilaway: Run NilAway static nil dereference analysis
+nilaway:
+	@echo "==> Running NilAway..."
+	go install go.uber.org/nilaway/cmd/nilaway@latest
+	nilaway ./...
+
+## lint: Run golangci-lint + NilAway
 lint:
 	@echo "==> Running linters..."
-	golangci-lint run ./...
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@GOBIN_PATH="$$(go env GOBIN)"; \
+	if [ -z "$$GOBIN_PATH" ]; then \
+		GOBIN_PATH="$$(go env GOPATH)/bin"; \
+	fi; \
+	"$$GOBIN_PATH/golangci-lint" run ./...
+	$(MAKE) nilaway
 
 ## test: Run tests with coverage and race detector
 test:

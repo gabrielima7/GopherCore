@@ -296,6 +296,7 @@ results, err := async.Map(ctx, items, 10, func(ctx context.Context, item Item) (
 
 - Go 1.26+
 - [golangci-lint](https://golangci-lint.run/) v2.11+
+- [NilAway](https://github.com/uber-go/nilaway) (static nil-panic prevention)
 - [gosec](https://github.com/securego/gosec)
 - [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck)
 
@@ -308,7 +309,8 @@ make install-tools
 ### Commands
 
 ```bash
-make lint        # Run golangci-lint
+make lint        # Run golangci-lint + NilAway
+make nilaway     # Run NilAway static nil analysis
 make test        # Run tests with coverage and race detector
 make fuzz        # Run fuzz tests (30s per target)
 make security    # Run gosec security analysis
@@ -326,7 +328,7 @@ The project uses GitHub Actions with a rigorous pipeline:
 
 | Job | Platform | Description |
 |-----|----------|-------------|
-| **Lint** | Ubuntu | golangci-lint with errcheck, nilerr, staticcheck |
+| **Lint** | Ubuntu | golangci-lint + NilAway static nil analysis |
 | **Test** | Ubuntu, macOS, Windows | Tests with `-cover -race` |
 | **Fuzz** | Ubuntu | 60s fuzz testing per package |
 | **Security** | Ubuntu | gosec with SARIF → GitHub Security |
@@ -344,6 +346,7 @@ The project uses GitHub Actions with a rigorous pipeline:
 - **Rate limiting** via `golang.org/x/time/rate`
 - **CORS control** with configurable origins
 - **Static analysis** with gosec in CI/CD
+- **Static nil dereference analysis** with NilAway in CI/CD
 - **Dependency scanning** with govulncheck
 - **Linting** with golangci-lint (errcheck, nilerr, staticcheck)
 

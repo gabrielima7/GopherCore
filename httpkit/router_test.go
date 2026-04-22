@@ -2,6 +2,7 @@ package httpkit
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,13 @@ import (
 	"testing"
 	"time"
 )
+
+func mustCloseRouterTest(t *testing.T, closer interface{ Close() error }) {
+	t.Helper()
+	if err := closer.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("close failed: %v", err)
+	}
+}
 
 func TestNewRouter(t *testing.T) {
 	r := NewRouter(
@@ -163,9 +171,17 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
 	}
-	defer ln.Close()
-	go dummy.Serve(ln)
-	defer dummy.Shutdown(context.Background())
+	defer mustCloseRouterTest(t, ln)
+	go func() {
+		if serveErr := dummy.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			t.Errorf("dummy server failed: %v", serveErr)
+		}
+	}()
+	defer func() {
+		if shutdownErr := dummy.Shutdown(context.Background()); shutdownErr != nil {
+			t.Fatalf("failed to shutdown dummy server: %v", shutdownErr)
+		}
+	}()
 
 	// Try to start a server on the same address to cause an error
 	srv := &http.Server{
