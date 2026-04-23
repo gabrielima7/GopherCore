@@ -42,7 +42,7 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !limiter.Allow() {
-				w.Header().Set("Retry-After", "1")
+				w.Header()["Retry-After"] = []string{"1"}
 				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 				return
 			}

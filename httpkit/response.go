@@ -24,7 +24,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 		http.Error(w, `{"error":"internal server error","code":500}`, http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header()["Content-Type"] = []string{"application/json; charset=utf-8"}
 	w.WriteHeader(status)
 	_, _ = w.Write(body)
 }
