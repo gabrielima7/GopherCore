@@ -140,6 +140,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 			time.Sleep(100 * time.Millisecond) // Simulate work
 			w.WriteHeader(http.StatusOK)
 		}),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
@@ -172,7 +173,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 
 func TestGracefulShutdown_ServerError(t *testing.T) {
 	// Start a dummy server to occupy a port
-	dummy := &http.Server{Addr: "127.0.0.1:0"}
+	dummy := &http.Server{Addr: "127.0.0.1:0", ReadHeaderTimeout: 5 * time.Second}
 	ln, err := net.Listen("tcp", dummy.Addr)
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
@@ -191,8 +192,9 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 
 	// Try to start a server on the same address to cause an error
 	srv := &http.Server{
-		Addr:    ln.Addr().String(),
-		Handler: http.DefaultServeMux,
+		Addr:              ln.Addr().String(),
+		Handler:           http.DefaultServeMux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
@@ -226,8 +228,9 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &http.Server{
-				Addr:    "127.0.0.1:0",
-				Handler: http.DefaultServeMux,
+				Addr:              "127.0.0.1:0",
+				Handler:           http.DefaultServeMux,
+				ReadHeaderTimeout: 5 * time.Second,
 			}
 
 			errCh := make(chan error, 1)
