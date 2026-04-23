@@ -11,8 +11,10 @@ import (
 )
 
 // PanicError wraps a recovered panic value with its corresponding stack trace.
-// This allows callers to inspect the exact location and cause of the panic
+//
+// Purpose: This allows callers to inspect the exact location and cause of the panic
 // without terminating the entire application.
+// Thread-safety: Pure struct, safe to pass across goroutine channels.
 type PanicError struct {
 	Value any
 	Stack string
@@ -20,15 +22,17 @@ type PanicError struct {
 
 // Error implements the error interface for PanicError, returning a formatted
 // string containing the panic value and the full stack trace.
+// Thread-safety: Read-only access to internal fields.
 func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
 
 // Go launches a new goroutine safely with automatic panic recovery.
-// If the provided function fn panics during execution, the panic is gracefully
-// caught and converted into a PanicError. This error is then passed to the
-// optional onPanic callback functions, if any are provided. If no callback
-// is provided, the panic is silently recovered, preventing the program from crashing.
+//
+// Constraints: If the provided function fn panics during execution, the panic is gracefully
+// caught and converted into a PanicError. This error is then passed to the optional onPanic
+// callback functions, if any are provided. If no callback is provided, the panic is silently recovered.
+// Thread-safety: Safely detaches and isolates panic propagation from the calling goroutine.
 func Go(fn func(), onPanic ...func(err error)) {
 	go func() {
 		defer func() {
@@ -46,10 +50,12 @@ func Go(fn func(), onPanic ...func(err error)) {
 	}()
 }
 
-// GoErr launches a new goroutine safely that executes fn and returns an error.
-// The result of fn is sent to the returned channel, which is buffered to prevent
+// GoErr launches a new goroutine safely that executes fn and returns an error channel.
+//
+// Constraints: The result of fn is sent to the returned channel, which is buffered to prevent
 // goroutine leaks if the caller does not read from it immediately.
-// If the goroutine panics, the panic is recovered and sent to the channel as a PanicError.
+// Thread-safety: If the goroutine panics, the panic is recovered and sent safely to the
+// channel as a PanicError. Channel access is inherently concurrent-safe.
 func GoErr(fn func() error) <-chan error {
 	ch := make(chan error, 1)
 	go func() {
@@ -64,9 +70,11 @@ func GoErr(fn func() error) <-chan error {
 }
 
 // Group manages a collection of goroutines and collects all errors returned by them.
-// It is structurally similar to golang.org/x/sync/errgroup but natively includes
-// built-in panic recovery for every launched goroutine. It is safe for concurrent
-// execution and error collection.
+//
+// Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
+// built-in panic recovery for every launched goroutine.
+// Thread-safety: It uses internal sync primitives to be entirely safe for concurrent
+// execution and error collection from multiple workers.
 type Group struct {
 	wg   sync.WaitGroup
 	mu   sync.Mutex
@@ -74,15 +82,17 @@ type Group struct {
 }
 
 // NewGroup creates and returns a new Group instance ready for managing
-// a collection of goroutines.
+// a collection of goroutines safely.
 func NewGroup() *Group {
 	return &Group{}
 }
 
 // Go launches a goroutine within the Group to execute the provided function fn.
-// It automatically handles panic recovery by capturing the panic and appending
-// it to the Group's internal error slice as a PanicError. All concurrent accesses
-// to the internal error slice are safely synchronized via a mutex lock.
+//
+// Purpose: It automatically handles panic recovery by capturing the panic and appending
+// it to the Group's internal error slice as a PanicError.
+// Thread-safety: All concurrent accesses to the internal error slice are safely
+// synchronized via a mutex lock to strictly prevent data races.
 func (g *Group) Go(fn func() error) {
 	g.wg.Add(1)
 	go func() {
@@ -103,10 +113,12 @@ func (g *Group) Go(fn func() error) {
 }
 
 // Wait blocks the calling goroutine until all goroutines launched within the Group
-// have completed execution. It safely accesses the internal error slice protected
-// by a mutex lock, and returns a slice containing all collected errors,
-// including any recovered panics. If no errors occurred, it returns nil.
-// Safe for concurrent calls, though typically called once by a coordinator goroutine.
+// have completed execution.
+//
+// Constraints: It returns a slice containing all collected errors, including any recovered panics.
+// If no errors occurred, it returns nil.
+// Thread-safety: It safely accesses the internal error slice protected by a mutex lock.
+// Safe for concurrent calls, though typically called once by a single coordinator goroutine.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
 	g.mu.Lock()
@@ -119,13 +131,13 @@ func (g *Group) Wait() []error {
 
 // Map applies the function fn to each item in the items slice concurrently,
 // enforcing a strict bounded parallelism limit based on the concurrency parameter.
-// It uses a buffered channel as a counting semaphore to restrict the number of
-// concurrently active goroutines. It respects context cancellation, immediately
-// halting further processing if the context is canceled, returning ctx.Err().
-// Any panics within individual workers are safely recovered and returned as PanicError.
-// It returns the mapped results in the exact same order as the input items,
-// or the first encountered error (including context cancellation or panics).
-// Safe for concurrent use, though typically invoked synchronously.
+//
+// Constraints: It respects context cancellation, immediately halting further processing if
+// the context is canceled, returning ctx.Err(). It returns the mapped results in the exact
+// same order as the input items, or the first encountered error (including context cancellation).
+// Thread-safety: It uses a buffered channel as a counting semaphore to restrict the number of
+// concurrently active goroutines. Panics within workers are gracefully recovered.
+// Each worker writes its result to its own unique pre-allocated slice index, avoiding race conditions entirely.
 func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -186,12 +198,13 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 }
 
 // Fan launches the provided function fn for each item in the items slice concurrently
-// with no upper bound on parallelism (unbounded concurrency). It uses a sync.WaitGroup
-// to coordinate completion and a sync.Mutex to safely collect any errors encountered.
-// It respects context cancellation, aborting the launch loop early if the context is
-// canceled. It safely collects and returns all errors encountered, including recovered
-// panics and context errors. For bounded concurrency, prefer using Map.
-// Safe for concurrent use across multiple goroutines.
+// with no upper bound on parallelism (unbounded concurrency).
+//
+// Constraints: It respects context cancellation, aborting the launch loop early if the context is
+// canceled. It safely collects and returns all errors encountered, including recovered panics.
+// For bounded concurrency, prefer using Map.
+// Thread-safety: It uses a sync.WaitGroup to coordinate completion and a sync.Mutex to
+// safely collect any errors encountered without data races.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
 		wg   sync.WaitGroup

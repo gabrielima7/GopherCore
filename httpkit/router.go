@@ -19,6 +19,7 @@ import (
 
 // RouterConfig holds configuration options for building and mounting the core
 // application router, including CORS, rate limiting, and HTTP timeouts.
+// All fields are read-only after initialization and thus thread-safe.
 type RouterConfig struct {
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	AllowedOrigins []string
@@ -41,7 +42,7 @@ type RouterConfig struct {
 }
 
 // DefaultRouterConfig returns a secure and sensible baseline configuration
-// for the HTTP router.
+// for the HTTP router to mitigate standard application vulnerabilities natively.
 func DefaultRouterConfig() RouterConfig {
 	return RouterConfig{
 		AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
@@ -55,11 +56,13 @@ func DefaultRouterConfig() RouterConfig {
 	}
 }
 
-// RouterOption defines a functional option signature for configuring the router instance.
+// RouterOption defines a functional option signature for configuring the router instance
+// mutatively during setup.
 type RouterOption func(*RouterConfig)
 
 // WithCORS restricts the Cross-Origin Resource Sharing policy to only accept
 // preflight and incoming requests from the strictly allowed array of origins.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithCORS(origins ...string) RouterOption {
 	return func(c *RouterConfig) {
 		c.AllowedOrigins = origins
@@ -68,6 +71,7 @@ func WithCORS(origins ...string) RouterOption {
 
 // WithRateLimit configures global inbound traffic limits by specifying the allowed
 // requests per second (rps) and a maximum concurrent burst size.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
@@ -77,6 +81,7 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 
 // WithReadTimeout strictly enforces the maximum duration the server will wait
 // while reading the full client HTTP request headers and body payload.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithReadTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadTimeout = d
@@ -85,6 +90,7 @@ func WithReadTimeout(d time.Duration) RouterOption {
 
 // WithReadHeaderTimeout strictly enforces the maximum duration the server will wait
 // while reading the HTTP request headers, helping to mitigate Slowloris-style attacks.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithReadHeaderTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadHeaderTimeout = d
@@ -93,6 +99,7 @@ func WithReadHeaderTimeout(d time.Duration) RouterOption {
 
 // WithWriteTimeout strictly enforces the maximum duration the server is allowed
 // to spend generating and writing the HTTP response back to the connected client.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithWriteTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.WriteTimeout = d
@@ -101,6 +108,7 @@ func WithWriteTimeout(d time.Duration) RouterOption {
 
 // WithLogger toggles the attachment of the chi structured HTTP request logging
 // middleware on the internal Mux router.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithLogger(enabled bool) RouterOption {
 	return func(c *RouterConfig) {
 		c.EnableLogger = enabled
@@ -109,6 +117,8 @@ func WithLogger(enabled bool) RouterOption {
 
 // parseOptions is an internal helper that initializes the DefaultRouterConfig
 // and then safely applies all provided functional options.
+// Purpose: Aggregates modular setup logic.
+// Thread-safety: Synchronous and safe.
 func parseOptions(opts ...RouterOption) RouterConfig {
 	cfg := DefaultRouterConfig()
 	for _, opt := range opts {
@@ -121,9 +131,11 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 
 // NewRouter constructs and returns a highly-opinionated `chi.Mux` router
 // bundled with a robust, pre-configured middleware stack.
+//
 // The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
 // panic safety (Recoverer), and strict security headers. Optional middlewares
 // (Logger, RateLimit, CORS) are injected based on the provided options.
+// Thread-safety: Safely initializes global middlewares for concurrent request processing.
 func NewRouter(opts ...RouterOption) *chi.Mux {
 	cfg := parseOptions(opts...)
 
@@ -160,8 +172,10 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 }
 
 // NewServer creates and returns an `http.Server` bound to the provided network address.
-// It applies the read/write timeouts derived from the router options to prevent
-// slowloris and other resource exhaustion attacks.
+//
+// Purpose: It applies the read/write timeouts derived from the router options to prevent
+// slowloris and other resource exhaustion attacks natively at the stdlib server level.
+// Thread-safety: Initialization only; the underlying net/http handling is safely concurrent.
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
 	cfg := parseOptions(opts...)
 	return &http.Server{
@@ -174,10 +188,12 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 }
 
 // GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
-// for OS termination signals (SIGINT, SIGTERM). Upon receiving a termination signal, it invokes
-// the server's Shutdown method, giving ongoing active requests up to the specified timeout
-// duration to complete before forcing a closure. It manages synchronization internally and
-// safely blocks the calling goroutine until shutdown completes or times out.
+// for OS termination signals (SIGINT, SIGTERM).
+//
+// Purpose: Upon receiving a termination signal, it invokes the server's Shutdown method, giving ongoing
+// active requests up to the specified timeout duration to complete before forcing a closure.
+// Thread-safety: It manages synchronization internally via channels and safely blocks the
+// calling goroutine until shutdown completes or times out, safely orchestrating multiple concurrent signals.
 func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	serverErr := make(chan error, 1)
 	go func() {

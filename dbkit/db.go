@@ -11,6 +11,7 @@ import (
 )
 
 // Config holds database connection configuration.
+// Thread-safety: Safely read-only post instantiation.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
 	Driver string
@@ -26,7 +27,8 @@ type Config struct {
 	ConnMaxIdleTime time.Duration
 }
 
-// DefaultConfig returns a sensible default configuration.
+// DefaultConfig returns a sensible default configuration
+// mapped to a stable production-ready baseline.
 func DefaultConfig(driver, dsn string) Config {
 	return Config{
 		Driver:          driver,
@@ -38,10 +40,11 @@ func DefaultConfig(driver, dsn string) Config {
 	}
 }
 
-// Option is a functional option for configuring the database connection.
+// Option is a functional option for configuring the database connection mutatively.
 type Option func(*Config)
 
 // WithMaxOpenConns sets the maximum number of open connections.
+// Thread-safety: Mutates configuration synchronously.
 func WithMaxOpenConns(n int) Option {
 	return func(c *Config) {
 		c.MaxOpenConns = n
@@ -49,6 +52,7 @@ func WithMaxOpenConns(n int) Option {
 }
 
 // WithMaxIdleConns sets the maximum number of idle connections.
+// Thread-safety: Mutates configuration synchronously.
 func WithMaxIdleConns(n int) Option {
 	return func(c *Config) {
 		c.MaxIdleConns = n
@@ -56,6 +60,7 @@ func WithMaxIdleConns(n int) Option {
 }
 
 // WithConnMaxLifetime sets the maximum duration a connection can be reused.
+// Thread-safety: Mutates configuration synchronously.
 func WithConnMaxLifetime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxLifetime = d
@@ -63,6 +68,7 @@ func WithConnMaxLifetime(d time.Duration) Option {
 }
 
 // WithConnMaxIdleTime sets the maximum duration a connection can be idle.
+// Thread-safety: Mutates configuration synchronously.
 func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxIdleTime = d
@@ -70,9 +76,11 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 }
 
 // Connect safely initializes and establishes a new, connection-pooled database connection
-// using the provided driver and DSN. It fully respects the provided context for timeout/cancellation
-// during connection and subsequent connectivity verification (PingContext). The returned *sqlx.DB
-// is safe for concurrent access across multiple goroutines.
+// using the provided driver and DSN.
+//
+// Constraints: It fully respects the provided context for timeout/cancellation
+// during connection and subsequent connectivity verification (PingContext).
+// Thread-safety: The returned *sqlx.DB is inherently safe for concurrent access across multiple goroutines.
 func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) {
 	if driver == "" {
 		return nil, errors.New("dbkit: driver is required")
@@ -100,9 +108,11 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 }
 
 // MustConnect acts exactly like Connect, but instead of returning an error, it deliberately panics
-// if the connection or ping fails. This is intended solely for application startup phases where
+// if the connection or ping fails.
+//
+// Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
-// Like Connect, the returned connection pool is inherently thread-safe.
+// Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
 func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
 	db, err := Connect(ctx, driver, dsn, opts...)
 	if err != nil {
@@ -112,8 +122,10 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 }
 
 // HealthCheck executes a lightweight ping against the configured database to ensure the
-// connection remains active and the underlying database is currently reachable. It respects
-// context timeouts and cancellations to prevent unbounded blocking. Safe for concurrent use.
+// connection remains active and the underlying database is currently reachable.
+//
+// Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
+// Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }

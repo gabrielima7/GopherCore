@@ -16,6 +16,7 @@ var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 
 // Strategy defines the backoff algorithm used to calculate the delay
 // between consecutive retry attempts.
+// Thread-safety: Pure enum.
 type Strategy int
 
 const (
@@ -27,6 +28,7 @@ const (
 
 // Config strictly holds the configuration parameters that govern
 // the behavior of a retry operation, including backoff algorithms and constraints.
+// Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
 type Config struct {
 	MaxAttempts  int
 	InitialDelay time.Duration
@@ -36,10 +38,12 @@ type Config struct {
 	RetryIf      func(error) bool
 }
 
-// Option defines a functional option signature for configuring retry behavior.
+// Option defines a functional option signature for configuring retry behavior
+// mutatively during initialization.
 type Option func(*Config)
 
-// defaultConfig returns sensible default configuration.
+// defaultConfig returns sensible default configuration
+// that applies safe bounded limits and an exponential strategy.
 func defaultConfig() *Config {
 	return &Config{
 		MaxAttempts:  3,
@@ -52,6 +56,7 @@ func defaultConfig() *Config {
 }
 
 // WithMaxAttempts sets the maximum number of attempts (including the first).
+// Thread-safety: Mutates configuration synchronously.
 func WithMaxAttempts(n int) Option {
 	return func(c *Config) {
 		if n > 0 {
@@ -61,6 +66,7 @@ func WithMaxAttempts(n int) Option {
 }
 
 // WithInitialDelay sets the initial delay between retries.
+// Thread-safety: Mutates configuration synchronously.
 func WithInitialDelay(d time.Duration) Option {
 	return func(c *Config) {
 		c.InitialDelay = d
@@ -68,6 +74,7 @@ func WithInitialDelay(d time.Duration) Option {
 }
 
 // WithMaxDelay sets the maximum delay between retries.
+// Thread-safety: Mutates configuration synchronously.
 func WithMaxDelay(d time.Duration) Option {
 	return func(c *Config) {
 		c.MaxDelay = d
@@ -75,6 +82,7 @@ func WithMaxDelay(d time.Duration) Option {
 }
 
 // WithStrategy sets the backoff strategy.
+// Thread-safety: Mutates configuration synchronously.
 func WithStrategy(s Strategy) Option {
 	return func(c *Config) {
 		c.Strategy = s
@@ -82,6 +90,7 @@ func WithStrategy(s Strategy) Option {
 }
 
 // WithJitter enables or disables jitter on the backoff delay.
+// Thread-safety: Mutates configuration synchronously.
 func WithJitter(enabled bool) Option {
 	return func(c *Config) {
 		c.Jitter = enabled
@@ -89,7 +98,9 @@ func WithJitter(enabled bool) Option {
 }
 
 // WithRetryIf sets a predicate that determines whether an error is retryable.
-// If the predicate returns false, the retry loop stops immediately.
+//
+// Constraints: If the predicate returns false, the retry loop stops immediately.
+// Thread-safety: Mutates configuration synchronously.
 func WithRetryIf(fn func(error) bool) Option {
 	return func(c *Config) {
 		c.RetryIf = fn
@@ -98,8 +109,10 @@ func WithRetryIf(fn func(error) bool) Option {
 
 // Do repeatedly executes the provided function fn until it succeeds,
 // the maximum number of attempts is exhausted, or the context is canceled.
-// It applies the configured backoff strategy between attempts. Safe for concurrent
-// execution, maintaining local state per call.
+//
+// Constraints: It applies the configured backoff strategy between attempts.
+// Thread-safety: Safe for concurrent execution, maintaining local state loop
+// variables per individual invocation.
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -136,9 +149,11 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 }
 
 // DoWithValue acts identical to Do, but is designed for functions that return
-// both a value and an error. It repeatedly executes fn until it succeeds and
-// returns the result, or fails after exhausting all attempts. Safe for concurrent
-// execution, maintaining local state per call.
+// both a value and an error.
+//
+// Constraints: It repeatedly executes fn until it succeeds and returns the result,
+// or fails after exhausting all attempts.
+// Thread-safety: Safe for concurrent execution, maintaining local state per call.
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -177,8 +192,11 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 }
 
 // calculateDelay is an internal helper that computes the exact backoff delay
-// for the current attempt based on the chosen strategy, applying limits
-// and cryptographic jitter if enabled.
+// for the current attempt based on the chosen strategy.
+//
+// Purpose: Applies hard mathematical bounds to prevent extreme sleep times
+// and safely injects cryptographic randomness if full jitter is configured.
+// Thread-safety: Relies on `crypto/rand` which handles concurrent random draws safely.
 func calculateDelay(cfg *Config, attempt int) time.Duration {
 	var delay time.Duration
 	switch cfg.Strategy {
