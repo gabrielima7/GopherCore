@@ -237,9 +237,9 @@ func TestMapEmptySlice(t *testing.T) {
 
 func TestFanSuccess(t *testing.T) {
 	items := []int{1, 2, 3, 4, 5}
-	var sum atomic.Int32
+	var sum atomic.Int64
 	errs := Fan(context.Background(), items, func(_ context.Context, n int) error {
-		sum.Add(int32(n))
+		sum.Add(int64(n))
 		return nil
 	})
 	if len(errs) != 0 {
