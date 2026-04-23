@@ -8,6 +8,8 @@ import "fmt"
 // Result is a generic container representing the outcome of an operation
 // that can either succeed with a value of type T, or fail with an error.
 // It encourages explicit error handling and functional transformations.
+// All methods on Result are safe for concurrent use since the type is immutable
+// by design after creation.
 type Result[T any] struct {
 	value T
 	err   error

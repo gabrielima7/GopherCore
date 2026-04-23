@@ -103,8 +103,10 @@ func (g *Group) Go(fn func() error) {
 }
 
 // Wait blocks the calling goroutine until all goroutines launched within the Group
-// have completed execution. It returns a slice containing all collected errors,
+// have completed execution. It safely accesses the internal error slice protected
+// by a mutex lock, and returns a slice containing all collected errors,
 // including any recovered panics. If no errors occurred, it returns nil.
+// Safe for concurrent calls, though typically called once by a coordinator goroutine.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
 	g.mu.Lock()
@@ -117,10 +119,13 @@ func (g *Group) Wait() []error {
 
 // Map applies the function fn to each item in the items slice concurrently,
 // enforcing a strict bounded parallelism limit based on the concurrency parameter.
-// It respects context cancellation, immediately halting further processing if the
-// context is canceled. Any panics within individual workers are recovered and
-// returned as errors. It returns the mapped results in the same order as the input
-// items, or the first encountered error.
+// It uses a buffered channel as a counting semaphore to restrict the number of
+// concurrently active goroutines. It respects context cancellation, immediately
+// halting further processing if the context is canceled, returning ctx.Err().
+// Any panics within individual workers are safely recovered and returned as PanicError.
+// It returns the mapped results in the exact same order as the input items,
+// or the first encountered error (including context cancellation or panics).
+// Safe for concurrent use, though typically invoked synchronously.
 func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -145,20 +150,24 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 
 		go func(idx int, val T) {
 			defer wg.Done()
-			// Release the semaphore slot back to the channel.
+			// Release the semaphore slot back to the channel immediately before exiting.
 			defer func() { <-sem }()
-			// Recover panics gracefully without bringing down the application.
+			// Recover panics gracefully without bringing down the application,
+			// converting the recovered panic value into a PanicError with stack trace.
 			defer func() {
 				if r := recover(); r != nil {
 					errs[idx] = &PanicError{Value: r, Stack: string(debug.Stack())}
 				}
 			}()
 
+			// Check context before executing potentially heavy operation.
 			if ctx.Err() != nil {
 				errs[idx] = ctx.Err()
 				return
 			}
 
+			// Perform the user-provided work. Safe concurrently because each worker
+			// writes its result to its own unique index in the pre-allocated slice.
 			result, err := fn(ctx, val)
 			results[idx] = result
 			errs[idx] = err
@@ -177,10 +186,12 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 }
 
 // Fan launches the provided function fn for each item in the items slice concurrently
-// with no upper bound on parallelism (unbounded concurrency). It respects context
-// cancellation, aborting the launch loop early if the context is canceled.
-// It safely collects and returns all errors encountered, including recovered panics.
-// For bounded concurrency, prefer using Map.
+// with no upper bound on parallelism (unbounded concurrency). It uses a sync.WaitGroup
+// to coordinate completion and a sync.Mutex to safely collect any errors encountered.
+// It respects context cancellation, aborting the launch loop early if the context is
+// canceled. It safely collects and returns all errors encountered, including recovered
+// panics and context errors. For bounded concurrency, prefer using Map.
+// Safe for concurrent use across multiple goroutines.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
 		wg   sync.WaitGroup

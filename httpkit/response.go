@@ -17,7 +17,7 @@ type ErrorResponse struct {
 
 // JSON securely marshals the provided data interface into JSON and writes it
 // to the HTTP response with the specified status code. If marshaling fails,
-// it logs an internal error and returns a generic 500 response.
+// it logs an internal error and returns a generic 500 response. Safe for concurrent use.
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {
