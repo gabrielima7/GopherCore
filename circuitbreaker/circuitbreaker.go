@@ -9,18 +9,15 @@ import (
 	"time"
 )
 
-// Sentinel errors returned by the circuit breaker.
-var (
-	// ErrCircuitOpen is returned when the circuit is in the Open state
-	// and no requests are permitted to execute. Callers should fast-fail
-	// or fallback to a secondary mechanism.
-	ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
+// ErrCircuitOpen is returned when the circuit is in the Open state
+// and no requests are permitted to execute. Callers should fast-fail
+// or fallback to a secondary mechanism.
+var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
 
-	// ErrTooManyRequests is returned when the circuit is in the HalfOpen
-	// state and the maximum number of concurrent probe requests has already
-	// been reached.
-	ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
-)
+// ErrTooManyRequests is returned when the circuit is in the HalfOpen
+// state and the maximum number of concurrent probe requests has already
+// been reached.
+var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
 
 // State represents the current operational state of the circuit breaker.
 type State int
@@ -134,6 +131,8 @@ func (b *Breaker) State() State {
 // If the circuit is HalfOpen and the maximum probe limit is exceeded, it returns ErrTooManyRequests.
 // Otherwise, it runs fn, records the success or failure of the execution to
 // update internal statistics, and returns the error produced by fn.
+// It is fully safe for concurrent use across multiple goroutines, executing
+// the fallback logic within internal mutex locks to ensure accurate state tracking.
 func (b *Breaker) Execute(fn func() error) error {
 	b.mu.Lock()
 
@@ -142,8 +141,12 @@ func (b *Breaker) Execute(fn func() error) error {
 	switch state {
 	case StateOpen:
 		b.mu.Unlock()
+		// Circuit is open, immediately fast-fail the request to prevent
+		// further strain on the failing underlying service.
 		return ErrCircuitOpen
 	case StateHalfOpen:
+		// Limit the number of concurrent probe requests in HalfOpen state
+		// to test recovery without overwhelming the service.
 		if b.halfOpenRequests >= b.config.MaxHalfOpenRequests {
 			b.mu.Unlock()
 			return ErrTooManyRequests
@@ -153,12 +156,14 @@ func (b *Breaker) Execute(fn func() error) error {
 
 	b.mu.Unlock()
 
-	// Execute the function outside the lock.
+	// Execute the user-provided function outside the lock to ensure
+	// the lock is not held during potentially long-running I/O operations.
 	err := fn()
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	// Update the circuit breaker statistics based on the execution result.
 	if err != nil {
 		b.recordFailure()
 	} else {
@@ -244,6 +249,7 @@ func to(s State) State { return s }
 
 // Reset forcefully resets the circuit breaker back to the normal Closed state,
 // regardless of its current state or failure statistics.
+// This safely locks the internal mutex to prevent race conditions during reset.
 func (b *Breaker) Reset() {
 	b.mu.Lock()
 	defer b.mu.Unlock()

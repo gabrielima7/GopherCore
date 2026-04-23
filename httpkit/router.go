@@ -176,7 +176,8 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 // GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
 // for OS termination signals (SIGINT, SIGTERM). Upon receiving a termination signal, it invokes
 // the server's Shutdown method, giving ongoing active requests up to the specified timeout
-// duration to complete before forcing a closure.
+// duration to complete before forcing a closure. It manages synchronization internally and
+// safely blocks the calling goroutine until shutdown completes or times out.
 func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	serverErr := make(chan error, 1)
 	go func() {

@@ -98,7 +98,8 @@ func WithRetryIf(fn func(error) bool) Option {
 
 // Do repeatedly executes the provided function fn until it succeeds,
 // the maximum number of attempts is exhausted, or the context is canceled.
-// It applies the configured backoff strategy between attempts.
+// It applies the configured backoff strategy between attempts. Safe for concurrent
+// execution, maintaining local state per call.
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -120,9 +121,10 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 			return lastErr
 		}
 
-		// Don't sleep after the last attempt.
+		// Delay before the next attempt, unless this was the final attempt.
 		if attempt < cfg.MaxAttempts-1 {
 			delay := calculateDelay(cfg, attempt)
+			// Wait for the delay or abort immediately if the context is canceled.
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -135,7 +137,8 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 
 // DoWithValue acts identical to Do, but is designed for functions that return
 // both a value and an error. It repeatedly executes fn until it succeeds and
-// returns the result, or fails after exhausting all attempts.
+// returns the result, or fails after exhausting all attempts. Safe for concurrent
+// execution, maintaining local state per call.
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
 	cfg := defaultConfig()
 	for _, opt := range opts {
