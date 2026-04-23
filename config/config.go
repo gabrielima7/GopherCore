@@ -23,9 +23,9 @@ var validate = validator.New()
 // variables into its exported fields. It then validates the populated struct against
 // its `validate` tags using the go-playground/validator library.
 //
-// The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
+// Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
-// Note that Load relies on a global, thread-safe validator instance. Safe for concurrent use,
+// Thread-safety: Load relies on a global, thread-safe validator instance. Safe for concurrent use,
 // though normally invoked once at application startup.
 //
 // Tag Usage:
@@ -52,7 +52,11 @@ func Load(cfg any) error {
 
 // populate iterates over the fields of the reflected struct, recursively
 // diving into nested structs and pointers to structs. It extracts values
-// from the environment and attempts to parse and set them.
+// from the environment and attempts to parse and set them dynamically.
+//
+// Purpose: This is the core logic that connects `env` string tags to actual OS
+// environment queries, abstracting the manual `os.LookupEnv` boilerplate.
+// Thread-safety: Safe for concurrent use so long as the target struct is not accessed.
 func populate(v reflect.Value) error {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
@@ -106,7 +110,11 @@ func populate(v reflect.Value) error {
 }
 
 // setField parses the string value obtained from the environment and assigns it
-// to the reflected target value, strictly checking for numeric overflows.
+// to the reflected target value, strictly checking for numeric overflows to prevent
+// silent truncation bugs at startup.
+//
+// Purpose: Handles type conversions from env string slices, floats, booleans, and duration types.
+// Thread-safety: Safe for concurrent use.
 func setField(v reflect.Value, value string) error {
 	switch v.Kind() {
 	case reflect.String:

@@ -9,7 +9,9 @@ import (
 
 // SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
 // into every outbound response. It mitigates common web vulnerabilities like
-// MIME-sniffing, clickjacking, and XSS. Safe for concurrent use across requests.
+// MIME-sniffing, clickjacking, and XSS.
+// Thread-safety: Safe for concurrent use across requests. It assigns to map directly
+// instead of globally pre-allocating slices to prevent header map data races.
 //
 // Headers set:
 //   - Strict-Transport-Security (HSTS): Forces HTTPS.
@@ -34,10 +36,12 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 }
 
 // RateLimitMiddleware enforces global inbound request rate limiting using a token
-// bucket algorithm (golang.org/x/time/rate). If a request exceeds the permissible
-// limit, it is immediately aborted, and an HTTP 429 (Too Many Requests) response
-// is returned to the client along with a Retry-After header. The internal limiter
-// manages its own mutexes and is safe for concurrent requests.
+// bucket algorithm (golang.org/x/time/rate).
+//
+// Constraints: If a request exceeds the permissible limit, it is immediately aborted,
+// and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
+// Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
+// concurrent execution across thousands of requests.
 func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,10 +56,12 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 }
 
 // CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
-// It verifies the Origin header against a pre-configured whitelist. It automatically
-// intercepts and responds to HTTP OPTIONS preflight requests without passing them down
-// the middleware chain. Configuration maps and slices are built during initialization
-// and read concurrently during requests, ensuring thread safety.
+// It verifies the Origin header against a pre-configured whitelist.
+//
+// Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
+// without passing them down the middleware chain.
+// Thread-safety: Configuration maps and slices are built during initialization closure time
+// and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	originsSet := make(map[string]bool, len(allowedOrigins))
 	allowAll := false
