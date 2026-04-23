@@ -21,13 +21,14 @@ import (
 //   - Content-Security-Policy: Restricts resource loading to 'self'.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		h := w.Header()
+		h["Strict-Transport-Security"] = []string{"max-age=63072000; includeSubDomains; preload"}
+		h["X-Content-Type-Options"] = []string{"nosniff"}
+		h["X-Frame-Options"] = []string{"DENY"}
+		h["Referrer-Policy"] = []string{"strict-origin-when-cross-origin"}
+		h["Permissions-Policy"] = []string{"camera=(), microphone=(), geolocation=()"}
+		h["X-Xss-Protection"] = []string{"1; mode=block"}
+		h["Content-Security-Policy"] = []string{"default-src 'self'"}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -73,12 +74,13 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 			origin := r.Header.Get("Origin")
 
 			if origin != "" && (allowAll || originsSet[origin]) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Access-Control-Allow-Methods", methodsStr)
-				w.Header().Set("Access-Control-Allow-Headers", headersStr)
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Access-Control-Max-Age", "86400")
-				w.Header().Set("Vary", "Origin")
+				h := w.Header()
+				h["Access-Control-Allow-Origin"] = []string{origin}
+				h["Access-Control-Allow-Methods"] = []string{methodsStr}
+				h["Access-Control-Allow-Headers"] = []string{headersStr}
+				h["Access-Control-Allow-Credentials"] = []string{"true"}
+				h["Access-Control-Max-Age"] = []string{"86400"}
+				h["Vary"] = []string{"Origin"}
 			}
 
 			// Handle preflight.
