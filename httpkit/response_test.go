@@ -1,76 +1,133 @@
 package httpkit
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
 
-func TestJSONResponse(t *testing.T) {
-	rr := httptest.NewRecorder()
-	JSON(rr, http.StatusOK, map[string]string{"hello": "world"})
+func TestResponses(t *testing.T) {
+	tests := []struct {
+		name         string
+		method       func(w http.ResponseWriter)
+		expectedCode int
+		expectedBody string
+		expectedCT   string
+	}{
+		{
+			name: "JSON Response",
+			method: func(w http.ResponseWriter) {
+				JSON(w, http.StatusOK, map[string]string{"hello": "world"})
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `{"hello":"world"}`,
+			expectedCT:   "application/json; charset=utf-8",
+		},
+		{
+			name: "Error Response",
+			method: func(w http.ResponseWriter) {
+				Error(w, http.StatusNotFound, "resource not found")
+			},
+			expectedCode: http.StatusNotFound,
+			expectedBody: `{"error":"Not Found","code":404,"message":"resource not found"}`,
+			expectedCT:   "application/json; charset=utf-8",
+		},
+		{
+			name: "Ok Response",
+			method: func(w http.ResponseWriter) {
+				Ok(w, map[string]int{"count": 42})
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `{"count":42}`,
+			expectedCT:   "application/json; charset=utf-8",
+		},
+		{
+			name: "Created Response",
+			method: func(w http.ResponseWriter) {
+				Created(w, map[string]string{"id": "abc-123"})
+			},
+			expectedCode: http.StatusCreated,
+			expectedBody: `{"id":"abc-123"}`,
+			expectedCT:   "application/json; charset=utf-8",
+		},
+		{
+			name: "NoContent Response",
+			method: func(w http.ResponseWriter) {
+				NoContent(w)
+			},
+			expectedCode: http.StatusNoContent,
+			expectedBody: "",
+			expectedCT:   "",
+		},
+		{
+			name: "JSON Marshal Error",
+			method: func(w http.ResponseWriter) {
+				JSON(w, http.StatusOK, make(chan int)) // Unmarshalable
+			},
+			expectedCode: http.StatusInternalServerError,
+			expectedBody: "{\"error\":\"internal server error\",\"code\":500}\n",
+			expectedCT:   "text/plain; charset=utf-8",
+		},
+		{
+			name: "JSON Null Data",
+			method: func(w http.ResponseWriter) {
+				JSON(w, http.StatusOK, nil)
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: "null",
+			expectedCT:   "application/json; charset=utf-8",
+		},
+	}
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-	if rr.Header().Get("Content-Type") != "application/json; charset=utf-8" {
-		t.Fatalf("expected JSON content type, got %q", rr.Header().Get("Content-Type"))
-	}
-	body := rr.Body.String()
-	if body != `{"hello":"world"}` {
-		t.Fatalf("unexpected body: %s", body)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			tt.method(rr)
+
+			if rr.Code != tt.expectedCode {
+				t.Fatalf("expected code %d, got %d", tt.expectedCode, rr.Code)
+			}
+
+			body := rr.Body.String()
+			if body != tt.expectedBody {
+				t.Fatalf("expected body %q, got %q", tt.expectedBody, body)
+			}
+
+			ct := rr.Header().Get("Content-Type")
+			if ct != tt.expectedCT {
+				t.Fatalf("expected Content-Type %q, got %q", tt.expectedCT, ct)
+			}
+		})
 	}
 }
 
-func TestErrorResponse(t *testing.T) {
-	rr := httptest.NewRecorder()
-	Error(rr, http.StatusNotFound, "resource not found")
+func TestJSONResponseConcurrent(t *testing.T) {
+	// Validate "Safe for concurrent use" claim
+	const goroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
 
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", rr.Code)
+	for i := 0; i < goroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			rr := httptest.NewRecorder()
+			data := map[string]int{"idx": idx}
+			JSON(rr, http.StatusOK, data)
+
+			if rr.Code != http.StatusOK {
+				t.Errorf("expected 200, got %d", rr.Code)
+			}
+
+			var decoded map[string]int
+			if err := json.Unmarshal(rr.Body.Bytes(), &decoded); err != nil {
+				t.Errorf("failed to decode response: %v", err)
+			}
+			if decoded["idx"] != idx {
+				t.Errorf("expected %d, got %d", idx, decoded["idx"])
+			}
+		}(i)
 	}
-	body := rr.Body.String()
-	if body == "" {
-		t.Fatal("expected non-empty body")
-	}
-}
-
-func TestOkResponse(t *testing.T) {
-	rr := httptest.NewRecorder()
-	Ok(rr, map[string]int{"count": 42})
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-}
-
-func TestCreatedResponse(t *testing.T) {
-	rr := httptest.NewRecorder()
-	Created(rr, map[string]string{"id": "abc-123"})
-
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", rr.Code)
-	}
-}
-
-func TestNoContentResponse(t *testing.T) {
-	rr := httptest.NewRecorder()
-	NoContent(rr)
-
-	if rr.Code != http.StatusNoContent {
-		t.Fatalf("expected 204, got %d", rr.Code)
-	}
-	if rr.Body.Len() != 0 {
-		t.Fatal("expected empty body")
-	}
-}
-
-func TestJSONMarshalError(t *testing.T) {
-	rr := httptest.NewRecorder()
-	// Channels cannot be marshaled to JSON.
-	JSON(rr, http.StatusOK, make(chan int))
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500 for unmarshalable type, got %d", rr.Code)
-	}
+	wg.Wait()
 }
