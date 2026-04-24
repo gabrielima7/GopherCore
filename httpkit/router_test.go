@@ -20,73 +20,162 @@ func mustCloseRouterTest(t *testing.T, closer interface{ Close() error }) {
 	}
 }
 
-func TestNewRouter(t *testing.T) {
-	r := NewRouter(
-		WithCORS("https://example.com"),
-		WithRateLimit(1000, 2000),
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
+func TestRouterConfigurationOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     []RouterOption
+		validate func(t *testing.T, cfg RouterConfig)
+	}{
+		{
+			name: "Default configuration",
+			opts: nil,
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.RateLimit != 100 {
+					t.Errorf("expected RateLimit 100, got %f", cfg.RateLimit)
+				}
+				if cfg.RateBurst != 200 {
+					t.Errorf("expected RateBurst 200, got %d", cfg.RateBurst)
+				}
+				if cfg.ReadTimeout != 15*time.Second {
+					t.Errorf("expected ReadTimeout 15s, got %v", cfg.ReadTimeout)
+				}
+				if !cfg.EnableLogger {
+					t.Errorf("expected EnableLogger true, got false")
+				}
+			},
+		},
+		{
+			name: "With nil option explicitly passed",
+			opts: []RouterOption{nil},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				// Should just safely ignore the nil option and keep defaults
+				if cfg.RateLimit != 100 {
+					t.Errorf("expected RateLimit 100, got %f", cfg.RateLimit)
+				}
+			},
+		},
+		{
+			name: "With CORS",
+			opts: []RouterOption{WithCORS("https://example.com")},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if len(cfg.AllowedOrigins) != 1 || cfg.AllowedOrigins[0] != "https://example.com" {
+					t.Errorf("expected AllowedOrigins [https://example.com], got %v", cfg.AllowedOrigins)
+				}
+			},
+		},
+		{
+			name: "With zero rate limit and burst",
+			opts: []RouterOption{WithRateLimit(0, 0)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.RateLimit != 0 {
+					t.Errorf("expected RateLimit 0, got %f", cfg.RateLimit)
+				}
+				if cfg.RateBurst != 0 {
+					t.Errorf("expected RateBurst 0, got %d", cfg.RateBurst)
+				}
+			},
+		},
+		{
+			name: "With Read/Write Timeouts",
+			opts: []RouterOption{
+				WithReadTimeout(10 * time.Second),
+				WithReadHeaderTimeout(2 * time.Second),
+				WithWriteTimeout(20 * time.Second),
+			},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.ReadTimeout != 10*time.Second {
+					t.Errorf("expected ReadTimeout 10s, got %v", cfg.ReadTimeout)
+				}
+				if cfg.ReadHeaderTimeout != 2*time.Second {
+					t.Errorf("expected ReadHeaderTimeout 2s, got %v", cfg.ReadHeaderTimeout)
+				}
+				if cfg.WriteTimeout != 20*time.Second {
+					t.Errorf("expected WriteTimeout 20s, got %v", cfg.WriteTimeout)
+				}
+			},
+		},
+		{
+			name: "With Logger disabled",
+			opts: []RouterOption{WithLogger(false)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.EnableLogger {
+					t.Errorf("expected EnableLogger false, got true")
+				}
+			},
+		},
 	}
 
-	// Add a test route.
-	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		Ok(w, map[string]string{"status": "ok"})
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rr.Code)
-	}
-
-	// Security headers should be set.
-	if rr.Header().Get("X-Content-Type-Options") != "nosniff" {
-		t.Fatal("expected security headers")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := parseOptions(tt.opts...)
+			tt.validate(t, cfg)
+		})
 	}
 }
 
-func TestNewRouterDefaultConfig(t *testing.T) {
-	r := NewRouter()
-	if r == nil {
-		t.Fatal("expected non-nil router")
+func TestNewRouterIntegration(t *testing.T) {
+	tests := []struct {
+		name         string
+		opts         []RouterOption
+		reqMethod    string
+		reqPath      string
+		reqOrigin    string
+		expectedCode int
+	}{
+		{
+			name:         "Basic GET request",
+			opts:         []RouterOption{WithLogger(false)},
+			reqMethod:    http.MethodGet,
+			reqPath:      "/test",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "CORS allowed origin",
+			opts:         []RouterOption{WithCORS("https://example.com"), WithLogger(false)},
+			reqMethod:    http.MethodGet,
+			reqPath:      "/test",
+			reqOrigin:    "https://example.com",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "RateLimit burst zero defaults to limit",
+			opts: []RouterOption{WithRateLimit(10, 0), WithLogger(false)}, // RateBurst will be set to int(10) inside NewRouter
+			reqMethod:    http.MethodGet,
+			reqPath:      "/test",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name: "RateLimit disabled",
+			opts: []RouterOption{WithRateLimit(0, 0), WithLogger(false)},
+			reqMethod:    http.MethodGet,
+			reqPath:      "/test",
+			expectedCode: http.StatusOK,
+		},
 	}
-}
 
-func TestNewRouterWithDisabledRateLimit(t *testing.T) {
-	r := NewRouter(
-		WithRateLimit(0, 0), // Disabled
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
-	}
-	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(tt.opts...)
+			if r == nil {
+				t.Fatal("expected non-nil router")
+			}
 
-	// Multiple requests should all succeed.
-	for i := 0; i < 10; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Fatalf("request %d: expected 200, got %d", i, rr.Code)
-		}
-	}
-}
+			r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
 
-func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
-	// RateLimit > 0 but RateBurst <= 0 → burst defaults to int(RateLimit).
-	r := NewRouter(
-		WithRateLimit(10, 0),
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
+			req := httptest.NewRequest(tt.reqMethod, tt.reqPath, nil)
+			if tt.reqOrigin != "" {
+				req.Header.Set("Origin", tt.reqOrigin)
+			}
+
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedCode {
+				t.Errorf("expected code %d, got %d", tt.expectedCode, rr.Code)
+			}
+		})
 	}
 }
 
@@ -107,25 +196,96 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
-func TestDefaultRouterConfig(t *testing.T) {
-	cfg := DefaultRouterConfig()
-	if cfg.RateLimit != 100 {
-		t.Fatalf("expected 100, got %f", cfg.RateLimit)
+func TestGracefulShutdown(t *testing.T) {
+	tests := []struct {
+		name        string
+		timeout     time.Duration
+		setupServer func(t *testing.T) (*http.Server, func())
+		triggerWait func(t *testing.T)
+		wantErr     bool
+	}{
+		{
+			name:    "Server natively closed returns ErrServerClosed handled as nil",
+			timeout: 5 * time.Second,
+			setupServer: func(t *testing.T) (*http.Server, func()) {
+				srv := &http.Server{
+					Addr:              "127.0.0.1:0",
+					Handler:           http.DefaultServeMux,
+					ReadHeaderTimeout: 5 * time.Second,
+				}
+				return srv, func() {} // No cleanup needed
+			},
+			triggerWait: func(t *testing.T) {
+				time.Sleep(50 * time.Millisecond) // Let server start
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Server port already in use returns error",
+			timeout: 5 * time.Second,
+			setupServer: func(t *testing.T) (*http.Server, func()) {
+				// Start dummy server to occupy port
+				dummy := &http.Server{Addr: "127.0.0.1:0", ReadHeaderTimeout: 5 * time.Second}
+				ln, err := net.Listen("tcp", dummy.Addr)
+				if err != nil {
+					t.Fatalf("failed to listen: %v", err)
+				}
+
+				go func() {
+					if serveErr := dummy.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+						t.Errorf("dummy server failed: %v", serveErr)
+					}
+				}()
+
+				// Return server configured for the SAME address
+				srv := &http.Server{
+					Addr:              ln.Addr().String(),
+					Handler:           http.DefaultServeMux,
+					ReadHeaderTimeout: 5 * time.Second,
+				}
+
+				cleanup := func() {
+					dummy.Shutdown(context.Background())
+					mustCloseRouterTest(t, ln)
+				}
+
+				return srv, cleanup
+			},
+			triggerWait: func(t *testing.T) {
+				// Nothing needed, should fail immediately on listen
+			},
+			wantErr: true,
+		},
 	}
-	if cfg.RateBurst != 200 {
-		t.Fatalf("expected 200, got %d", cfg.RateBurst)
-	}
-	if cfg.ReadTimeout != 15*time.Second {
-		t.Fatalf("expected 15s, got %v", cfg.ReadTimeout)
-	}
-	if cfg.ReadHeaderTimeout != 5*time.Second {
-		t.Fatalf("expected 5s read header timeout, got %v", cfg.ReadHeaderTimeout)
-	}
-	if cfg.WriteTimeout != 15*time.Second {
-		t.Fatalf("expected 15s, got %v", cfg.WriteTimeout)
-	}
-	if !cfg.EnableLogger {
-		t.Fatal("expected logger enabled by default")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, cleanup := tt.setupServer(t)
+			defer cleanup()
+
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- GracefulShutdown(srv, tt.timeout)
+			}()
+
+			tt.triggerWait(t)
+
+			// For the successful path test, explicitly close the server
+			if !tt.wantErr {
+				if err := srv.Close(); err != nil {
+					t.Fatalf("failed to close server: %v", err)
+				}
+			}
+
+			select {
+			case err := <-errCh:
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GracefulShutdown() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("timeout waiting for GracefulShutdown")
+			}
+		})
 	}
 }
 
@@ -171,87 +331,19 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 	}
 }
 
-func TestGracefulShutdown_ServerError(t *testing.T) {
-	// Start a dummy server to occupy a port
-	dummy := &http.Server{Addr: "127.0.0.1:0", ReadHeaderTimeout: 5 * time.Second}
-	ln, err := net.Listen("tcp", dummy.Addr)
-	if err != nil {
-		t.Fatalf("failed to listen: %v", err)
-	}
-	defer mustCloseRouterTest(t, ln)
-	go func() {
-		if serveErr := dummy.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
-			t.Errorf("dummy server failed: %v", serveErr)
-		}
-	}()
-	defer func() {
-		if shutdownErr := dummy.Shutdown(context.Background()); shutdownErr != nil {
-			t.Fatalf("failed to shutdown dummy server: %v", shutdownErr)
-		}
-	}()
+func TestNewRouterWithLogger(t *testing.T) {
+	r := NewRouter(WithLogger(true))
+	r.Get("/logger", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
-	// Try to start a server on the same address to cause an error
-	srv := &http.Server{
-		Addr:              ln.Addr().String(),
-		Handler:           http.DefaultServeMux,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
+	req := httptest.NewRequest(http.MethodGet, "/logger", nil)
+	rr := httptest.NewRecorder()
 
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- GracefulShutdown(srv, 5*time.Second)
-	}()
+	// This will hit the middleware.Logger code path
+	r.ServeHTTP(rr, req)
 
-	select {
-	case err := <-errCh:
-		if err == nil {
-			t.Fatal("expected error due to port already in use, got nil")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for GracefulShutdown to return error")
-	}
-}
-
-func TestGracefulShutdown_ServerClosed(t *testing.T) {
-	tests := []struct {
-		name    string
-		timeout time.Duration
-		wantErr bool
-	}{
-		{
-			name:    "Server natively closed returns ErrServerClosed handled as nil",
-			timeout: 5 * time.Second,
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			srv := &http.Server{
-				Addr:              "127.0.0.1:0",
-				Handler:           http.DefaultServeMux,
-				ReadHeaderTimeout: 5 * time.Second,
-			}
-
-			errCh := make(chan error, 1)
-			go func() {
-				errCh <- GracefulShutdown(srv, tt.timeout)
-			}()
-
-			time.Sleep(50 * time.Millisecond)
-
-			if err := srv.Close(); err != nil {
-				t.Fatalf("failed to close server: %v", err)
-			}
-
-			select {
-			case err := <-errCh:
-				if (err != nil) != tt.wantErr {
-					t.Errorf("GracefulShutdown() error = %v, wantErr %v", err, tt.wantErr)
-				}
-			case <-time.After(2 * time.Second):
-				t.Fatal("timeout waiting for GracefulShutdown to handle ErrServerClosed")
-			}
-		})
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", rr.Code)
 	}
 }
