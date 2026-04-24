@@ -1,5 +1,6 @@
 // Package guard provides security guard helpers that wrap the go-playground/validator
 // library to offer structured validation and basic input sanitization.
+// It is designed to be fully thread-safe for concurrent use across multiple goroutines.
 package guard
 
 import (
@@ -18,8 +19,9 @@ var validate = validator.New()
 // htmlPolicy is the singleton bluemonday strict policy instance.
 var htmlPolicy = bluemonday.StrictPolicy()
 
-// ValidationError encapsulates the details of a single struct field validation failure,
-// structurally mapping the field name, failed tag, rejected value, and a human-readable message.
+// ValidationError encapsulates the details of a single struct field validation failure.
+// It structurally maps the field name, failed validation tag, rejected value, and a
+// generated human-readable message. Safe for concurrent access.
 type ValidationError struct {
 	Field   string `json:"field"`
 	Tag     string `json:"tag"`
@@ -27,18 +29,20 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// Error implements the standard error interface, returning the human-readable
-// message specific to this single validation failure.
+// Error implements the standard error interface for ValidationError, returning the human-readable
+// message specific to this single validation failure. It does not contain any thread-unsafe operations.
 func (v ValidationError) Error() string {
 	return v.Message
 }
 
-// ValidationErrors represents a collection of one or more ValidationError instances,
-// typically resulting from a multi-field struct validation failure.
+// ValidationErrors represents a collection of one or more ValidationError instances.
+// It is typically generated resulting from a multi-field struct validation failure.
+// As a slice of errors, its methods are read-only and thread-safe.
 type ValidationErrors []ValidationError
 
-// Error implements the standard error interface, aggregating all underlying
+// Error implements the standard error interface for ValidationErrors, aggregating all underlying
 // individual field validation messages into a single semicolon-separated string.
+// Safe for concurrent access.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
 	for _, e := range ve {
@@ -52,8 +56,9 @@ func (ve ValidationErrors) Error() string {
 // slice which implements the error interface. It returns nil if the struct perfectly
 // satisfies all validation constraints.
 //
-// The input `s` MUST be a struct or a pointer to a struct. It relies on a globally
-// initialized validator instance and is entirely thread-safe for concurrent use.
+// Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
+// Thread-safety: It relies on a globally initialized validator instance and is entirely
+// thread-safe for concurrent use.
 func Validate(s any) error {
 	err := validate.Struct(s)
 	if err == nil {
@@ -80,15 +85,18 @@ func Validate(s any) error {
 // RegisterValidation registers a custom, user-defined validation function mapped to
 // a specific tag name. Once registered, this tag can be used in struct fields
 // throughout the application. It returns an error if the tag name is already registered.
-// This function modifies the global validator instance and is generally NOT thread-safe
-// to call concurrently with active `Validate` calls. It should be invoked strictly
-// during application startup initialization.
+//
+// Thread-safety: This function modifies the global validator instance and is NOT thread-safe
+// to call concurrently with active `Validate` calls. It MUST be invoked strictly
+// during application startup initialization to prevent data races.
 func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
 
 // SanitizeString performs primitive input scrubbing by stripping out invisible
 // Unicode control characters and aggressively trimming leading/trailing whitespace.
+// It creates a new allocated string to prevent modifying the original reference.
+// Thread-safety: Pure function, safe for concurrent use.
 //
 // Security Warning: This is purely a basic data-hygiene mechanism and absolutely
 // MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
@@ -106,9 +114,11 @@ func SanitizeString(s string) string {
 
 // StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
 // payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
+//
 // It is explicitly designed to safely handle untrusted user input and mitigate
 // Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving
-// only plain text. It leverages a globally instantiated policy and is fully
+// only plain text.
+// Thread-safety: It leverages a globally instantiated policy and is fully
 // safe for concurrent execution across multiple goroutines.
 func StripHTML(s string) string {
 	return htmlPolicy.Sanitize(s)
@@ -116,8 +126,10 @@ func StripHTML(s string) string {
 
 // formatValidationError analyzes the specific tag that failed validation
 // and maps it to a clear, human-readable error message.
-// It acts as the central translation layer between raw validator errors
-// and client-friendly HTTP response messages.
+//
+// Purpose: Acts as the central translation layer between raw validator errors
+// and client-friendly HTTP response messages. It switches on the exact tag name.
+// Thread-safety: Pure function, safe for concurrent use.
 func formatValidationError(fe validator.FieldError) string {
 	switch fe.Tag() {
 	case "required":

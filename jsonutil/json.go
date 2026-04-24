@@ -8,43 +8,55 @@ import (
 	gojson "github.com/goccy/go-json"
 )
 
-// Marshal returns the JSON encoding of v. It is a drop-in, thread-safe replacement
-// for encoding/json.Marshal, leveraging goccy/go-json for significantly improved
-// encoding performance.
+// Marshal returns the JSON encoding of v.
+//
+// Purpose: It is a drop-in replacement for encoding/json.Marshal, leveraging goccy/go-json
+// for significantly improved encoding performance.
+// Thread-safety: Completely stateless and safe for concurrent use across multiple goroutines.
 func Marshal(v any) ([]byte, error) {
 	return gojson.Marshal(v)
 }
 
 // MarshalIndent is like Marshal but applies Indent to format the output.
-// It is fully thread-safe and safe for concurrent use across multiple goroutines.
+//
+// Purpose: Formatting JSON structurally.
+// Thread-safety: It is fully thread-safe and safe for concurrent use across multiple goroutines.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	return gojson.MarshalIndent(v, prefix, indent)
 }
 
 // Unmarshal parses the JSON-encoded data and stores the result
-// in the value pointed to by v. It uses goccy/go-json for high-performance,
-// thread-safe parsing and decoding. The target value v must be a non-nil pointer.
+// in the value pointed to by v.
+//
+// Constraints: The target value v must be a non-nil pointer.
+// Thread-safety: It uses goccy/go-json for high-performance, inherently thread-safe decoding.
 func Unmarshal(data []byte, v any) error {
 	return gojson.Unmarshal(data, v)
 }
 
-// NewEncoder creates a new JSON encoder that writes to w. Unlike the package-level
-// Marshal functions, the returned Encoder is generally NOT safe for concurrent use
-// by multiple goroutines without explicit synchronization.
+// NewEncoder creates a new JSON encoder that writes to w.
+//
+// Constraints: Directly wraps the underlying io.Writer stream state.
+// Thread-safety: Unlike the package-level Marshal functions, the returned Encoder
+// is generally NOT safe for concurrent use by multiple goroutines without explicit synchronization.
 func NewEncoder(w io.Writer) *gojson.Encoder {
 	return gojson.NewEncoder(w)
 }
 
-// NewDecoder creates a new JSON decoder that reads from r. The returned Decoder
-// maintains internal state and is NOT safe for concurrent use across multiple
-// goroutines without explicit synchronization.
+// NewDecoder creates a new JSON decoder that reads from r.
+//
+// Constraints: Interacts dynamically with the incoming io.Reader bytes logic.
+// Thread-safety: The returned Decoder maintains internal state and is NOT safe
+// for concurrent use across multiple goroutines without explicit synchronization.
 func NewDecoder(r io.Reader) *gojson.Decoder {
 	return gojson.NewDecoder(r)
 }
 
-// Valid safely and efficiently reports whether data is a valid JSON encoding,
-// without allocating the full structures necessary for a complete Unmarshal.
-// It is completely thread-safe.
+// Valid safely and efficiently reports whether data is a valid JSON encoding.
+//
+// Constraints: Executes syntactical validation without allocating the full
+// structures necessary for a complete Unmarshal.
+// Thread-safety: Pure and completely thread-safe.
 func Valid(data []byte) bool {
 	return gojson.Valid(data)
 }
