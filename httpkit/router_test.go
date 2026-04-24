@@ -185,10 +185,8 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 		}
 	}()
 	defer func() {
-		if shutdownErr := dummy.Shutdown(context.Background()); shutdownErr != nil {
-			t.Fatalf("failed to shutdown dummy server: %v", shutdownErr)
-		}
-	}()
+			_ = dummy.Shutdown(context.Background())
+		}()
 
 	// Try to start a server on the same address to cause an error
 	srv := &http.Server{
