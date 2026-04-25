@@ -56,6 +56,60 @@ func TestNewRouterDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestRouterOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     []RouterOption
+		validate func(*testing.T, RouterConfig)
+	}{
+		{
+			name: "WithReadTimeout",
+			opts: []RouterOption{WithReadTimeout(10 * time.Second)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.ReadTimeout != 10*time.Second {
+					t.Errorf("expected 10s, got %v", cfg.ReadTimeout)
+				}
+			},
+		},
+		{
+			name: "WithReadHeaderTimeout",
+			opts: []RouterOption{WithReadHeaderTimeout(3 * time.Second)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.ReadHeaderTimeout != 3*time.Second {
+					t.Errorf("expected 3s, got %v", cfg.ReadHeaderTimeout)
+				}
+			},
+		},
+		{
+			name: "WithWriteTimeout",
+			opts: []RouterOption{WithWriteTimeout(12 * time.Second)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.WriteTimeout != 12*time.Second {
+					t.Errorf("expected 12s, got %v", cfg.WriteTimeout)
+				}
+			},
+		},
+		{
+			name: "WithNilOption",
+			opts: []RouterOption{nil},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				// Should not panic, and defaults should remain intact
+				defaults := DefaultRouterConfig()
+				if cfg.ReadTimeout != defaults.ReadTimeout {
+					t.Errorf("expected default %v, got %v", defaults.ReadTimeout, cfg.ReadTimeout)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := parseOptions(tt.opts...)
+			tt.validate(t, cfg)
+		})
+	}
+}
+
 func TestNewRouterWithDisabledRateLimit(t *testing.T) {
 	r := NewRouter(
 		WithRateLimit(0, 0), // Disabled
@@ -185,8 +239,8 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 		}
 	}()
 	defer func() {
-			_ = dummy.Shutdown(context.Background())
-		}()
+		_ = dummy.Shutdown(context.Background())
+	}()
 
 	// Try to start a server on the same address to cause an error
 	srv := &http.Server{
