@@ -1,6 +1,8 @@
 package httpkit
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -106,6 +108,110 @@ func TestCORSMiddleware(t *testing.T) {
 			t.Fatalf("expected methods header, got %q", rr.Header().Get("Access-Control-Allow-Methods"))
 		}
 	})
+}
+
+func TestSecurityHeadersMiddlewareConcurrency(t *testing.T) {
+	handler := SecurityHeadersMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	const numGoroutines = 100
+	errCh := make(chan error, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			if rr.Header().Get("X-Content-Type-Options") != "nosniff" {
+				errCh <- errors.New("missing security header")
+				return
+			}
+			errCh <- nil
+		}()
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		if err := <-errCh; err != nil {
+			t.Fatalf("concurrent test failed: %v", err)
+		}
+	}
+}
+
+func TestRateLimitMiddlewareConcurrency(t *testing.T) {
+	// Allow 100 requests per second, burst of 100
+	limiter := rate.NewLimiter(100, 100)
+
+	handler := RateLimitMiddleware(limiter)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	const numGoroutines = 100
+	errCh := make(chan error, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+			// Either OK or TooManyRequests is fine, as long as it doesn't panic
+			if rr.Code != http.StatusOK && rr.Code != http.StatusTooManyRequests {
+				errCh <- fmt.Errorf("unexpected status code: %d", rr.Code)
+				return
+			}
+			errCh <- nil
+		}()
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		if err := <-errCh; err != nil {
+			t.Fatalf("concurrent test failed: %v", err)
+		}
+	}
+}
+
+func TestCORSMiddlewareConcurrency(t *testing.T) {
+	handler := CORSMiddleware(
+		[]string{"https://example.com"},
+		[]string{"GET", "POST"},
+		[]string{"Content-Type"},
+	)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	const numGoroutines = 100
+	errCh := make(chan error, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(i int) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			if i%2 == 0 {
+				req.Header.Set("Origin", "https://example.com")
+			} else {
+				req.Header.Set("Origin", "https://evil.com")
+			}
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			origin := rr.Header().Get("Access-Control-Allow-Origin")
+			if i%2 == 0 && origin != "https://example.com" {
+				errCh <- fmt.Errorf("expected CORS origin header for allowed origin")
+				return
+			} else if i%2 != 0 && origin != "" {
+				errCh <- fmt.Errorf("expected no CORS origin header for disallowed origin")
+				return
+			}
+
+			errCh <- nil
+		}(i)
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		if err := <-errCh; err != nil {
+			t.Fatalf("concurrent test failed: %v", err)
+		}
+	}
 }
 
 func TestCORSWildcard(t *testing.T) {
