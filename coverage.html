@@ -1,0 +1,2143 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>async: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+
+				<option value="file0">github.com/gabrielima7/GopherCore/async/async.go (100.0%)</option>
+
+				<option value="file1">github.com/gabrielima7/GopherCore/circuitbreaker/circuitbreaker.go (100.0%)</option>
+
+				<option value="file2">github.com/gabrielima7/GopherCore/config/config.go (100.0%)</option>
+
+				<option value="file3">github.com/gabrielima7/GopherCore/dbkit/db.go (100.0%)</option>
+
+				<option value="file4">github.com/gabrielima7/GopherCore/dbkit/migration.go (100.0%)</option>
+
+				<option value="file5">github.com/gabrielima7/GopherCore/guard/guard.go (100.0%)</option>
+
+				<option value="file6">github.com/gabrielima7/GopherCore/httpkit/middleware.go (100.0%)</option>
+
+				<option value="file7">github.com/gabrielima7/GopherCore/httpkit/response.go (100.0%)</option>
+
+				<option value="file8">github.com/gabrielima7/GopherCore/httpkit/router.go (100.0%)</option>
+
+				<option value="file9">github.com/gabrielima7/GopherCore/jsonutil/json.go (100.0%)</option>
+
+				<option value="file10">github.com/gabrielima7/GopherCore/logkit/logkit.go (100.0%)</option>
+
+				<option value="file11">github.com/gabrielima7/GopherCore/result/result.go (100.0%)</option>
+
+				<option value="file12">github.com/gabrielima7/GopherCore/retry/retry.go (100.0%)</option>
+
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+
+			</div>
+		</div>
+		<div id="content">
+
+		<pre class="file" id="file0" style="display: none">// Package async provides safe goroutine management utilities including
+// panic recovery, fan-out/fan-in patterns, and bounded concurrent mapping.
+// All functions accept context.Context for cancellation support.
+package async
+
+import (
+        "context"
+        "fmt"
+        "runtime/debug"
+        "sync"
+)
+
+// PanicError wraps a recovered panic value with its corresponding stack trace.
+//
+// Purpose: This allows callers to inspect the exact location and cause of the panic
+// without terminating the entire application.
+// Thread-safety: Pure struct, safe to pass across goroutine channels.
+type PanicError struct {
+        Value any
+        Stack string
+}
+
+// Error implements the error interface for PanicError, returning a formatted
+// string containing the panic value and the full stack trace.
+// Thread-safety: Read-only access to internal fields.
+func (p *PanicError) Error() string <span class="cov8" title="1">{
+        return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
+}</span>
+
+// Go launches a new goroutine safely with automatic panic recovery.
+//
+// Constraints: If the provided function fn panics during execution, the panic is gracefully
+// caught and converted into a PanicError. This error is then passed to the optional onPanic
+// callback functions, if any are provided. If no callback is provided, the panic is silently recovered.
+// Thread-safety: Safely detaches and isolates panic propagation from the calling goroutine.
+func Go(fn func(), onPanic ...func(err error)) <span class="cov8" title="1">{
+        go func() </span><span class="cov8" title="1">{
+                defer func() </span><span class="cov8" title="1">{
+                        if r := recover(); r != nil </span><span class="cov8" title="1">{
+                                panicErr := &amp;PanicError{
+                                        Value: r,
+                                        Stack: string(debug.Stack()),
+                                }
+                                if len(onPanic) &gt; 0 &amp;&amp; onPanic[0] != nil </span><span class="cov8" title="1">{
+                                        onPanic[0](panicErr)
+                                }</span>
+                        }
+                }()
+                <span class="cov8" title="1">fn()</span>
+        }()
+}
+
+// GoErr launches a new goroutine safely that executes fn and returns an error channel.
+//
+// Constraints: The result of fn is sent to the returned channel, which is buffered to prevent
+// goroutine leaks if the caller does not read from it immediately.
+// Thread-safety: If the goroutine panics, the panic is recovered and sent safely to the
+// channel as a PanicError. Channel access is inherently concurrent-safe.
+func GoErr(fn func() error) &lt;-chan error <span class="cov8" title="1">{
+        ch := make(chan error, 1)
+        go func() </span><span class="cov8" title="1">{
+                defer func() </span><span class="cov8" title="1">{
+                        if r := recover(); r != nil </span><span class="cov8" title="1">{
+                                ch &lt;- &amp;PanicError{Value: r, Stack: string(debug.Stack())}
+                        }</span>
+                }()
+                <span class="cov8" title="1">ch &lt;- fn()</span>
+        }()
+        <span class="cov8" title="1">return ch</span>
+}
+
+// Group manages a collection of goroutines and collects all errors returned by them.
+//
+// Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
+// built-in panic recovery for every launched goroutine.
+// Thread-safety: It uses internal sync primitives to be entirely safe for concurrent
+// execution and error collection from multiple workers.
+type Group struct {
+        wg   sync.WaitGroup
+        mu   sync.Mutex
+        errs []error
+}
+
+// NewGroup creates and returns a new Group instance ready for managing
+// a collection of goroutines safely.
+func NewGroup() *Group <span class="cov8" title="1">{
+        return &amp;Group{}
+}</span>
+
+// Go launches a goroutine within the Group to execute the provided function fn.
+//
+// Purpose: It automatically handles panic recovery by capturing the panic and appending
+// it to the Group's internal error slice as a PanicError.
+// Thread-safety: All concurrent accesses to the internal error slice are safely
+// synchronized via a mutex lock to strictly prevent data races.
+func (g *Group) Go(fn func() error) <span class="cov8" title="1">{
+        g.wg.Add(1)
+        go func() </span><span class="cov8" title="1">{
+                defer g.wg.Done()
+                defer func() </span><span class="cov8" title="1">{
+                        if r := recover(); r != nil </span><span class="cov8" title="1">{
+                                g.mu.Lock()
+                                g.errs = append(g.errs, &amp;PanicError{Value: r, Stack: string(debug.Stack())})
+                                g.mu.Unlock()
+                        }</span>
+                }()
+                <span class="cov8" title="1">if err := fn(); err != nil </span><span class="cov8" title="1">{
+                        g.mu.Lock()
+                        g.errs = append(g.errs, err)
+                        g.mu.Unlock()
+                }</span>
+        }()
+}
+
+// Wait blocks the calling goroutine until all goroutines launched within the Group
+// have completed execution.
+//
+// Constraints: It returns a slice containing all collected errors, including any recovered panics.
+// If no errors occurred, it returns nil.
+// Thread-safety: It safely accesses the internal error slice protected by a mutex lock.
+// Safe for concurrent calls, though typically called once by a single coordinator goroutine.
+func (g *Group) Wait() []error <span class="cov8" title="1">{
+        g.wg.Wait()
+        g.mu.Lock()
+        defer g.mu.Unlock()
+        if len(g.errs) == 0 </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+        <span class="cov8" title="1">return g.errs</span>
+}
+
+// Map applies the function fn to each item in the items slice concurrently,
+// enforcing a strict bounded parallelism limit based on the concurrency parameter.
+//
+// Constraints: It respects context cancellation, immediately halting further processing if
+// the context is canceled, returning ctx.Err(). It returns the mapped results in the exact
+// same order as the input items, or the first encountered error (including context cancellation).
+// Thread-safety: It uses a buffered channel as a counting semaphore to restrict the number of
+// concurrently active goroutines. Panics within workers are gracefully recovered.
+// Each worker writes its result to its own unique pre-allocated slice index, avoiding race conditions entirely.
+func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) <span class="cov8" title="1">{
+        if concurrency &lt;= 0 </span><span class="cov8" title="1">{
+                concurrency = 1
+        }</span>
+
+        <span class="cov8" title="1">results := make([]R, len(items))
+        errs := make([]error, len(items))
+
+        sem := make(chan struct{}, concurrency)
+        var wg sync.WaitGroup
+
+        // Launch workers to process items concurrently.
+        for i, item := range items </span><span class="cov8" title="1">{
+                // Fast-path context cancellation check before spawning.
+                if ctx.Err() != nil </span><span class="cov8" title="1">{
+                        return nil, ctx.Err()
+                }</span>
+
+                // Acquire semaphore slot to enforce bounded concurrency limit.
+                <span class="cov8" title="1">sem &lt;- struct{}{}
+                wg.Add(1)
+
+                go func(idx int, val T) </span><span class="cov8" title="1">{
+                        defer wg.Done()
+                        // Release the semaphore slot back to the channel immediately before exiting.
+                        defer func() </span><span class="cov8" title="1">{ &lt;-sem }</span>()
+                        // Recover panics gracefully without bringing down the application,
+                        // converting the recovered panic value into a PanicError with stack trace.
+                        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                                if r := recover(); r != nil </span><span class="cov8" title="1">{
+                                        errs[idx] = &amp;PanicError{Value: r, Stack: string(debug.Stack())}
+                                }</span>
+                        }()
+
+                        // Check context before executing potentially heavy operation.
+                        <span class="cov8" title="1">if ctx.Err() != nil </span><span class="cov8" title="1">{
+                                errs[idx] = ctx.Err()
+                                return
+                        }</span>
+
+                        // Perform the user-provided work. Safe concurrently because each worker
+                        // writes its result to its own unique index in the pre-allocated slice.
+                        <span class="cov8" title="1">result, err := fn(ctx, val)
+                        results[idx] = result
+                        errs[idx] = err</span>
+                }(i, item)
+        }
+
+        <span class="cov8" title="1">wg.Wait()
+
+        for _, err := range errs </span><span class="cov8" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
+                        return results, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return results, nil</span>
+}
+
+// Fan launches the provided function fn for each item in the items slice concurrently
+// with no upper bound on parallelism (unbounded concurrency).
+//
+// Constraints: It respects context cancellation, aborting the launch loop early if the context is
+// canceled. It safely collects and returns all errors encountered, including recovered panics.
+// For bounded concurrency, prefer using Map.
+// Thread-safety: It uses a sync.WaitGroup to coordinate completion and a sync.Mutex to
+// safely collect any errors encountered without data races.
+func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error <span class="cov8" title="1">{
+        var (
+                wg   sync.WaitGroup
+                mu   sync.Mutex
+                errs []error
+        )
+
+        // Iterate through the items and launch a goroutine for each.
+        for _, item := range items </span><span class="cov8" title="1">{
+                // Stop launching new goroutines if the context is already canceled.
+                if ctx.Err() != nil </span><span class="cov8" title="1">{
+                        mu.Lock()
+                        errs = append(errs, ctx.Err())
+                        mu.Unlock()
+                        break</span>
+                }
+
+                <span class="cov8" title="1">wg.Add(1)
+                go func(val T) </span><span class="cov8" title="1">{
+                        defer wg.Done()
+                        // Recover from panics inside the fan worker goroutine.
+                        defer func() </span><span class="cov8" title="1">{
+                                if r := recover(); r != nil </span><span class="cov8" title="1">{
+                                        mu.Lock()
+                                        errs = append(errs, &amp;PanicError{Value: r, Stack: string(debug.Stack())})
+                                        mu.Unlock()
+                                }</span>
+                        }()
+                        // Execute the worker logic and capture returned errors.
+                        <span class="cov8" title="1">if err := fn(ctx, val); err != nil </span><span class="cov8" title="1">{
+                                mu.Lock()
+                                errs = append(errs, err)
+                                mu.Unlock()
+                        }</span>
+                }(item)
+        }
+
+        // Wait for all unbounded worker goroutines to finish execution.
+        <span class="cov8" title="1">wg.Wait()
+        return errs</span>
+}
+</pre>
+
+		<pre class="file" id="file1" style="display: none">// Package circuitbreaker implements the Circuit Breaker pattern to prevent
+// cascading failures. It wraps fallible operations and trips when too many
+// failures occur, allowing the system to recover gracefully.
+package circuitbreaker
+
+import (
+        "errors"
+        "sync"
+        "time"
+)
+
+// ErrCircuitOpen is returned when the circuit is in the Open state
+// and no requests are permitted to execute. Callers should fast-fail
+// or fallback to a secondary mechanism.
+var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
+
+// ErrTooManyRequests is returned when the circuit is in the HalfOpen
+// state and the maximum number of concurrent probe requests has already
+// been reached.
+var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
+
+// State represents the current operational state of the circuit breaker.
+// Thread-safety: Pure enum.
+type State int
+
+const (
+        // StateClosed is the normal operational state. All requests are allowed
+        // through. The breaker counts consecutive failures to determine if it
+        // should trip to StateOpen.
+        StateClosed State = iota
+        // StateOpen is the tripped state. All requests are immediately rejected
+        // with ErrCircuitOpen until the configured timeout duration expires.
+        StateOpen
+        // StateHalfOpen is the recovery state. A limited number of probe requests
+        // are allowed through to test if the underlying service has recovered.
+        StateHalfOpen
+)
+
+// String returns the human-readable string representation of the State.
+func (s State) String() string <span class="cov8" title="1">{
+        switch s </span>{
+        case StateClosed:<span class="cov8" title="1">
+                return "closed"</span>
+        case StateOpen:<span class="cov8" title="1">
+                return "open"</span>
+        case StateHalfOpen:<span class="cov8" title="1">
+                return "half-open"</span>
+        default:<span class="cov8" title="1">
+                return "unknown"</span>
+        }
+}
+
+// Config holds the configuration parameters that dictate the behavior
+// and thresholds of a circuit breaker.
+// Thread-safety: Treat as read-only once passed to the Breaker constructor.
+type Config struct {
+        // FailureThreshold is the number of consecutive failures before
+        // the circuit breaker transitions from Closed to Open.
+        FailureThreshold int
+
+        // SuccessThreshold is the number of consecutive successes in
+        // HalfOpen state required to transition back to Closed.
+        SuccessThreshold int
+
+        // Timeout is the duration the circuit stays in the Open state
+        // before transitioning to HalfOpen.
+        Timeout time.Duration
+
+        // MaxHalfOpenRequests is the maximum number of requests allowed
+        // in the HalfOpen state. Defaults to 1.
+        MaxHalfOpenRequests int
+
+        // OnStateChange is called when the circuit breaker transitions state.
+        OnStateChange func(from, to State)
+}
+
+// DefaultConfig returns a sensible default configuration for a circuit breaker:
+// 5 failures to open, 30 seconds open timeout, 1 half-open request, and 2
+// consecutive successes to close.
+// Thread-safety: Returns a new instance.
+func DefaultConfig() Config <span class="cov8" title="1">{
+        return Config{
+                FailureThreshold:    5,
+                SuccessThreshold:    2,
+                Timeout:             30 * time.Second,
+                MaxHalfOpenRequests: 1,
+        }
+}</span>
+
+// Breaker is a thread-safe implementation of the Circuit Breaker pattern.
+//
+// Purpose: It coordinates concurrent access to the circuit's state and statistics
+// to prevent cascading failure patterns in microservice architectures.
+// Thread-safety: Contains an internal mutex rendering all exported methods strictly thread-safe.
+type Breaker struct {
+        mu     sync.Mutex
+        config Config
+
+        state            State
+        failureCount     int
+        successCount     int
+        halfOpenRequests int
+        lastFailureTime  time.Time
+}
+
+// New creates and returns a new Breaker initialized with the given configuration.
+//
+// Constraints: It will apply sensible default values for any configuration fields that are
+// left as zero or invalid (&lt;= 0). The breaker starts in the StateClosed state.
+// Thread-safety: Initialization is inherently safe as no references have been shared yet.
+func New(cfg Config) *Breaker <span class="cov8" title="1">{
+        if cfg.FailureThreshold &lt;= 0 </span><span class="cov8" title="1">{
+                cfg.FailureThreshold = 5
+        }</span>
+        <span class="cov8" title="1">if cfg.SuccessThreshold &lt;= 0 </span><span class="cov8" title="1">{
+                cfg.SuccessThreshold = 2
+        }</span>
+        <span class="cov8" title="1">if cfg.Timeout &lt;= 0 </span><span class="cov8" title="1">{
+                cfg.Timeout = 30 * time.Second
+        }</span>
+        <span class="cov8" title="1">if cfg.MaxHalfOpenRequests &lt;= 0 </span><span class="cov8" title="1">{
+                cfg.MaxHalfOpenRequests = 1
+        }</span>
+        <span class="cov8" title="1">return &amp;Breaker{config: cfg, state: StateClosed}</span>
+}
+
+// State safely retrieves and returns the current operational state of the circuit breaker.
+//
+// Constraints: It handles potential state transitions (e.g., from Open to HalfOpen) if the timeout
+// has expired before returning the state.
+// Thread-safety: Safe for concurrent use, heavily guarded by the internal mutex.
+func (b *Breaker) State() State <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+        return b.currentState()
+}</span>
+
+// Execute executes the provided function fn if the circuit breaker determines
+// that requests are currently permitted.
+//
+// Constraints: If the circuit is Open, it immediately returns ErrCircuitOpen.
+// If the circuit is HalfOpen and the maximum probe limit is exceeded, it returns ErrTooManyRequests.
+// Otherwise, it runs fn, records the success or failure of the execution to
+// update internal statistics, and returns the error produced by fn.
+// Thread-safety: It is fully safe for concurrent use across multiple goroutines, executing
+// the fallback logic without holding locks during I/O, but mutating state securely inside mutexes.
+func (b *Breaker) Execute(fn func() error) error <span class="cov8" title="1">{
+        b.mu.Lock()
+
+        state := b.currentState()
+
+        switch state </span>{
+        case StateOpen:<span class="cov8" title="1">
+                b.mu.Unlock()
+                // Circuit is open, immediately fast-fail the request to prevent
+                // further strain on the failing underlying service.
+                return ErrCircuitOpen</span>
+        case StateHalfOpen:<span class="cov8" title="1">
+                // Limit the number of concurrent probe requests in HalfOpen state
+                // to test recovery without overwhelming the service.
+                if b.halfOpenRequests &gt;= b.config.MaxHalfOpenRequests </span><span class="cov8" title="1">{
+                        b.mu.Unlock()
+                        return ErrTooManyRequests
+                }</span>
+                <span class="cov8" title="1">b.halfOpenRequests++</span>
+        }
+
+        <span class="cov8" title="1">b.mu.Unlock()
+
+        // Execute the user-provided function outside the lock to ensure
+        // the lock is not held during potentially long-running I/O operations.
+        err := fn()
+
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        // Update the circuit breaker statistics based on the execution result.
+        if err != nil </span><span class="cov8" title="1">{
+                b.recordFailure()
+        }</span> else<span class="cov8" title="1"> {
+                b.recordSuccess()
+        }</span>
+
+        <span class="cov8" title="1">return err</span>
+}
+
+// currentState evaluates and returns the current state.
+//
+// Constraints: If the state is Open, it checks if the timeout duration has elapsed
+// since the last failure. If so, it automatically transitions the state
+// to HalfOpen to allow probe requests.
+// Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller to avoid panics.
+func (b *Breaker) currentState() State <span class="cov8" title="1">{
+        // Check if the circuit should automatically transition from Open to HalfOpen.
+        if b.state == StateOpen </span><span class="cov8" title="1">{
+                if time.Since(b.lastFailureTime) &gt;= b.config.Timeout </span><span class="cov8" title="1">{
+                        b.transitionTo(StateHalfOpen)
+                }</span>
+        }
+        <span class="cov8" title="1">return b.state</span>
+}
+
+// recordSuccess updates internal statistics following a successful execution.
+//
+// Constraints: In the Closed state, it resets the consecutive failure count.
+// In the HalfOpen state, it increments the success count and transitions
+// back to Closed if the success threshold is met.
+// Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller.
+func (b *Breaker) recordSuccess() <span class="cov8" title="1">{
+        switch b.state </span>{
+        case StateClosed:<span class="cov8" title="1">
+                b.failureCount = 0</span>
+        case StateHalfOpen:<span class="cov8" title="1">
+                b.successCount++
+                if b.successCount &gt;= b.config.SuccessThreshold </span><span class="cov8" title="1">{
+                        b.transitionTo(StateClosed)
+                }</span>
+        }
+}
+
+// recordFailure updates internal statistics following a failed execution.
+//
+// Constraints: It records the time of the failure. In the Closed state, it increments the
+// failure count and transitions to Open if the threshold is reached.
+// In the HalfOpen state, any failure immediately trips the circuit back to Open.
+// Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller.
+func (b *Breaker) recordFailure() <span class="cov8" title="1">{
+        b.lastFailureTime = time.Now()
+
+        switch b.state </span>{
+        case StateClosed:<span class="cov8" title="1">
+                b.failureCount++
+                if b.failureCount &gt;= b.config.FailureThreshold </span><span class="cov8" title="1">{
+                        b.transitionTo(StateOpen)
+                }</span>
+        case StateHalfOpen:<span class="cov8" title="1">
+                b.transitionTo(StateOpen)</span>
+        }
+}
+
+// transitionTo safely changes the circuit breaker's state to newState,
+// resetting all internal tracking counters (failures, successes, half-open requests).
+//
+// Constraints: If a state change callback is configured, it is invoked synchronously.
+// Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller.
+func (b *Breaker) transitionTo(newState State) <span class="cov8" title="1">{
+        if b.state == newState </span><span class="cov8" title="1">{
+                return
+        }</span>
+        <span class="cov8" title="1">from := b.state
+        b.state = newState
+        b.failureCount = 0
+        b.successCount = 0
+        b.halfOpenRequests = 0
+
+        if b.config.OnStateChange != nil </span><span class="cov8" title="1">{
+                b.config.OnStateChange(from, to(newState))
+        }</span>
+}
+
+// to is an internal helper that simply returns the provided State value.
+//
+// Purpose: It is used to bypass variable shadowing issues in closure contexts.
+func to(s State) State <span class="cov8" title="1">{ return s }</span>
+
+// Reset forcefully resets the circuit breaker back to the normal Closed state,
+// regardless of its current state or failure statistics.
+//
+// Thread-safety: This safely locks the internal mutex to prevent race conditions during reset.
+func (b *Breaker) Reset() <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+        b.transitionTo(StateClosed)
+}</span>
+</pre>
+
+		<pre class="file" id="file2" style="display: none">// Package config provides a unified, reflection-based configuration loader.
+// It parses environment variables directly into structured Go types and enforces
+// validation constraints via the github.com/go-playground/validator/v10 library,
+// ensuring that the application fails to start if vital configurations are missing
+// or malformed.
+package config
+
+import (
+        "errors"
+        "fmt"
+        "os"
+        "reflect"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/go-playground/validator/v10"
+)
+
+var validate = validator.New()
+
+// Load reflects upon the provided cfg parameter, recursively parsing environment
+// variables into its exported fields. It then validates the populated struct against
+// its `validate` tags using the go-playground/validator library.
+//
+// Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
+// reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
+// Thread-safety: Load relies on a global, thread-safe validator instance. Safe for concurrent use,
+// though normally invoked once at application startup.
+//
+// Tag Usage:
+//   - `env:"NAME"`: Binds the struct field to the environment variable NAME.
+//   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
+//   - `validate:"rule"`: Applies standard go-playground validation rules.
+func Load(cfg any) error <span class="cov8" title="1">{
+        v := reflect.ValueOf(cfg)
+        if v.Kind() != reflect.Ptr || v.IsNil() </span><span class="cov8" title="1">{
+                return errors.New("cfg must be a non-nil pointer to a struct")
+        }</span>
+
+        <span class="cov8" title="1">v = v.Elem()
+        if v.Kind() != reflect.Struct </span><span class="cov8" title="1">{
+                return errors.New("cfg must be a pointer to a struct")
+        }</span>
+
+        <span class="cov8" title="1">if err := populate(v); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return validate.Struct(cfg)</span>
+}
+
+// populate iterates over the fields of the reflected struct, recursively
+// diving into nested structs and pointers to structs. It extracts values
+// from the environment and attempts to parse and set them dynamically.
+//
+// Purpose: This is the core logic that connects `env` string tags to actual OS
+// environment queries, abstracting the manual `os.LookupEnv` boilerplate.
+// Thread-safety: Safe for concurrent use so long as the target struct is not accessed.
+func populate(v reflect.Value) error <span class="cov8" title="1">{
+        t := v.Type()
+        for i := 0; i &lt; t.NumField(); i++ </span><span class="cov8" title="1">{
+                field := t.Field(i)
+                fieldValue := v.Field(i)
+
+                // Ignore unexported or otherwise unsettable fields.
+                if !fieldValue.CanSet() </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+
+                // Handle nested struct values recursively.
+                <span class="cov8" title="1">if fieldValue.Kind() == reflect.Struct </span><span class="cov8" title="1">{
+                        if err := populate(fieldValue); err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">continue</span>
+                }
+
+                // Handle nested pointers to structs recursively, allocating if nil.
+                <span class="cov8" title="1">if fieldValue.Kind() == reflect.Ptr &amp;&amp; fieldValue.Type().Elem().Kind() == reflect.Struct </span><span class="cov8" title="1">{
+                        if fieldValue.IsNil() </span><span class="cov8" title="1">{
+                                fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+                        }</span>
+                        <span class="cov8" title="1">if err := populate(fieldValue.Elem()); err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">continue</span>
+                }
+
+                // Skip fields that do not have an explicit `env` tag mapping.
+                <span class="cov8" title="1">envKey := field.Tag.Get("env")
+                if envKey == "" </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">envVal, exists := os.LookupEnv(envKey)
+                if !exists </span><span class="cov8" title="1">{
+                        defaultVal := field.Tag.Get("envDefault")
+                        if defaultVal == "" </span><span class="cov8" title="1">{
+                                continue</span>
+                        }
+                        <span class="cov8" title="1">envVal = defaultVal</span>
+                }
+
+                <span class="cov8" title="1">if err := setField(fieldValue, envVal); err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("failed to set field %s: %w", field.Name, err)
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// setField parses the string value obtained from the environment and assigns it
+// to the reflected target value, strictly checking for numeric overflows to prevent
+// silent truncation bugs at startup.
+//
+// Purpose: Handles type conversions from env string slices, floats, booleans, and duration types.
+// Thread-safety: Safe for concurrent use.
+func setField(v reflect.Value, value string) error <span class="cov8" title="1">{
+        switch v.Kind() </span>{
+        case reflect.String:<span class="cov8" title="1">
+                v.SetString(value)</span>
+        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:<span class="cov8" title="1">
+                if v.Type() == reflect.TypeOf(time.Duration(0)) </span><span class="cov8" title="1">{
+                        d, err := time.ParseDuration(value)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">v.SetInt(int64(d))
+                        return nil</span>
+                }
+
+                <span class="cov8" title="1">intVal, err := strconv.ParseInt(value, 10, 64)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if v.OverflowInt(intVal) </span><span class="cov8" title="1">{
+                        return fmt.Errorf("integer overflow for value %s", value)
+                }</span>
+                <span class="cov8" title="1">v.SetInt(intVal)</span>
+        case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:<span class="cov8" title="1">
+                uintVal, err := strconv.ParseUint(value, 10, 64)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if v.OverflowUint(uintVal) </span><span class="cov8" title="1">{
+                        return fmt.Errorf("uint overflow for value %s", value)
+                }</span>
+                <span class="cov8" title="1">v.SetUint(uintVal)</span>
+        case reflect.Bool:<span class="cov8" title="1">
+                boolVal, err := strconv.ParseBool(value)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">v.SetBool(boolVal)</span>
+        case reflect.Float32, reflect.Float64:<span class="cov8" title="1">
+                floatVal, err := strconv.ParseFloat(value, 64)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if v.OverflowFloat(floatVal) </span><span class="cov8" title="1">{
+                        return fmt.Errorf("float overflow for value %s", value)
+                }</span>
+                <span class="cov8" title="1">v.SetFloat(floatVal)</span>
+        case reflect.Slice:<span class="cov8" title="1">
+                parts := strings.Split(value, ",")
+                slice := reflect.MakeSlice(v.Type(), 0, len(parts))
+                for _, part := range parts </span><span class="cov8" title="1">{
+                        part = strings.TrimSpace(part)
+                        if part == "" </span><span class="cov8" title="1">{
+                                continue</span>
+                        }
+                        <span class="cov8" title="1">elem := reflect.New(v.Type().Elem()).Elem()
+                        if err := setField(elem, part); err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+                        <span class="cov8" title="1">slice = reflect.Append(slice, elem)</span>
+                }
+                <span class="cov8" title="1">v.Set(slice)</span>
+        default:<span class="cov8" title="1">
+                return fmt.Errorf("unsupported type %s", v.Kind())</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+
+		<pre class="file" id="file3" style="display: none">// Package dbkit provides thread-safe database connection management, robust connection pooling defaults,
+// and safe schema migration orchestration built upon sqlx and golang-migrate/migrate.
+package dbkit
+
+import (
+        "context"
+        "errors"
+        "time"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// Config holds database connection configuration.
+// Thread-safety: Safely read-only post instantiation.
+type Config struct {
+        // Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
+        Driver string
+        // DSN is the data source name / connection string.
+        DSN string
+        // MaxOpenConns is the maximum number of open connections.
+        MaxOpenConns int
+        // MaxIdleConns is the maximum number of idle connections.
+        MaxIdleConns int
+        // ConnMaxLifetime is the maximum duration a connection can be reused.
+        ConnMaxLifetime time.Duration
+        // ConnMaxIdleTime is the maximum duration a connection can be idle.
+        ConnMaxIdleTime time.Duration
+}
+
+// DefaultConfig returns a sensible default configuration
+// mapped to a stable production-ready baseline.
+func DefaultConfig(driver, dsn string) Config <span class="cov8" title="1">{
+        return Config{
+                Driver:          driver,
+                DSN:             dsn,
+                MaxOpenConns:    25,
+                MaxIdleConns:    5,
+                ConnMaxLifetime: 5 * time.Minute,
+                ConnMaxIdleTime: 1 * time.Minute,
+        }
+}</span>
+
+// Option is a functional option for configuring the database connection mutatively.
+type Option func(*Config)
+
+// WithMaxOpenConns sets the maximum number of open connections.
+// Thread-safety: Mutates configuration synchronously.
+func WithMaxOpenConns(n int) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.MaxOpenConns = n
+        }</span>
+}
+
+// WithMaxIdleConns sets the maximum number of idle connections.
+// Thread-safety: Mutates configuration synchronously.
+func WithMaxIdleConns(n int) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.MaxIdleConns = n
+        }</span>
+}
+
+// WithConnMaxLifetime sets the maximum duration a connection can be reused.
+// Thread-safety: Mutates configuration synchronously.
+func WithConnMaxLifetime(d time.Duration) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.ConnMaxLifetime = d
+        }</span>
+}
+
+// WithConnMaxIdleTime sets the maximum duration a connection can be idle.
+// Thread-safety: Mutates configuration synchronously.
+func WithConnMaxIdleTime(d time.Duration) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.ConnMaxIdleTime = d
+        }</span>
+}
+
+// Connect safely initializes and establishes a new, connection-pooled database connection
+// using the provided driver and DSN.
+//
+// Constraints: It fully respects the provided context for timeout/cancellation
+// during connection and subsequent connectivity verification (PingContext).
+// Thread-safety: The returned *sqlx.DB is inherently safe for concurrent access across multiple goroutines.
+func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) <span class="cov8" title="1">{
+        if driver == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("dbkit: driver is required")
+        }</span>
+        <span class="cov8" title="1">if dsn == "" </span><span class="cov8" title="1">{
+                return nil, errors.New("dbkit: dsn is required")
+        }</span>
+
+        <span class="cov8" title="1">cfg := DefaultConfig(driver, dsn)
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(&amp;cfg)
+        }</span>
+
+        <span class="cov8" title="1">db, err := sqlx.ConnectContext(ctx, cfg.Driver, cfg.DSN)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">db.SetMaxOpenConns(cfg.MaxOpenConns)
+        db.SetMaxIdleConns(cfg.MaxIdleConns)
+        db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+        db.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+
+        return db, nil</span>
+}
+
+// MustConnect acts exactly like Connect, but instead of returning an error, it deliberately panics
+// if the connection or ping fails.
+//
+// Constraints: This is intended solely for application startup phases where
+// the inability to reach the primary database is considered a fatal, unrecoverable state.
+// Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
+func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB <span class="cov8" title="1">{
+        db, err := Connect(ctx, driver, dsn, opts...)
+        if err != nil </span><span class="cov8" title="1">{
+                panic("dbkit: " + err.Error())</span>
+        }
+        <span class="cov8" title="1">return db</span>
+}
+
+// HealthCheck executes a lightweight ping against the configured database to ensure the
+// connection remains active and the underlying database is currently reachable.
+//
+// Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
+// Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
+func HealthCheck(ctx context.Context, db *sqlx.DB) error <span class="cov8" title="1">{
+        return db.PingContext(ctx)
+}</span>
+</pre>
+
+		<pre class="file" id="file4" style="display: none">// Package dbkit provides thread-safe database connection management, robust connection pooling defaults,
+// and safe schema migration orchestration built upon sqlx and golang-migrate/migrate.
+package dbkit
+
+import (
+        "errors"
+
+        "github.com/golang-migrate/migrate/v4"
+        "github.com/golang-migrate/migrate/v4/database"
+        // Source driver for file-based migrations.
+        _ "github.com/golang-migrate/migrate/v4/source/file"
+        "github.com/jmoiron/sqlx"
+)
+
+// MigrationConfig holds configuration for running migrations.
+// Thread-safety: Read-only after instantiation.
+type MigrationConfig struct {
+        // SourceURL is the source URL for migration files (e.g., "file://migrations").
+        SourceURL string
+        // DatabaseName is the database driver name for migrate (e.g., "postgres").
+        DatabaseName string
+}
+
+// RunMigrations incrementally applies all pending "up" migrations located at the specified sourceURL.
+// It relies on golang-migrate to orchestrate the internal schema_migrations table safely.
+//
+// Constraints: Note that schema migrations often perform DDL operations that cannot be fully encapsulated in
+// a transaction depending on the underlying database engine. Ensure backups are available.
+// Thread-safety: Operations are inherently stateful on the database side; concurrent migration execution from
+// multiple nodes is usually handled safely by golang-migrate's internal advisory locks.
+func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) error <span class="cov8" title="1">{
+        m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                _, _ = m.Close()
+        }</span>()
+
+        <span class="cov8" title="1">if err := m.Up(); err != nil &amp;&amp; !errors.Is(err, migrate.ErrNoChange) </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// RollbackMigrations selectively reverts the last N migration steps by executing their
+// corresponding "down" migration files. If the steps parameter is exactly 0, it will
+// systematically revert all previously applied migrations.
+//
+// Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
+// rolling back these types of operations transactionally.
+// Thread-safety: Concurrent execution relies on the underlying golang-migrate advisory locks on the DB.
+func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) error <span class="cov8" title="1">{
+        m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                _, _ = m.Close()
+        }</span>()
+
+        <span class="cov8" title="1">if steps &lt;= 0 </span><span class="cov8" title="1">{
+                if err := m.Down(); err != nil &amp;&amp; !errors.Is(err, migrate.ErrNoChange) </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return nil</span>
+        }
+
+        <span class="cov8" title="1">if err := m.Steps(-steps); err != nil &amp;&amp; !errors.Is(err, migrate.ErrNoChange) </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// MigrationVersion represents the current migration state.
+// Thread-safety: Struct data.
+type MigrationVersion struct {
+        Version uint
+        Dirty   bool
+}
+
+// GetMigrationVersion queries the underlying migrate state machine to retrieve the current
+// active schema version.
+//
+// Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
+// the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
+// Thread-safety: Safe for concurrent queries across multiple nodes reading state.
+func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (MigrationVersion, error) <span class="cov8" title="1">{
+        m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
+        if err != nil </span><span class="cov8" title="1">{
+                return MigrationVersion{}, err
+        }</span>
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                _, _ = m.Close()
+        }</span>()
+
+        <span class="cov8" title="1">version, dirty, err := m.Version()
+        if err != nil </span><span class="cov8" title="1">{
+                if errors.Is(err, migrate.ErrNilVersion) </span><span class="cov8" title="1">{
+                        return MigrationVersion{Version: 0, Dirty: false}, nil
+                }</span>
+                <span class="cov8" title="1">return MigrationVersion{}, err</span>
+        }
+
+        <span class="cov8" title="1">return MigrationVersion{Version: version, Dirty: dirty}, nil</span>
+}
+</pre>
+
+		<pre class="file" id="file5" style="display: none">// Package guard provides security guard helpers that wrap the go-playground/validator
+// library to offer structured validation and basic input sanitization.
+// It is designed to be fully thread-safe for concurrent use across multiple goroutines.
+package guard
+
+import (
+        "errors"
+        "fmt"
+        "strings"
+        "unicode"
+
+        "github.com/go-playground/validator/v10"
+        "github.com/microcosm-cc/bluemonday"
+)
+
+// validate is the singleton validator instance.
+var validate = validator.New()
+
+// htmlPolicy is the singleton bluemonday strict policy instance.
+var htmlPolicy = bluemonday.StrictPolicy()
+
+// ValidationError encapsulates the details of a single struct field validation failure.
+// It structurally maps the field name, failed validation tag, rejected value, and a
+// generated human-readable message. Safe for concurrent access.
+type ValidationError struct {
+        Field   string `json:"field"`
+        Tag     string `json:"tag"`
+        Value   string `json:"value"`
+        Message string `json:"message"`
+}
+
+// Error implements the standard error interface for ValidationError, returning the human-readable
+// message specific to this single validation failure. It does not contain any thread-unsafe operations.
+func (v ValidationError) Error() string <span class="cov8" title="1">{
+        return v.Message
+}</span>
+
+// ValidationErrors represents a collection of one or more ValidationError instances.
+// It is typically generated resulting from a multi-field struct validation failure.
+// As a slice of errors, its methods are read-only and thread-safe.
+type ValidationErrors []ValidationError
+
+// Error implements the standard error interface for ValidationErrors, aggregating all underlying
+// individual field validation messages into a single semicolon-separated string.
+// Safe for concurrent access.
+func (ve ValidationErrors) Error() string <span class="cov8" title="1">{
+        var msgs []string
+        for _, e := range ve </span><span class="cov8" title="1">{
+                msgs = append(msgs, e.Message)
+        }</span>
+        <span class="cov8" title="1">return strings.Join(msgs, "; ")</span>
+}
+
+// Validate inspects a given struct using its reflection-based `validate` tags.
+// If the struct violates any tags, it aggregates all failures into a ValidationErrors
+// slice which implements the error interface. It returns nil if the struct perfectly
+// satisfies all validation constraints.
+//
+// Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
+// Thread-safety: It relies on a globally initialized validator instance and is entirely
+// thread-safe for concurrent use.
+func Validate(s any) error <span class="cov8" title="1">{
+        err := validate.Struct(s)
+        if err == nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">var validationErrors validator.ValidationErrors
+        if !errors.As(err, &amp;validationErrors) </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">errs := make(ValidationErrors, 0, len(validationErrors))
+        for _, fe := range validationErrors </span><span class="cov8" title="1">{
+                errs = append(errs, ValidationError{
+                        Field:   fe.Field(),
+                        Tag:     fe.Tag(),
+                        Value:   fmt.Sprintf("%v", fe.Value()),
+                        Message: formatValidationError(fe),
+                })
+        }</span>
+        <span class="cov8" title="1">return errs</span>
+}
+
+// RegisterValidation registers a custom, user-defined validation function mapped to
+// a specific tag name. Once registered, this tag can be used in struct fields
+// throughout the application. It returns an error if the tag name is already registered.
+//
+// Thread-safety: This function modifies the global validator instance and is NOT thread-safe
+// to call concurrently with active `Validate` calls. It MUST be invoked strictly
+// during application startup initialization to prevent data races.
+func RegisterValidation(tag string, fn validator.Func) error <span class="cov8" title="1">{
+        return validate.RegisterValidation(tag, fn)
+}</span>
+
+// SanitizeString performs primitive input scrubbing by stripping out invisible
+// Unicode control characters and aggressively trimming leading/trailing whitespace.
+// It creates a new allocated string to prevent modifying the original reference.
+// Thread-safety: Pure function, safe for concurrent use.
+//
+// Security Warning: This is purely a basic data-hygiene mechanism and absolutely
+// MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
+// Context-aware escaping at the respective boundaries is still strictly required.
+func SanitizeString(s string) string <span class="cov8" title="1">{
+        var b strings.Builder
+        b.Grow(len(s))
+        for _, r := range s </span><span class="cov8" title="1">{
+                if !unicode.IsControl(r) || r == '\n' || r == '\r' || r == '\t' </span><span class="cov8" title="1">{
+                        b.WriteRune(r)
+                }</span>
+        }
+        <span class="cov8" title="1">return strings.TrimSpace(b.String())</span>
+}
+
+// StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
+// payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
+//
+// It is explicitly designed to safely handle untrusted user input and mitigate
+// Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving
+// only plain text.
+// Thread-safety: It leverages a globally instantiated policy and is fully
+// safe for concurrent execution across multiple goroutines.
+func StripHTML(s string) string <span class="cov8" title="1">{
+        return htmlPolicy.Sanitize(s)
+}</span>
+
+// formatValidationError analyzes the specific tag that failed validation
+// and maps it to a clear, human-readable error message.
+//
+// Purpose: Acts as the central translation layer between raw validator errors
+// and client-friendly HTTP response messages. It switches on the exact tag name.
+// Thread-safety: Pure function, safe for concurrent use.
+func formatValidationError(fe validator.FieldError) string <span class="cov8" title="1">{
+        switch fe.Tag() </span>{
+        case "required":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' is required", fe.Field())</span>
+        case "email":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be a valid email address", fe.Field())</span>
+        case "min":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be at least %s", fe.Field(), fe.Param())</span>
+        case "max":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be at most %s", fe.Field(), fe.Param())</span>
+        case "gte":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be greater than or equal to %s", fe.Field(), fe.Param())</span>
+        case "lte":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be less than or equal to %s", fe.Field(), fe.Param())</span>
+        case "url":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be a valid URL", fe.Field())</span>
+        case "uuid":<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' must be a valid UUID", fe.Field())</span>
+        default:<span class="cov8" title="1">
+                return fmt.Sprintf("field '%s' failed validation on tag '%s'", fe.Field(), fe.Tag())</span>
+        }
+}
+</pre>
+
+		<pre class="file" id="file6" style="display: none">package httpkit
+
+import (
+        "net/http"
+        "strings"
+
+        "golang.org/x/time/rate"
+)
+
+// SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
+// into every outbound response. It mitigates common web vulnerabilities like
+// MIME-sniffing, clickjacking, and XSS.
+// Thread-safety: Safe for concurrent use across requests. It assigns to map directly
+// instead of globally pre-allocating slices to prevent header map data races.
+//
+// Headers set:
+//   - Strict-Transport-Security (HSTS): Forces HTTPS.
+//   - X-Content-Type-Options: Prevents MIME-sniffing.
+//   - X-Frame-Options: Denies framing (Clickjacking protection).
+//   - Referrer-Policy: Restricts referrer data leakage.
+//   - Permissions-Policy: Disables camera, microphone, and geolocation access.
+//   - X-XSS-Protection: Enables legacy XSS filtering.
+//   - Content-Security-Policy: Restricts resource loading to 'self'.
+func SecurityHeadersMiddleware(next http.Handler) http.Handler <span class="cov8" title="1">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                h := w.Header()
+                h["Strict-Transport-Security"] = []string{"max-age=63072000; includeSubDomains; preload"}
+                h["X-Content-Type-Options"] = []string{"nosniff"}
+                h["X-Frame-Options"] = []string{"DENY"}
+                h["Referrer-Policy"] = []string{"strict-origin-when-cross-origin"}
+                h["Permissions-Policy"] = []string{"camera=(), microphone=(), geolocation=()"}
+                h["X-Xss-Protection"] = []string{"1; mode=block"}
+                h["Content-Security-Policy"] = []string{"default-src 'self'"}
+                next.ServeHTTP(w, r)
+        }</span>)
+}
+
+// RateLimitMiddleware enforces global inbound request rate limiting using a token
+// bucket algorithm (golang.org/x/time/rate).
+//
+// Constraints: If a request exceeds the permissible limit, it is immediately aborted,
+// and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
+// Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
+// concurrent execution across thousands of requests.
+func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler <span class="cov8" title="1">{
+        return func(next http.Handler) http.Handler </span><span class="cov8" title="1">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                        if !limiter.Allow() </span><span class="cov8" title="1">{
+                                w.Header().Set("Retry-After", "1")
+                                http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+                                return
+                        }</span>
+                        <span class="cov8" title="1">next.ServeHTTP(w, r)</span>
+                })
+        }
+}
+
+// CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
+// It verifies the Origin header against a pre-configured whitelist.
+//
+// Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
+// without passing them down the middleware chain.
+// Thread-safety: Configuration maps and slices are built during initialization closure time
+// and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
+func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler <span class="cov8" title="1">{
+        originsSet := make(map[string]bool, len(allowedOrigins))
+        allowAll := false
+        for _, o := range allowedOrigins </span><span class="cov8" title="1">{
+                if o == "*" </span><span class="cov8" title="1">{
+                        allowAll = true
+                }</span>
+                <span class="cov8" title="1">originsSet[o] = true</span>
+        }
+
+        <span class="cov8" title="1">methodsStr := strings.Join(allowedMethods, ", ")
+        headersStr := strings.Join(allowedHeaders, ", ")
+
+        return func(next http.Handler) http.Handler </span><span class="cov8" title="1">{
+                return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                        origin := r.Header.Get("Origin")
+
+                        if origin != "" &amp;&amp; (allowAll || originsSet[origin]) </span><span class="cov8" title="1">{
+                                h := w.Header()
+                                h["Access-Control-Allow-Origin"] = []string{origin}
+                                h["Access-Control-Allow-Methods"] = []string{methodsStr}
+                                h["Access-Control-Allow-Headers"] = []string{headersStr}
+                                h["Access-Control-Allow-Credentials"] = []string{"true"}
+                                h["Access-Control-Max-Age"] = []string{"86400"}
+                                h["Vary"] = []string{"Origin"}
+                        }</span>
+
+                        // Handle preflight.
+                        <span class="cov8" title="1">if r.Method == http.MethodOptions </span><span class="cov8" title="1">{
+                                w.WriteHeader(http.StatusNoContent)
+                                return
+                        }</span>
+
+                        <span class="cov8" title="1">next.ServeHTTP(w, r)</span>
+                })
+        }
+}
+</pre>
+
+		<pre class="file" id="file7" style="display: none">package httpkit
+
+import (
+        "net/http"
+
+        "github.com/gabrielima7/GopherCore/jsonutil"
+)
+
+// ErrorResponse defines the standard, predictable JSON structure returned to
+// clients whenever an API error occurs. This ensures consistent error handling
+// on the consumer side. Structurally safe for JSON marshalling.
+type ErrorResponse struct {
+        Error   string `json:"error"`
+        Code    int    `json:"code"`
+        Message string `json:"message,omitempty"`
+}
+
+// JSON securely marshals the provided data interface into JSON and writes it
+// to the HTTP response with the specified status code. If marshaling fails,
+// it returns a generic 500 response without leaking internal structures.
+// Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+func JSON(w http.ResponseWriter, status int, data any) <span class="cov8" title="1">{
+        body, err := jsonutil.Marshal(data)
+        if err != nil </span><span class="cov8" title="1">{
+                http.Error(w, `{"error":"internal server error","code":500}`, http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(status)
+        _, _ = w.Write(body)</span>
+}
+
+// Error constructs and writes an ErrorResponse payload to the client with
+// the given HTTP status code and custom error message.
+// Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+func Error(w http.ResponseWriter, status int, message string) <span class="cov8" title="1">{
+        JSON(w, status, ErrorResponse{
+                Error:   http.StatusText(status),
+                Code:    status,
+                Message: message,
+        })
+}</span>
+
+// Ok is a convenience wrapper around JSON that returns an HTTP 200 (OK) status.
+// Thread-safety: Safe for concurrent use.
+func Ok(w http.ResponseWriter, data any) <span class="cov8" title="1">{
+        JSON(w, http.StatusOK, data)
+}</span>
+
+// Created is a convenience wrapper around JSON that returns an HTTP 201 (Created)
+// status, typically used after successfully creating a new resource.
+// Thread-safety: Safe for concurrent use.
+func Created(w http.ResponseWriter, data any) <span class="cov8" title="1">{
+        JSON(w, http.StatusCreated, data)
+}</span>
+
+// NoContent responds to the client with an HTTP 204 (No Content) status code,
+// signaling that the request was successful but there is no body to return
+// (e.g., after a successful DELETE operation).
+// Thread-safety: Safe for concurrent use.
+func NoContent(w http.ResponseWriter) <span class="cov8" title="1">{
+        w.WriteHeader(http.StatusNoContent)
+}</span>
+</pre>
+
+		<pre class="file" id="file8" style="display: none">// Package httpkit provides an HTTP toolkit built on go-chi/chi with
+// pre-configured security middleware, rate limiting, CORS control,
+// and standardized JSON responses.
+package httpkit
+
+import (
+        "context"
+        "errors"
+        "net/http"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/go-chi/chi/v5"
+        "github.com/go-chi/chi/v5/middleware"
+        "golang.org/x/time/rate"
+)
+
+// RouterConfig holds configuration options for building and mounting the core
+// application router, including CORS, rate limiting, and HTTP timeouts.
+// All fields are read-only after initialization and thus thread-safe.
+type RouterConfig struct {
+        // AllowedOrigins for CORS. Empty means no CORS middleware.
+        AllowedOrigins []string
+        // AllowedMethods for CORS. Defaults to GET, POST, PUT, DELETE, OPTIONS.
+        AllowedMethods []string
+        // AllowedHeaders for CORS. Defaults to Accept, Authorization, Content-Type.
+        AllowedHeaders []string
+        // RateLimit is the maximum requests per second. 0 disables rate limiting.
+        RateLimit float64
+        // RateBurst is the maximum burst size for rate limiting. Defaults to RateLimit.
+        RateBurst int
+        // ReadTimeout for the HTTP server.
+        ReadTimeout time.Duration
+        // ReadHeaderTimeout for the HTTP server.
+        ReadHeaderTimeout time.Duration
+        // WriteTimeout for the HTTP server.
+        WriteTimeout time.Duration
+        // EnableLogger enables the chi request logger middleware.
+        EnableLogger bool
+}
+
+// DefaultRouterConfig returns a secure and sensible baseline configuration
+// for the HTTP router to mitigate standard application vulnerabilities natively.
+func DefaultRouterConfig() RouterConfig <span class="cov8" title="1">{
+        return RouterConfig{
+                AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+                AllowedHeaders:    []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+                RateLimit:         100,
+                RateBurst:         200,
+                ReadTimeout:       15 * time.Second,
+                ReadHeaderTimeout: 5 * time.Second,
+                WriteTimeout:      15 * time.Second,
+                EnableLogger:      true,
+        }
+}</span>
+
+// RouterOption defines a functional option signature for configuring the router instance
+// mutatively during setup.
+type RouterOption func(*RouterConfig)
+
+// WithCORS restricts the Cross-Origin Resource Sharing policy to only accept
+// preflight and incoming requests from the strictly allowed array of origins.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithCORS(origins ...string) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.AllowedOrigins = origins
+        }</span>
+}
+
+// WithRateLimit configures global inbound traffic limits by specifying the allowed
+// requests per second (rps) and a maximum concurrent burst size.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithRateLimit(rps float64, burst int) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.RateLimit = rps
+                c.RateBurst = burst
+        }</span>
+}
+
+// WithReadTimeout strictly enforces the maximum duration the server will wait
+// while reading the full client HTTP request headers and body payload.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithReadTimeout(d time.Duration) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.ReadTimeout = d
+        }</span>
+}
+
+// WithReadHeaderTimeout strictly enforces the maximum duration the server will wait
+// while reading the HTTP request headers, helping to mitigate Slowloris-style attacks.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithReadHeaderTimeout(d time.Duration) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.ReadHeaderTimeout = d
+        }</span>
+}
+
+// WithWriteTimeout strictly enforces the maximum duration the server is allowed
+// to spend generating and writing the HTTP response back to the connected client.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithWriteTimeout(d time.Duration) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.WriteTimeout = d
+        }</span>
+}
+
+// WithLogger toggles the attachment of the chi structured HTTP request logging
+// middleware on the internal Mux router.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithLogger(enabled bool) RouterOption <span class="cov8" title="1">{
+        return func(c *RouterConfig) </span><span class="cov8" title="1">{
+                c.EnableLogger = enabled
+        }</span>
+}
+
+// parseOptions is an internal helper that initializes the DefaultRouterConfig
+// and then safely applies all provided functional options.
+// Purpose: Aggregates modular setup logic.
+// Thread-safety: Synchronous and safe.
+func parseOptions(opts ...RouterOption) RouterConfig <span class="cov8" title="1">{
+        cfg := DefaultRouterConfig()
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                if opt != nil </span><span class="cov8" title="1">{
+                        opt(&amp;cfg)
+                }</span>
+        }
+        <span class="cov8" title="1">return cfg</span>
+}
+
+// NewRouter constructs and returns a highly-opinionated `chi.Mux` router
+// bundled with a robust, pre-configured middleware stack.
+//
+// The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
+// panic safety (Recoverer), and strict security headers. Optional middlewares
+// (Logger, RateLimit, CORS) are injected based on the provided options.
+// Thread-safety: Safely initializes global middlewares for concurrent request processing.
+func NewRouter(opts ...RouterOption) *chi.Mux <span class="cov8" title="1">{
+        cfg := parseOptions(opts...)
+
+        r := chi.NewRouter()
+
+        // Core middleware stack.
+        r.Use(middleware.RequestID)
+        r.Use(middleware.RealIP)
+        r.Use(middleware.Recoverer)
+
+        if cfg.EnableLogger </span><span class="cov8" title="1">{
+                r.Use(middleware.Logger)
+        }</span>
+
+        // Security headers — always enabled.
+        <span class="cov8" title="1">r.Use(SecurityHeadersMiddleware)
+
+        // Rate limiting.
+        if cfg.RateLimit &gt; 0 </span><span class="cov8" title="1">{
+                burst := cfg.RateBurst
+                if burst &lt;= 0 </span><span class="cov8" title="1">{
+                        burst = int(cfg.RateLimit)
+                }</span>
+                <span class="cov8" title="1">limiter := rate.NewLimiter(rate.Limit(cfg.RateLimit), burst)
+                r.Use(RateLimitMiddleware(limiter))</span>
+        }
+
+        // CORS.
+        <span class="cov8" title="1">if len(cfg.AllowedOrigins) &gt; 0 </span><span class="cov8" title="1">{
+                r.Use(CORSMiddleware(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders))
+        }</span>
+
+        <span class="cov8" title="1">return r</span>
+}
+
+// NewServer creates and returns an `http.Server` bound to the provided network address.
+//
+// Purpose: It applies the read/write timeouts derived from the router options to prevent
+// slowloris and other resource exhaustion attacks natively at the stdlib server level.
+// Thread-safety: Initialization only; the underlying net/http handling is safely concurrent.
+func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server <span class="cov8" title="1">{
+        cfg := parseOptions(opts...)
+        return &amp;http.Server{
+                Addr:              addr,
+                Handler:           handler,
+                ReadTimeout:       cfg.ReadTimeout,
+                ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+                WriteTimeout:      cfg.WriteTimeout,
+        }
+}</span>
+
+// GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
+// for OS termination signals (SIGINT, SIGTERM).
+//
+// Purpose: Upon receiving a termination signal, it invokes the server's Shutdown method, giving ongoing
+// active requests up to the specified timeout duration to complete before forcing a closure.
+// Thread-safety: It manages synchronization internally via channels and safely blocks the
+// calling goroutine until shutdown completes or times out, safely orchestrating multiple concurrent signals.
+func GracefulShutdown(srv *http.Server, timeout time.Duration) error <span class="cov8" title="1">{
+        serverErr := make(chan error, 1)
+        go func() </span><span class="cov8" title="1">{
+                serverErr &lt;- srv.ListenAndServe()
+        }</span>()
+
+        <span class="cov8" title="1">quit := make(chan os.Signal, 1)
+        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+        defer signal.Stop(quit)
+
+        select </span>{
+        case err := &lt;-serverErr:<span class="cov8" title="1">
+                if err != nil &amp;&amp; !errors.Is(err, http.ErrServerClosed) </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">return nil</span>
+        case &lt;-quit:<span class="cov8" title="1">
+                ctx, cancel := context.WithTimeout(context.Background(), timeout)
+                defer cancel()
+                return srv.Shutdown(ctx)</span>
+        }
+}
+</pre>
+
+		<pre class="file" id="file9" style="display: none">// Package jsonutil provides fast JSON encoding and decoding by wrapping
+// github.com/goccy/go-json. All functions are API-compatible with encoding/json.
+package jsonutil
+
+import (
+        "io"
+
+        gojson "github.com/goccy/go-json"
+)
+
+// Marshal returns the JSON encoding of v.
+//
+// Purpose: It is a drop-in replacement for encoding/json.Marshal, leveraging goccy/go-json
+// for significantly improved encoding performance.
+// Thread-safety: Completely stateless and safe for concurrent use across multiple goroutines.
+func Marshal(v any) ([]byte, error) <span class="cov8" title="1">{
+        return gojson.Marshal(v)
+}</span>
+
+// MarshalIndent is like Marshal but applies Indent to format the output.
+//
+// Purpose: Formatting JSON structurally.
+// Thread-safety: It is fully thread-safe and safe for concurrent use across multiple goroutines.
+func MarshalIndent(v any, prefix, indent string) ([]byte, error) <span class="cov8" title="1">{
+        return gojson.MarshalIndent(v, prefix, indent)
+}</span>
+
+// Unmarshal parses the JSON-encoded data and stores the result
+// in the value pointed to by v.
+//
+// Constraints: The target value v must be a non-nil pointer.
+// Thread-safety: It uses goccy/go-json for high-performance, inherently thread-safe decoding.
+func Unmarshal(data []byte, v any) error <span class="cov8" title="1">{
+        return gojson.Unmarshal(data, v)
+}</span>
+
+// NewEncoder creates a new JSON encoder that writes to w.
+//
+// Constraints: Directly wraps the underlying io.Writer stream state.
+// Thread-safety: Unlike the package-level Marshal functions, the returned Encoder
+// is generally NOT safe for concurrent use by multiple goroutines without explicit synchronization.
+func NewEncoder(w io.Writer) *gojson.Encoder <span class="cov8" title="1">{
+        return gojson.NewEncoder(w)
+}</span>
+
+// NewDecoder creates a new JSON decoder that reads from r.
+//
+// Constraints: Interacts dynamically with the incoming io.Reader bytes logic.
+// Thread-safety: The returned Decoder maintains internal state and is NOT safe
+// for concurrent use across multiple goroutines without explicit synchronization.
+func NewDecoder(r io.Reader) *gojson.Decoder <span class="cov8" title="1">{
+        return gojson.NewDecoder(r)
+}</span>
+
+// Valid safely and efficiently reports whether data is a valid JSON encoding.
+//
+// Constraints: Executes syntactical validation without allocating the full
+// structures necessary for a complete Unmarshal.
+// Thread-safety: Pure and completely thread-safe.
+func Valid(data []byte) bool <span class="cov8" title="1">{
+        return gojson.Valid(data)
+}</span>
+</pre>
+
+		<pre class="file" id="file10" style="display: none">// Package logkit provides structured JSON logging capabilities using the standard
+// library's log/slog package. It offers a simple configuration API to easily
+// initialize thread-safe, JSON-formatted loggers suitable for production environments.
+package logkit
+
+import (
+        "io"
+        "log/slog"
+        "os"
+)
+
+// Config holds the configuration options necessary for initializing a new
+// structured slog.Logger instance.
+// Thread-safety: Mutative during setup, read-only afterwards.
+type Config struct {
+        Level  slog.Level
+        Writer io.Writer
+}
+
+// Option defines a functional option signature for configuring the logger
+// initialization process.
+type Option func(*Config)
+
+// WithLevel dynamically sets the minimum severity level for the logger
+// (e.g., slog.LevelDebug, slog.LevelInfo). Logs below this level are discarded.
+// Thread-safety: Synchronous struct mutation.
+func WithLevel(level slog.Level) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.Level = level
+        }</span>
+}
+
+// WithWriter overrides the default output destination (os.Stdout) for the logger.
+// Common targets include file handles, network sockets, or buffer streams.
+// Thread-safety: Synchronous struct mutation.
+func WithWriter(w io.Writer) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.Writer = w
+        }</span>
+}
+
+// NewLogger creates and returns an isolated, structured JSON logger initialized
+// with the provided functional options.
+//
+// Constraints: It defaults to writing to os.Stdout at the Info level.
+// Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
+// write state, making it inherently safe for concurrent use.
+func NewLogger(opts ...Option) *slog.Logger <span class="cov8" title="1">{
+        config := Config{
+                Level:  slog.LevelInfo, // Default level
+                Writer: os.Stdout,      // Default writer
+        }
+
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(&amp;config)
+        }</span>
+
+        <span class="cov8" title="1">handler := slog.NewJSONHandler(config.Writer, &amp;slog.HandlerOptions{
+                Level: config.Level,
+        })
+
+        return slog.New(handler)</span>
+}
+
+// Initialize instantiates a new logger and explicitly overwrites the global
+// slog.Default() logger.
+//
+// Constraints: This function mutates global application state and
+// should typically only be called once during the application's bootstrap phase.
+// Thread-safety: Modifying the global logger concurrently is generally safe as slog.SetDefault
+// dynamically manages its own internal atomic pointer assignments.
+func Initialize(opts ...Option) <span class="cov8" title="1">{
+        logger := NewLogger(opts...)
+        slog.SetDefault(logger)
+}</span>
+</pre>
+
+		<pre class="file" id="file11" style="display: none">// Package result provides a generic Result[T] type that encapsulates
+// either a successful value or an error. It follows Go's native error
+// handling philosophy — no panics, no exceptions.
+package result
+
+import "fmt"
+
+// Result is a generic container representing the outcome of an operation
+// that can either succeed with a value of type T, or fail with an error.
+//
+// Purpose: It encourages explicit error handling and functional transformations.
+// Thread-safety: All methods on Result are strictly safe for concurrent use since
+// the type is entirely immutable by design after creation.
+type Result[T any] struct {
+        value T
+        err   error
+        ok    bool
+}
+
+// Ok creates and returns a successful Result encapsulating the provided value.
+//
+// Constraints: The internal error state is implicitly nil.
+// Thread-safety: Pure functional constructor.
+func Ok[T any](value T) Result[T] <span class="cov8" title="1">{
+        return Result[T]{value: value, ok: true}
+}</span>
+
+// Err creates and returns a failed Result encapsulating the provided error.
+//
+// Constraints: The internal value state is the zero value for type T.
+// Thread-safety: Pure functional constructor.
+func Err[T any](err error) Result[T] <span class="cov8" title="1">{
+        return Result[T]{err: err, ok: false}
+}</span>
+
+// Errf constructs and returns a failed Result containing a formatted error message.
+//
+// Constraints: It is a convenience wrapper around fmt.Errorf and Err.
+// Thread-safety: Pure functional constructor.
+func Errf[T any](format string, args ...any) Result[T] <span class="cov8" title="1">{
+        return Result[T]{err: fmt.Errorf(format, args...), ok: false}
+}</span>
+
+// Of builds a Result by seamlessly encapsulating the standard Go tuple
+// return pattern (value T, err error).
+//
+// Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
+// Thread-safety: Pure functional constructor.
+func Of[T any](value T, err error) Result[T] <span class="cov8" title="1">{
+        if err != nil </span><span class="cov8" title="1">{
+                return Err[T](err)
+        }</span>
+        <span class="cov8" title="1">return Ok(value)</span>
+}
+
+// IsOk evaluates the internal state and returns true exclusively if the
+// Result represents a successful outcome containing a value.
+// Thread-safety: Read-only check.
+func (r Result[T]) IsOk() bool <span class="cov8" title="1">{
+        return r.ok
+}</span>
+
+// IsErr evaluates the internal state and returns true exclusively if the
+// Result encapsulates a failure or an error.
+// Thread-safety: Read-only check.
+func (r Result[T]) IsErr() bool <span class="cov8" title="1">{
+        return !r.ok
+}</span>
+
+// Unwrap safely extracts and returns both the internal value and the error.
+//
+// Purpose: This allows the Result container to be bridged back into standard, idiomatic
+// Go error handling logic (value, err).
+// Thread-safety: Read-only mapping.
+func (r Result[T]) Unwrap() (T, error) <span class="cov8" title="1">{
+        return r.value, r.err
+}</span>
+
+// UnwrapOr safely extracts the value if the Result is successful.
+//
+// Constraints: If the Result encapsulates an error, it ignores the error and
+// immediately returns the explicitly provided fallback value instead.
+// Thread-safety: Read-only mapping.
+func (r Result[T]) UnwrapOr(fallback T) T <span class="cov8" title="1">{
+        if r.ok </span><span class="cov8" title="1">{
+                return r.value
+        }</span>
+        <span class="cov8" title="1">return fallback</span>
+}
+
+// UnwrapOrElse acts like UnwrapOr, but instead of taking a static fallback value,
+// it invokes the provided function fn with the encapsulated error to lazily compute
+// and return a dynamic fallback value.
+// Thread-safety: Read-only mapping, though the safety depends on the provided fn.
+func (r Result[T]) UnwrapOrElse(fn func(error) T) T <span class="cov8" title="1">{
+        if r.ok </span><span class="cov8" title="1">{
+                return r.value
+        }</span>
+        <span class="cov8" title="1">return fn(r.err)</span>
+}
+
+// Error implements a safety accessor, returning the encapsulated error if the
+// Result represents a failure, or nil if the operation was successful.
+// Thread-safety: Read-only getter.
+func (r Result[T]) Error() error <span class="cov8" title="1">{
+        return r.err
+}</span>
+
+// Map transforms the underlying value of a successful Result[T] into a Result[U]
+// by applying the provided function fn.
+//
+// Constraints: If the original Result is an Err, the error is propagated unchanged and fn is never executed.
+// Thread-safety: Generates a new immutable Result. Safe as long as fn is safe.
+func Map[T any, U any](r Result[T], fn func(T) U) Result[U] <span class="cov8" title="1">{
+        if r.ok </span><span class="cov8" title="1">{
+                return Ok(fn(r.value))
+        }</span>
+        <span class="cov8" title="1">return Err[U](r.err)</span>
+}
+
+// FlatMap applies a fallible function fn to the underlying value of a successful
+// Result[T], returning the resulting Result[U].
+//
+// Constraints: This enables elegant chaining of multiple operations that might fail.
+// If the original Result is an Err, the error is propagated unchanged.
+// Thread-safety: Generates a new immutable Result. Safe as long as fn is safe.
+func FlatMap[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] <span class="cov8" title="1">{
+        if r.ok </span><span class="cov8" title="1">{
+                return fn(r.value)
+        }</span>
+        <span class="cov8" title="1">return Err[U](r.err)</span>
+}
+
+// String implements the fmt.Stringer interface to provide a clear, human-readable
+// representation of the Result's internal state (e.g., "Ok(value)" or "Err(error)").
+// Thread-safety: Read-only stringer.
+func (r Result[T]) String() string <span class="cov8" title="1">{
+        if r.ok </span><span class="cov8" title="1">{
+                return fmt.Sprintf("Ok(%v)", r.value)
+        }</span>
+        <span class="cov8" title="1">return fmt.Sprintf("Err(%v)", r.err)</span>
+}
+</pre>
+
+		<pre class="file" id="file12" style="display: none">// Package retry provides configurable retry logic with exponential backoff,
+// jitter, and context-aware cancellation for fallible operations.
+package retry
+
+import (
+        "context"
+        "crypto/rand"
+        "errors"
+        "math"
+        "math/big"
+        "time"
+)
+
+// ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
+var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
+
+// Strategy defines the backoff algorithm used to calculate the delay
+// between consecutive retry attempts.
+// Thread-safety: Pure enum.
+type Strategy int
+
+const (
+        // StrategyConstant uses a fixed delay between retries.
+        StrategyConstant Strategy = iota
+        // StrategyExponential uses exponential backoff between retries.
+        StrategyExponential
+)
+
+// Config strictly holds the configuration parameters that govern
+// the behavior of a retry operation, including backoff algorithms and constraints.
+// Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
+type Config struct {
+        MaxAttempts  int
+        InitialDelay time.Duration
+        MaxDelay     time.Duration
+        Strategy     Strategy
+        Jitter       bool
+        RetryIf      func(error) bool
+}
+
+// Option defines a functional option signature for configuring retry behavior
+// mutatively during initialization.
+type Option func(*Config)
+
+// defaultConfig returns sensible default configuration
+// that applies safe bounded limits and an exponential strategy.
+func defaultConfig() *Config <span class="cov8" title="1">{
+        return &amp;Config{
+                MaxAttempts:  3,
+                InitialDelay: 100 * time.Millisecond,
+                MaxDelay:     10 * time.Second,
+                Strategy:     StrategyExponential,
+                Jitter:       true,
+                RetryIf:      func(_ error) bool </span><span class="cov8" title="1">{ return true }</span>,
+        }
+}
+
+// WithMaxAttempts sets the maximum number of attempts (including the first).
+// Thread-safety: Mutates configuration synchronously.
+func WithMaxAttempts(n int) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                if n &gt; 0 </span><span class="cov8" title="1">{
+                        c.MaxAttempts = n
+                }</span>
+        }
+}
+
+// WithInitialDelay sets the initial delay between retries.
+// Thread-safety: Mutates configuration synchronously.
+func WithInitialDelay(d time.Duration) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.InitialDelay = d
+        }</span>
+}
+
+// WithMaxDelay sets the maximum delay between retries.
+// Thread-safety: Mutates configuration synchronously.
+func WithMaxDelay(d time.Duration) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.MaxDelay = d
+        }</span>
+}
+
+// WithStrategy sets the backoff strategy.
+// Thread-safety: Mutates configuration synchronously.
+func WithStrategy(s Strategy) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.Strategy = s
+        }</span>
+}
+
+// WithJitter enables or disables jitter on the backoff delay.
+// Thread-safety: Mutates configuration synchronously.
+func WithJitter(enabled bool) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.Jitter = enabled
+        }</span>
+}
+
+// WithRetryIf sets a predicate that determines whether an error is retryable.
+//
+// Constraints: If the predicate returns false, the retry loop stops immediately.
+// Thread-safety: Mutates configuration synchronously.
+func WithRetryIf(fn func(error) bool) Option <span class="cov8" title="1">{
+        return func(c *Config) </span><span class="cov8" title="1">{
+                c.RetryIf = fn
+        }</span>
+}
+
+// Do repeatedly executes the provided function fn until it succeeds,
+// the maximum number of attempts is exhausted, or the context is canceled.
+//
+// Constraints: It applies the configured backoff strategy between attempts.
+// Thread-safety: Safe for concurrent execution, maintaining local state loop
+// variables per individual invocation.
+func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error <span class="cov8" title="1">{
+        cfg := defaultConfig()
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(cfg)
+        }</span>
+
+        <span class="cov8" title="1">var lastErr error
+        for attempt := 0; attempt &lt; cfg.MaxAttempts; attempt++ </span><span class="cov8" title="1">{
+                if err := ctx.Err(); err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">lastErr = fn(ctx)
+                if lastErr == nil </span><span class="cov8" title="1">{
+                        return nil
+                }</span>
+
+                <span class="cov8" title="1">if !cfg.RetryIf(lastErr) </span><span class="cov8" title="1">{
+                        return lastErr
+                }</span>
+
+                // Delay before the next attempt, unless this was the final attempt.
+                <span class="cov8" title="1">if attempt &lt; cfg.MaxAttempts-1 </span><span class="cov8" title="1">{
+                        delay := calculateDelay(cfg, attempt)
+                        // Wait for the delay or abort immediately if the context is canceled.
+                        select </span>{
+                        case &lt;-ctx.Done():<span class="cov8" title="1">
+                                return ctx.Err()</span>
+                        case &lt;-time.After(delay):<span class="cov8" title="1"></span>
+                        }
+                }
+        }
+        <span class="cov8" title="1">return errors.Join(ErrMaxAttemptsReached, lastErr)</span>
+}
+
+// DoWithValue acts identical to Do, but is designed for functions that return
+// both a value and an error.
+//
+// Constraints: It repeatedly executes fn until it succeeds and returns the result,
+// or fails after exhausting all attempts.
+// Thread-safety: Safe for concurrent execution, maintaining local state per call.
+func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) <span class="cov8" title="1">{
+        cfg := defaultConfig()
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(cfg)
+        }</span>
+
+        <span class="cov8" title="1">var (
+                lastErr error
+                zero    T
+        )
+        for attempt := 0; attempt &lt; cfg.MaxAttempts; attempt++ </span><span class="cov8" title="1">{
+                if err := ctx.Err(); err != nil </span><span class="cov8" title="1">{
+                        return zero, err
+                }</span>
+
+                <span class="cov8" title="1">val, err := fn(ctx)
+                if err == nil </span><span class="cov8" title="1">{
+                        return val, nil
+                }</span>
+                <span class="cov8" title="1">lastErr = err
+
+                if !cfg.RetryIf(lastErr) </span><span class="cov8" title="1">{
+                        return zero, lastErr
+                }</span>
+
+                <span class="cov8" title="1">if attempt &lt; cfg.MaxAttempts-1 </span><span class="cov8" title="1">{
+                        delay := calculateDelay(cfg, attempt)
+                        select </span>{
+                        case &lt;-ctx.Done():<span class="cov8" title="1">
+                                return zero, ctx.Err()</span>
+                        case &lt;-time.After(delay):<span class="cov8" title="1"></span>
+                        }
+                }
+        }
+        <span class="cov8" title="1">return zero, errors.Join(ErrMaxAttemptsReached, lastErr)</span>
+}
+
+// calculateDelay is an internal helper that computes the exact backoff delay
+// for the current attempt based on the chosen strategy.
+//
+// Purpose: Applies hard mathematical bounds to prevent extreme sleep times
+// and safely injects cryptographic randomness if full jitter is configured.
+// Thread-safety: Relies on `crypto/rand` which handles concurrent random draws safely.
+func calculateDelay(cfg *Config, attempt int) time.Duration <span class="cov8" title="1">{
+        var delay time.Duration
+        switch cfg.Strategy </span>{
+        case StrategyConstant:<span class="cov8" title="1">
+                delay = cfg.InitialDelay</span>
+        case StrategyExponential:<span class="cov8" title="1">
+                // Cap attempt at 62 to prevent math.Pow(2, 63) from overflowing float64 -&gt; int64 duration casting
+                safeAttempt := attempt
+                if safeAttempt &gt; 62 </span><span class="cov8" title="1">{
+                        safeAttempt = 62
+                }</span>
+                <span class="cov8" title="1">multiplier := math.Pow(2, float64(safeAttempt))
+                calc := float64(cfg.InitialDelay) * multiplier
+                if calc &gt; float64(cfg.MaxDelay) </span><span class="cov8" title="1">{
+                        delay = cfg.MaxDelay
+                }</span> else<span class="cov8" title="1"> {
+                        delay = time.Duration(calc)
+                }</span>
+        default:<span class="cov8" title="1">
+                delay = cfg.InitialDelay</span>
+        }
+
+        <span class="cov8" title="1">if delay &gt; cfg.MaxDelay </span><span class="cov8" title="1">{
+                delay = cfg.MaxDelay
+        }</span>
+
+        <span class="cov8" title="1">if cfg.Jitter &amp;&amp; delay &gt; 0 </span><span class="cov8" title="1">{
+                // Full jitter: random value between 0 and delay.
+                jitterVal, err := rand.Int(rand.Reader, big.NewInt(int64(delay)))
+                if err == nil </span><span class="cov8" title="1">{
+                        delay = time.Duration(jitterVal.Int64())
+                }</span>
+        }
+
+        <span class="cov8" title="1">return delay</span>
+}
+</pre>
+
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
