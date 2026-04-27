@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🦫 GopherCore</h1>
+  <h1 align="center">🦫 Gopher Core</h1>
   <p align="center">
     <strong>Modular, secure, and scalable Go stack for robust development</strong>
   </p>
@@ -19,7 +19,7 @@
 
 ## Overview
 
-GopherCore is a collection of production-ready Go packages designed to accelerate development while maintaining security and reliability. Each package is independently importable, well-tested, and follows Go idioms.
+Gopher Core is a collection of production-ready Go packages designed to accelerate development while maintaining security and reliability. Each package is independently importable, well-tested, and follows Go idioms.
 
 ### Packages
 
