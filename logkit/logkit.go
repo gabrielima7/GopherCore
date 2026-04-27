@@ -11,6 +11,10 @@ import (
 
 // Config holds the configuration options necessary for initializing a new
 // structured slog.Logger instance.
+//
+// Purpose: Configuration payload.
+// Constraints: None.
+// Errors: None.
 // Thread-safety: Mutative during setup, read-only afterwards.
 type Config struct {
 	Level  slog.Level
@@ -19,10 +23,19 @@ type Config struct {
 
 // Option defines a functional option signature for configuring the logger
 // initialization process.
+//
+// Purpose: Functional setup.
+// Constraints: None.
+// Errors: None.
+// Thread-safety: Mutative, to be executed synchronously.
 type Option func(*Config)
 
 // WithLevel dynamically sets the minimum severity level for the logger
 // (e.g., slog.LevelDebug, slog.LevelInfo). Logs below this level are discarded.
+//
+// Purpose: Alters log visibility.
+// Constraints: None.
+// Errors: None.
 // Thread-safety: Synchronous struct mutation.
 func WithLevel(level slog.Level) Option {
 	return func(c *Config) {
@@ -32,6 +45,10 @@ func WithLevel(level slog.Level) Option {
 
 // WithWriter overrides the default output destination (os.Stdout) for the logger.
 // Common targets include file handles, network sockets, or buffer streams.
+//
+// Purpose: Output management.
+// Constraints: None.
+// Errors: None.
 // Thread-safety: Synchronous struct mutation.
 func WithWriter(w io.Writer) Option {
 	return func(c *Config) {
@@ -42,9 +59,10 @@ func WithWriter(w io.Writer) Option {
 // NewLogger creates and returns an isolated, structured JSON logger initialized
 // with the provided functional options.
 //
+// Purpose: Factory method.
 // Constraints: It defaults to writing to os.Stdout at the Info level.
-// Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
-// write state, making it inherently safe for concurrent use.
+// Errors: None.
+// Thread-safety: The returned slog.Logger instance securely synchronizes its own internal write state, making it inherently safe for concurrent use.
 func NewLogger(opts ...Option) *slog.Logger {
 	config := Config{
 		Level:  slog.LevelInfo, // Default level
@@ -65,10 +83,10 @@ func NewLogger(opts ...Option) *slog.Logger {
 // Initialize instantiates a new logger and explicitly overwrites the global
 // slog.Default() logger.
 //
-// Constraints: This function mutates global application state and
-// should typically only be called once during the application's bootstrap phase.
-// Thread-safety: Modifying the global logger concurrently is generally safe as slog.SetDefault
-// dynamically manages its own internal atomic pointer assignments.
+// Purpose: Sets up the global environment context.
+// Constraints: This function mutates global application state and should typically only be called once during the application's bootstrap phase.
+// Errors: None.
+// Thread-safety: Modifying the global logger concurrently is generally safe as slog.SetDefault dynamically manages its own internal atomic pointer assignments.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
 	slog.SetDefault(logger)

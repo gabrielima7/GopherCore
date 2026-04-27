@@ -10,9 +10,9 @@ import (
 // SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
 // into every outbound response. It mitigates common web vulnerabilities like
 // MIME-sniffing, clickjacking, and XSS.
-// Thread-safety: Safe for concurrent use across requests. It assigns to map directly
-// instead of globally pre-allocating slices to prevent header map data races.
 //
+// Purpose: Protects clients natively.
+// Constraints:
 // Headers set:
 //   - Strict-Transport-Security (HSTS): Forces HTTPS.
 //   - X-Content-Type-Options: Prevents MIME-sniffing.
@@ -21,6 +21,9 @@ import (
 //   - Permissions-Policy: Disables camera, microphone, and geolocation access.
 //   - X-XSS-Protection: Enables legacy XSS filtering.
 //   - Content-Security-Policy: Restricts resource loading to 'self'.
+//
+// Errors: None.
+// Thread-safety: Safe for concurrent use across requests. It assigns to map directly instead of globally pre-allocating slices to prevent header map data races.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -38,10 +41,10 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // RateLimitMiddleware enforces global inbound request rate limiting using a token
 // bucket algorithm (golang.org/x/time/rate).
 //
-// Constraints: If a request exceeds the permissible limit, it is immediately aborted,
-// and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
-// Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
-// concurrent execution across thousands of requests.
+// Purpose: Prevents brute force or DoS scenarios.
+// Constraints: If a request exceeds the permissible limit, it is immediately aborted.
+// Errors: An HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
+// Thread-safety: The internal limiter manages its own mutexes and is inherently safe for concurrent execution across thousands of requests.
 func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,12 +59,11 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 }
 
 // CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
-// It verifies the Origin header against a pre-configured whitelist.
 //
-// Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
-// without passing them down the middleware chain.
-// Thread-safety: Configuration maps and slices are built during initialization closure time
-// and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
+// Purpose: It verifies the Origin header against a pre-configured whitelist.
+// Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests without passing them down the middleware chain.
+// Errors: None.
+// Thread-safety: Configuration maps and slices are built during initialization closure time and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	originsSet := make(map[string]bool, len(allowedOrigins))
 	allowAll := false

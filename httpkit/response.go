@@ -7,8 +7,12 @@ import (
 )
 
 // ErrorResponse defines the standard, predictable JSON structure returned to
-// clients whenever an API error occurs. This ensures consistent error handling
-// on the consumer side. Structurally safe for JSON marshalling.
+// clients whenever an API error occurs.
+//
+// Purpose: This ensures consistent error handling on the consumer side. Structurally safe for JSON marshalling.
+// Constraints: Requires Code and Error to be populated.
+// Errors: None.
+// Thread-safety: Pure struct, safe for concurrent read use.
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Code    int    `json:"code"`
@@ -16,8 +20,11 @@ type ErrorResponse struct {
 }
 
 // JSON securely marshals the provided data interface into JSON and writes it
-// to the HTTP response with the specified status code. If marshaling fails,
-// it returns a generic 500 response without leaking internal structures.
+// to the HTTP response with the specified status code.
+//
+// Purpose: Renders successful data payloads.
+// Constraints: None.
+// Errors: If marshaling fails, it returns a generic 500 response without leaking internal structures.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
@@ -32,6 +39,10 @@ func JSON(w http.ResponseWriter, status int, data any) {
 
 // Error constructs and writes an ErrorResponse payload to the client with
 // the given HTTP status code and custom error message.
+//
+// Purpose: Wrapper to securely render errors.
+// Constraints: Status must be a valid HTTP status.
+// Errors: Returns error payload to caller.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
 func Error(w http.ResponseWriter, status int, message string) {
 	JSON(w, status, ErrorResponse{
@@ -42,6 +53,10 @@ func Error(w http.ResponseWriter, status int, message string) {
 }
 
 // Ok is a convenience wrapper around JSON that returns an HTTP 200 (OK) status.
+//
+// Purpose: Semantic helper.
+// Constraints: None.
+// Errors: Same as JSON.
 // Thread-safety: Safe for concurrent use.
 func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
@@ -49,6 +64,10 @@ func Ok(w http.ResponseWriter, data any) {
 
 // Created is a convenience wrapper around JSON that returns an HTTP 201 (Created)
 // status, typically used after successfully creating a new resource.
+//
+// Purpose: Semantic helper.
+// Constraints: None.
+// Errors: Same as JSON.
 // Thread-safety: Safe for concurrent use.
 func Created(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusCreated, data)
@@ -57,6 +76,10 @@ func Created(w http.ResponseWriter, data any) {
 // NoContent responds to the client with an HTTP 204 (No Content) status code,
 // signaling that the request was successful but there is no body to return
 // (e.g., after a successful DELETE operation).
+//
+// Purpose: Semantic helper.
+// Constraints: None.
+// Errors: None.
 // Thread-safety: Safe for concurrent use.
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)

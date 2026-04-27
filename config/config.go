@@ -23,10 +23,10 @@ var validate = validator.New()
 // variables into its exported fields. It then validates the populated struct against
 // its `validate` tags using the go-playground/validator library.
 //
-// Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
-// reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
-// Thread-safety: Load relies on a global, thread-safe validator instance. Safe for concurrent use,
-// though normally invoked once at application startup.
+// Purpose: Loads and strictly validates configuration from environment variables.
+// Constraints: The cfg parameter MUST be a non-nil pointer to a struct.
+// Errors: Returns an error if reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
+// Thread-safety: Load relies on a global, thread-safe validator instance. Safe for concurrent use, though normally invoked once at application startup.
 //
 // Tag Usage:
 //   - `env:"NAME"`: Binds the struct field to the environment variable NAME.
@@ -54,9 +54,10 @@ func Load(cfg any) error {
 // diving into nested structs and pointers to structs. It extracts values
 // from the environment and attempts to parse and set them dynamically.
 //
-// Purpose: This is the core logic that connects `env` string tags to actual OS
-// environment queries, abstracting the manual `os.LookupEnv` boilerplate.
-// Thread-safety: Safe for concurrent use so long as the target struct is not accessed.
+// Purpose: Core logic that connects `env` string tags to actual OS environment queries.
+// Constraints: Abstracts the manual `os.LookupEnv` boilerplate.
+// Errors: Bubbles up parsing/casting errors.
+// Thread-safety: Safe for concurrent use so long as the target struct is not accessed concurrently.
 func populate(v reflect.Value) error {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
@@ -114,7 +115,9 @@ func populate(v reflect.Value) error {
 // silent truncation bugs at startup.
 //
 // Purpose: Handles type conversions from env string slices, floats, booleans, and duration types.
-// Thread-safety: Safe for concurrent use.
+// Constraints: Protects against integer/float overflow silently occurring during string-to-number casting.
+// Errors: Returns conversion, overflow, or unsupported type errors.
+// Thread-safety: Pure function over passed value, safe for concurrent use.
 func setField(v reflect.Value, value string) error {
 	switch v.Kind() {
 	case reflect.String:
