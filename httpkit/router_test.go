@@ -90,6 +90,15 @@ func TestRouterOptions(t *testing.T) {
 			},
 		},
 		{
+			name: "WithIdleTimeout",
+			opts: []RouterOption{WithIdleTimeout(120 * time.Second)},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.IdleTimeout != 120*time.Second {
+					t.Errorf("expected 120s, got %v", cfg.IdleTimeout)
+				}
+			},
+		},
+		{
 			name: "WithNilOption",
 			opts: []RouterOption{nil},
 			validate: func(t *testing.T, cfg RouterConfig) {
@@ -146,7 +155,7 @@ func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	r := NewRouter(WithLogger(false))
-	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithReadHeaderTimeout(2*time.Second), WithWriteTimeout(5*time.Second))
+	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithReadHeaderTimeout(2*time.Second), WithWriteTimeout(5*time.Second), WithIdleTimeout(10*time.Second))
 	if srv.Addr != ":8080" {
 		t.Fatalf("expected :8080, got %s", srv.Addr)
 	}
@@ -158,6 +167,9 @@ func TestNewServer(t *testing.T) {
 	}
 	if srv.WriteTimeout != 5*time.Second {
 		t.Fatalf("expected 5s write timeout, got %v", srv.WriteTimeout)
+	}
+	if srv.IdleTimeout != 10*time.Second {
+		t.Fatalf("expected 10s idle timeout, got %v", srv.IdleTimeout)
 	}
 }
 
@@ -177,6 +189,9 @@ func TestDefaultRouterConfig(t *testing.T) {
 	}
 	if cfg.WriteTimeout != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", cfg.WriteTimeout)
+	}
+	if cfg.IdleTimeout != 120*time.Second {
+		t.Fatalf("expected 120s, got %v", cfg.IdleTimeout)
 	}
 	if !cfg.EnableLogger {
 		t.Fatal("expected logger enabled by default")

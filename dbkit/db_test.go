@@ -257,7 +257,7 @@ func TestConnectWithSQLInjectionPrevention(t *testing.T) {
 func TestConnectCancelledContext(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "cancelled.db")
 	// Create the file first so driver doesn't fail on missing file.
-	f, err := os.Create(dbPath)
+	f, err := os.Create(filepath.Clean(dbPath))
 	if err != nil {
 		t.Fatalf("failed to create db file: %v", err)
 	}
