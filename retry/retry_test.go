@@ -326,7 +326,7 @@ func FuzzCalculateDelay(f *testing.F) {
 	f.Add(1, 1, 5, false)
 	f.Fuzz(func(t *testing.T, initialMs int, maxMs int, attempt int, jitter bool) {
 		if initialMs <= 0 || maxMs <= 0 || attempt < 0 {
-			t.Skip()
+			return
 		}
 		cfg := &Config{
 			InitialDelay: time.Duration(initialMs) * time.Millisecond,
@@ -342,4 +342,13 @@ func FuzzCalculateDelay(f *testing.F) {
 			t.Fatalf("delay %v exceeds max %v", delay, cfg.MaxDelay)
 		}
 	})
+}
+
+func TestCalculateDelayZeroMaxDelay(t *testing.T) {
+	cfg := &Config{
+		MaxDelay: 0,
+	}
+	if delay := calculateDelay(cfg, 1); delay != 0 {
+		t.Fatalf("expected 0, got %v", delay)
+	}
 }
