@@ -9,6 +9,7 @@ import (
 // ErrorResponse defines the standard, predictable JSON structure returned to
 // clients whenever an API error occurs. This ensures consistent error handling
 // on the consumer side. Structurally safe for JSON marshalling.
+// Thread-safety: Data structure, safe when not mutated concurrently.
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Code    int    `json:"code"`
@@ -32,6 +33,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 
 // Error constructs and writes an ErrorResponse payload to the client with
 // the given HTTP status code and custom error message.
+// Purpose: Standardizes JSON error messages.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
 func Error(w http.ResponseWriter, status int, message string) {
 	JSON(w, status, ErrorResponse{
@@ -42,6 +44,7 @@ func Error(w http.ResponseWriter, status int, message string) {
 }
 
 // Ok is a convenience wrapper around JSON that returns an HTTP 200 (OK) status.
+// Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
 func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
@@ -49,6 +52,7 @@ func Ok(w http.ResponseWriter, data any) {
 
 // Created is a convenience wrapper around JSON that returns an HTTP 201 (Created)
 // status, typically used after successfully creating a new resource.
+// Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
 func Created(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusCreated, data)
@@ -57,6 +61,7 @@ func Created(w http.ResponseWriter, data any) {
 // NoContent responds to the client with an HTTP 204 (No Content) status code,
 // signaling that the request was successful but there is no body to return
 // (e.g., after a successful DELETE operation).
+// Constraints: Does not accept a data payload.
 // Thread-safety: Safe for concurrent use.
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)

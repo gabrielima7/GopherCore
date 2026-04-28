@@ -12,14 +12,17 @@ import (
 // ErrCircuitOpen is returned when the circuit is in the Open state
 // and no requests are permitted to execute. Callers should fast-fail
 // or fallback to a secondary mechanism.
+// Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
 
 // ErrTooManyRequests is returned when the circuit is in the HalfOpen
 // state and the maximum number of concurrent probe requests has already
 // been reached.
+// Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
 
 // State represents the current operational state of the circuit breaker.
+// Purpose: Used to determine if requests should be allowed, rejected, or probed.
 // Thread-safety: Pure enum.
 type State int
 
@@ -27,16 +30,21 @@ const (
 	// StateClosed is the normal operational state. All requests are allowed
 	// through. The breaker counts consecutive failures to determine if it
 	// should trip to StateOpen.
+	// Thread-safety: Constant value.
 	StateClosed State = iota
 	// StateOpen is the tripped state. All requests are immediately rejected
 	// with ErrCircuitOpen until the configured timeout duration expires.
+	// Thread-safety: Constant value.
 	StateOpen
 	// StateHalfOpen is the recovery state. A limited number of probe requests
 	// are allowed through to test if the underlying service has recovered.
+	// Thread-safety: Constant value.
 	StateHalfOpen
 )
 
 // String returns the human-readable string representation of the State.
+// Constraints: Always returns a valid string, defaulting to "unknown".
+// Thread-safety: Pure method on value receiver.
 func (s State) String() string {
 	switch s {
 	case StateClosed:
@@ -52,6 +60,7 @@ func (s State) String() string {
 
 // Config holds the configuration parameters that dictate the behavior
 // and thresholds of a circuit breaker.
+// Purpose: Defines operational limits like timeout and failure thresholds.
 // Thread-safety: Treat as read-only once passed to the Breaker constructor.
 type Config struct {
 	// FailureThreshold is the number of consecutive failures before

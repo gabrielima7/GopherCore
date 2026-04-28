@@ -20,6 +20,7 @@ var validate = validator.New()
 var htmlPolicy = bluemonday.StrictPolicy()
 
 // ValidationError encapsulates the details of a single struct field validation failure.
+// Purpose: Provides structured field-level error mapping.
 // It structurally maps the field name, failed validation tag, rejected value, and a
 // generated human-readable message. Safe for concurrent access.
 type ValidationError struct {
@@ -31,6 +32,8 @@ type ValidationError struct {
 
 // Error implements the standard error interface for ValidationError, returning the human-readable
 // message specific to this single validation failure. It does not contain any thread-unsafe operations.
+// Purpose: Allows treating a ValidationError strictly as an error interface.
+// Thread-safety: Pure method on value receiver.
 func (v ValidationError) Error() string {
 	return v.Message
 }
@@ -42,7 +45,8 @@ type ValidationErrors []ValidationError
 
 // Error implements the standard error interface for ValidationErrors, aggregating all underlying
 // individual field validation messages into a single semicolon-separated string.
-// Safe for concurrent access.
+// Purpose: Flattens grouped errors into a single error interface.
+// Thread-safety: Safe for concurrent access.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
 	for _, e := range ve {
@@ -115,9 +119,8 @@ func SanitizeString(s string) string {
 // StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
 // payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
 //
-// It is explicitly designed to safely handle untrusted user input and mitigate
-// Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving
-// only plain text.
+// Purpose: Mitigate Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving only plain text.
+// Constraints: Destroys markup, not meant for HTML manipulation where structure should be retained.
 // Thread-safety: It leverages a globally instantiated policy and is fully
 // safe for concurrent execution across multiple goroutines.
 func StripHTML(s string) string {

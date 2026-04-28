@@ -83,6 +83,8 @@ type Group struct {
 
 // NewGroup creates and returns a new Group instance ready for managing
 // a collection of goroutines safely.
+// Constraints: Instantiates without arguments, assumes unbounded slice allocation.
+// Thread-safety: Returns a new struct instance pointer. Safe to share.
 func NewGroup() *Group {
 	return &Group{}
 }
