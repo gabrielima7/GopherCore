@@ -37,6 +37,8 @@ type RouterConfig struct {
 	ReadHeaderTimeout time.Duration
 	// WriteTimeout for the HTTP server.
 	WriteTimeout time.Duration
+	// IdleTimeout for the HTTP server.
+	IdleTimeout time.Duration
 	// EnableLogger enables the chi request logger middleware.
 	EnableLogger bool
 }
@@ -52,6 +54,7 @@ func DefaultRouterConfig() RouterConfig {
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       120 * time.Second,
 		EnableLogger:      true,
 	}
 }
@@ -103,6 +106,15 @@ func WithReadHeaderTimeout(d time.Duration) RouterOption {
 func WithWriteTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.WriteTimeout = d
+	}
+}
+
+// WithIdleTimeout strictly enforces the maximum duration the server is allowed
+// to keep idle keep-alive connections open.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithIdleTimeout(d time.Duration) RouterOption {
+	return func(c *RouterConfig) {
+		c.IdleTimeout = d
 	}
 }
 
@@ -184,6 +196,7 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 		ReadTimeout:       cfg.ReadTimeout,
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 		WriteTimeout:      cfg.WriteTimeout,
+		IdleTimeout:       cfg.IdleTimeout,
 	}
 }
 
