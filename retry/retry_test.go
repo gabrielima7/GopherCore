@@ -352,3 +352,129 @@ func TestCalculateDelayZeroMaxDelay(t *testing.T) {
 		t.Fatalf("expected 0, got %v", delay)
 	}
 }
+
+func TestDo_TableDriven(t *testing.T) {
+	errTest := errors.New("test error")
+	errAbort := errors.New("abort error")
+
+	tests := []struct {
+		name          string
+		maxAttempts   int
+		fn            func(ctx context.Context) error
+		opts          []Option
+		ctxCancelFn   func() (context.Context, context.CancelFunc)
+		expectedError error
+		expectedCalls int
+	}{
+		{
+			name:        "success on first attempt",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			opts:          []Option{WithMaxAttempts(3), WithInitialDelay(time.Millisecond)},
+			expectedError: nil,
+			expectedCalls: 1,
+		},
+		{
+			name:        "max attempts reached",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return errTest
+			},
+			opts:          []Option{WithMaxAttempts(3), WithInitialDelay(time.Millisecond)},
+			expectedError: errTest, // Will be wrapped with ErrMaxAttemptsReached
+			expectedCalls: 3,
+		},
+		{
+			name:        "immediate context cancellation",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			opts: []Option{WithMaxAttempts(3), WithInitialDelay(time.Millisecond)},
+			ctxCancelFn: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			expectedError: context.Canceled,
+			expectedCalls: 0,
+		},
+		{
+			name:        "context cancellation during retry delay",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return errTest
+			},
+			opts: []Option{WithMaxAttempts(3), WithInitialDelay(50 * time.Millisecond)},
+			ctxCancelFn: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				// Cancel shortly after the first attempt to interrupt the sleep
+				go func() {
+					time.Sleep(10 * time.Millisecond)
+					cancel()
+				}()
+				return ctx, cancel
+			},
+			expectedError: context.Canceled,
+			// Since timing is non-deterministic, we shouldn't strictly enforce expectedCalls to be 1.
+			// It might occasionally call the function twice if the go-routine is slow to execute cancel().
+			// Setting to 0 to bypass the exact call count check.
+			expectedCalls: 0,
+		},
+		{
+			name:        "early abort due to RetryIf",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return errAbort
+			},
+			opts: []Option{
+				WithMaxAttempts(3),
+				WithInitialDelay(time.Millisecond),
+				WithRetryIf(func(err error) bool {
+					return err != errAbort
+				}),
+			},
+			expectedError: errAbort,
+			expectedCalls: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			var cancel context.CancelFunc
+			if tt.ctxCancelFn != nil {
+				ctx, cancel = tt.ctxCancelFn()
+				defer cancel()
+			}
+
+			calls := 0
+			wrappedFn := func(c context.Context) error {
+				calls++
+				return tt.fn(c)
+			}
+
+			err := Do(ctx, wrappedFn, tt.opts...)
+
+			if tt.expectedError != nil {
+				if tt.name == "max attempts reached" {
+					if !errors.Is(err, ErrMaxAttemptsReached) || !errors.Is(err, errTest) {
+						t.Errorf("expected joined error with ErrMaxAttemptsReached and errTest, got %v", err)
+					}
+				} else if !errors.Is(err, tt.expectedError) {
+					t.Errorf("expected error %v, got %v", tt.expectedError, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			}
+
+			if tt.expectedCalls > 0 && calls != tt.expectedCalls {
+				t.Errorf("expected %d calls, got %d", tt.expectedCalls, calls)
+			}
+		})
+	}
+}

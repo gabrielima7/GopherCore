@@ -138,7 +138,7 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 	f.Add("José María", -1)
 	f.Fuzz(func(t *testing.T, name string, age int) {
 		if !utf8.ValidString(name) {
-			t.Skip("invalid utf-8 name")
+			return
 		}
 		original := testStruct{Name: name, Age: age}
 		data, err := Marshal(original)
