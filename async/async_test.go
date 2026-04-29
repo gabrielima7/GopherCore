@@ -310,3 +310,189 @@ func TestPanicErrorString(t *testing.T) {
 		t.Fatal("expected non-empty error string")
 	}
 }
+
+func TestMap_TableDriven(t *testing.T) {
+	errTest := errors.New("test error")
+
+	tests := []struct {
+		name        string
+		items       []int
+		concurrency int
+		fn          func(context.Context, int) (int, error)
+		ctxCancelFn func() (context.Context, context.CancelFunc)
+		expectErr   error
+		expectPanic bool
+	}{
+		{
+			name:        "nil slice",
+			items:       nil,
+			concurrency: 2,
+			fn:          func(ctx context.Context, n int) (int, error) { return n, nil },
+			expectErr:   nil,
+		},
+		{
+			name:        "empty slice",
+			items:       []int{},
+			concurrency: 2,
+			fn:          func(ctx context.Context, n int) (int, error) { return n, nil },
+			expectErr:   nil,
+		},
+		{
+			name:        "invalid concurrency defaults to 1",
+			items:       []int{1, 2, 3},
+			concurrency: -5,
+			fn:          func(ctx context.Context, n int) (int, error) { return n * 2, nil },
+			expectErr:   nil,
+		},
+		{
+			name:        "immediate context cancellation",
+			items:       []int{1, 2, 3},
+			concurrency: 2,
+			fn:          func(ctx context.Context, n int) (int, error) { return n, nil },
+			ctxCancelFn: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			expectErr: context.Canceled,
+		},
+		{
+			name:        "worker error",
+			items:       []int{1, 2, 3},
+			concurrency: 2,
+			fn: func(ctx context.Context, n int) (int, error) {
+				if n == 2 {
+					return 0, errTest
+				}
+				return n, nil
+			},
+			expectErr: errTest,
+		},
+		{
+			name:        "worker panic",
+			items:       []int{1, 2, 3},
+			concurrency: 2,
+			fn: func(ctx context.Context, n int) (int, error) {
+				if n == 2 {
+					panic("test panic")
+				}
+				return n, nil
+			},
+			expectPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			var cancel context.CancelFunc
+			if tt.ctxCancelFn != nil {
+				ctx, cancel = tt.ctxCancelFn()
+				defer cancel()
+			}
+
+			_, err := Map(ctx, tt.items, tt.concurrency, tt.fn)
+			if tt.expectPanic {
+				var pe *PanicError
+				if !errors.As(err, &pe) {
+					t.Errorf("expected PanicError, got %v", err)
+				}
+			} else if tt.expectErr != nil {
+				if !errors.Is(err, tt.expectErr) {
+					t.Errorf("expected error %v, got %v", tt.expectErr, err)
+				}
+			} else if err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestFan_TableDriven(t *testing.T) {
+	errTest := errors.New("test error")
+
+	tests := []struct {
+		name        string
+		items       []int
+		fn          func(context.Context, int) error
+		ctxCancelFn func() (context.Context, context.CancelFunc)
+		expectErrs  int
+		expectPanic bool
+	}{
+		{
+			name:       "nil slice",
+			items:      nil,
+			fn:         func(ctx context.Context, n int) error { return nil },
+			expectErrs: 0,
+		},
+		{
+			name:       "empty slice",
+			items:      []int{},
+			fn:         func(ctx context.Context, n int) error { return nil },
+			expectErrs: 0,
+		},
+		{
+			name:  "immediate context cancellation",
+			items: []int{1, 2, 3},
+			fn:    func(ctx context.Context, n int) error { return nil },
+			ctxCancelFn: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			expectErrs: 1, // fan appends ctx.Err() exactly once upon detecting cancellation in launch loop
+		},
+		{
+			name:  "worker errors",
+			items: []int{1, 2, 3, 4},
+			fn: func(ctx context.Context, n int) error {
+				if n%2 == 0 {
+					return errTest
+				}
+				return nil
+			},
+			expectErrs: 2,
+		},
+		{
+			name:  "worker panic",
+			items: []int{1, 2, 3},
+			fn: func(ctx context.Context, n int) error {
+				if n == 2 {
+					panic("test panic")
+				}
+				return nil
+			},
+			expectErrs:  1,
+			expectPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			var cancel context.CancelFunc
+			if tt.ctxCancelFn != nil {
+				ctx, cancel = tt.ctxCancelFn()
+				defer cancel()
+			}
+
+			errs := Fan(ctx, tt.items, tt.fn)
+			if len(errs) != tt.expectErrs {
+				t.Errorf("expected %d errors, got %d", tt.expectErrs, len(errs))
+			}
+
+			if tt.expectPanic {
+				foundPanic := false
+				for _, err := range errs {
+					var pe *PanicError
+					if errors.As(err, &pe) {
+						foundPanic = true
+					}
+				}
+				if !foundPanic {
+					t.Errorf("expected at least one PanicError, got none")
+				}
+			}
+		})
+	}
+}

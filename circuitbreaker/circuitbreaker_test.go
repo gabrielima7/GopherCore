@@ -344,7 +344,7 @@ func FuzzBreakerThresholds(f *testing.F) {
 	f.Add(3, 2, 5)
 	f.Fuzz(func(t *testing.T, failThresh, successThresh, ops int) {
 		if failThresh <= 0 || failThresh > 100 || successThresh <= 0 || successThresh > 100 || ops < 0 || ops > 200 {
-			t.Skip()
+			return
 		}
 		cb := New(Config{
 			FailureThreshold:    failThresh,
