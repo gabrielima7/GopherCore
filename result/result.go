@@ -55,6 +55,7 @@ func Of[T any](value T, err error) Result[T] {
 
 // IsOk evaluates the internal state and returns true exclusively if the
 // Result represents a successful outcome containing a value.
+// Constraints: Must map precisely to the struct `ok` state.
 // Thread-safety: Read-only check.
 func (r Result[T]) IsOk() bool {
 	return r.ok
@@ -133,6 +134,7 @@ func FlatMap[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 
 // String implements the fmt.Stringer interface to provide a clear, human-readable
 // representation of the Result's internal state (e.g., "Ok(value)" or "Err(error)").
+// Purpose: Simplifies log and console printing for result patterns.
 // Thread-safety: Read-only stringer.
 func (r Result[T]) String() string {
 	if r.ok {

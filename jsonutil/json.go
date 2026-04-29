@@ -12,6 +12,7 @@ import (
 //
 // Purpose: It is a drop-in replacement for encoding/json.Marshal, leveraging goccy/go-json
 // for significantly improved encoding performance.
+// Constraints: Can fail if standard data structures are not encodable.
 // Thread-safety: Completely stateless and safe for concurrent use across multiple goroutines.
 func Marshal(v any) ([]byte, error) {
 	return gojson.Marshal(v)
@@ -20,6 +21,7 @@ func Marshal(v any) ([]byte, error) {
 // MarshalIndent is like Marshal but applies Indent to format the output.
 //
 // Purpose: Formatting JSON structurally.
+// Constraints: Output is significantly larger, should only be used for debugging/logging.
 // Thread-safety: It is fully thread-safe and safe for concurrent use across multiple goroutines.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	return gojson.MarshalIndent(v, prefix, indent)
@@ -28,6 +30,7 @@ func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 // Unmarshal parses the JSON-encoded data and stores the result
 // in the value pointed to by v.
 //
+// Purpose: Extensively used to convert untrusted payload buffers into structs.
 // Constraints: The target value v must be a non-nil pointer.
 // Thread-safety: It uses goccy/go-json for high-performance, inherently thread-safe decoding.
 func Unmarshal(data []byte, v any) error {

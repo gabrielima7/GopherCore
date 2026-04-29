@@ -13,6 +13,7 @@ import (
 )
 
 // MigrationConfig holds configuration for running migrations.
+// Purpose: Bundles migration source and database driver configs.
 // Thread-safety: Read-only after instantiation.
 type MigrationConfig struct {
 	// SourceURL is the source URL for migration files (e.g., "file://migrations").
@@ -73,6 +74,7 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 }
 
 // MigrationVersion represents the current migration state.
+// Purpose: Models the version and dirty state flag.
 // Thread-safety: Struct data.
 type MigrationVersion struct {
 	Version uint

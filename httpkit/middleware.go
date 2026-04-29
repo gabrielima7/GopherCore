@@ -10,6 +10,8 @@ import (
 // SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
 // into every outbound response. It mitigates common web vulnerabilities like
 // MIME-sniffing, clickjacking, and XSS.
+// Purpose: Protects HTTP endpoints natively against common web vulnerabilities.
+// Constraints: Must be applied globally or directly on routes providing web content.
 // Thread-safety: Safe for concurrent use across requests. It assigns to map directly
 // instead of globally pre-allocating slices to prevent header map data races.
 //
@@ -58,6 +60,7 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 // CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
 // It verifies the Origin header against a pre-configured whitelist.
 //
+// Purpose: Enables browser-based cross-origin requests securely.
 // Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
 // without passing them down the middleware chain.
 // Thread-safety: Configuration maps and slices are built during initialization closure time
