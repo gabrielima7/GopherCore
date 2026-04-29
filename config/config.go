@@ -23,6 +23,7 @@ var validate = validator.New()
 // variables into its exported fields. It then validates the populated struct against
 // its `validate` tags using the go-playground/validator library.
 //
+// Purpose: Automatically loads and validates configuration data directly from the environment.
 // Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
 // Thread-safety: Load relies on a global, thread-safe validator instance. Safe for concurrent use,

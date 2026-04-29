@@ -21,8 +21,10 @@ var htmlPolicy = bluemonday.StrictPolicy()
 
 // ValidationError encapsulates the details of a single struct field validation failure.
 // Purpose: Provides structured field-level error mapping.
+// Constraints: Normally generated internally via reflection checks.
+// Thread-safety: Safe for concurrent access when not mutated.
 // It structurally maps the field name, failed validation tag, rejected value, and a
-// generated human-readable message. Safe for concurrent access.
+// generated human-readable message.
 type ValidationError struct {
 	Field   string `json:"field"`
 	Tag     string `json:"tag"`
@@ -33,6 +35,7 @@ type ValidationError struct {
 // Error implements the standard error interface for ValidationError, returning the human-readable
 // message specific to this single validation failure. It does not contain any thread-unsafe operations.
 // Purpose: Allows treating a ValidationError strictly as an error interface.
+// Constraints: Standard interface constraint.
 // Thread-safety: Pure method on value receiver.
 func (v ValidationError) Error() string {
 	return v.Message
@@ -40,12 +43,16 @@ func (v ValidationError) Error() string {
 
 // ValidationErrors represents a collection of one or more ValidationError instances.
 // It is typically generated resulting from a multi-field struct validation failure.
-// As a slice of errors, its methods are read-only and thread-safe.
+//
+// Purpose: Groups multiple validation errors into a single structured response.
+// Constraints: Must be iterated over to inspect individual field errors.
+// Thread-safety: As a slice of errors, its methods are read-only and thread-safe.
 type ValidationErrors []ValidationError
 
 // Error implements the standard error interface for ValidationErrors, aggregating all underlying
 // individual field validation messages into a single semicolon-separated string.
 // Purpose: Flattens grouped errors into a single error interface.
+// Constraints: Aggregated string may be large if many fields failed.
 // Thread-safety: Safe for concurrent access.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
@@ -60,6 +67,7 @@ func (ve ValidationErrors) Error() string {
 // slice which implements the error interface. It returns nil if the struct perfectly
 // satisfies all validation constraints.
 //
+// Purpose: Enforces struct field rules dynamically based on struct tags.
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely
 // thread-safe for concurrent use.
@@ -90,6 +98,8 @@ func Validate(s any) error {
 // a specific tag name. Once registered, this tag can be used in struct fields
 // throughout the application. It returns an error if the tag name is already registered.
 //
+// Purpose: Extends the validation engine with custom application-specific rules.
+// Constraints: MUST be invoked purely during initialization phases.
 // Thread-safety: This function modifies the global validator instance and is NOT thread-safe
 // to call concurrently with active `Validate` calls. It MUST be invoked strictly
 // during application startup initialization to prevent data races.
@@ -100,11 +110,13 @@ func RegisterValidation(tag string, fn validator.Func) error {
 // SanitizeString performs primitive input scrubbing by stripping out invisible
 // Unicode control characters and aggressively trimming leading/trailing whitespace.
 // It creates a new allocated string to prevent modifying the original reference.
+//
+// Purpose: Strips out unwanted whitespace and control characters from strings.
+// Constraints: This is purely a basic data-hygiene mechanism and absolutely
+// MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
 // Thread-safety: Pure function, safe for concurrent use.
 //
-// Security Warning: This is purely a basic data-hygiene mechanism and absolutely
-// MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
-// Context-aware escaping at the respective boundaries is still strictly required.
+// Security Warning: Context-aware escaping at the respective boundaries is still strictly required.
 func SanitizeString(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
