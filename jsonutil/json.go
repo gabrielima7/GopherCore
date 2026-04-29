@@ -39,6 +39,7 @@ func Unmarshal(data []byte, v any) error {
 
 // NewEncoder creates a new JSON encoder that writes to w.
 //
+// Purpose: Allows streaming JSON encoding to an io.Writer.
 // Constraints: Directly wraps the underlying io.Writer stream state.
 // Thread-safety: Unlike the package-level Marshal functions, the returned Encoder
 // is generally NOT safe for concurrent use by multiple goroutines without explicit synchronization.
@@ -48,6 +49,7 @@ func NewEncoder(w io.Writer) *gojson.Encoder {
 
 // NewDecoder creates a new JSON decoder that reads from r.
 //
+// Purpose: Allows streaming JSON decoding from an io.Reader.
 // Constraints: Interacts dynamically with the incoming io.Reader bytes logic.
 // Thread-safety: The returned Decoder maintains internal state and is NOT safe
 // for concurrent use across multiple goroutines without explicit synchronization.
@@ -57,6 +59,7 @@ func NewDecoder(r io.Reader) *gojson.Decoder {
 
 // Valid safely and efficiently reports whether data is a valid JSON encoding.
 //
+// Purpose: Fast check to verify JSON payload validity.
 // Constraints: Executes syntactical validation without allocating the full
 // structures necessary for a complete Unmarshal.
 // Thread-safety: Pure and completely thread-safe.

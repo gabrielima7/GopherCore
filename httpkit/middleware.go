@@ -40,6 +40,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // RateLimitMiddleware enforces global inbound request rate limiting using a token
 // bucket algorithm (golang.org/x/time/rate).
 //
+// Purpose: Protects endpoints from abuse and DoS attacks by throttling traffic.
 // Constraints: If a request exceeds the permissible limit, it is immediately aborted,
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
 // Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
