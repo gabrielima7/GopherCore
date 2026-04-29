@@ -24,28 +24,18 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version-file: 'go.mod'
 
       - name: Download dependencies
         run: go mod download
 
       - name: Run golangci-lint
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-          GOBIN_PATH="$(go env GOBIN)"
-          if [ -z "$GOBIN_PATH" ]; then
-            GOBIN_PATH="$(go env GOPATH)/bin"
-          fi
-          "$GOBIN_PATH/golangci-lint" run ./...
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
 
       - name: Run NilAway
-        run: |
-          go install go.uber.org/nilaway/cmd/nilaway@latest
-          GOBIN_PATH="$(go env GOBIN)"
-          if [ -z "$GOBIN_PATH" ]; then
-            GOBIN_PATH="$(go env GOPATH)/bin"
-          fi
-          "$GOBIN_PATH/nilaway" ./...
+        run: make nilaway
 
   # ──────────────────────────────────────────────────
   # Tests (cross-platform)
@@ -64,21 +54,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version-file: 'go.mod'
 
       - name: Download dependencies
         run: go mod download
 
       - name: Run tests
         shell: bash
-        run: go test -cover -race -count=1 -timeout=120s -coverprofile coverage.out ./...
-
-      - name: Upload coverage (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.out
+        run: make test
 
   # ──────────────────────────────────────────────────
   # Fuzz Tests
@@ -93,25 +76,13 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version-file: 'go.mod'
 
       - name: Download dependencies
         run: go mod download
 
-      - name: Fuzz result
-        run: go test -fuzz=. -fuzztime=100000x ./result/
-
-      - name: Fuzz retry
-        run: go test -fuzz=. -fuzztime=100000x ./retry/
-
-      - name: Fuzz circuitbreaker
-        run: go test -fuzz=. -fuzztime=100000x ./circuitbreaker/
-
-      - name: Fuzz guard
-        run: go test -fuzz=. -fuzztime=100000x ./guard/
-
-      - name: Fuzz jsonutil
-        run: go test -fuzz=. -fuzztime=100000x ./jsonutil/
+      - name: Run fuzz tests
+        run: make fuzz
 
   # ──────────────────────────────────────────────────
   # Security Analysis (gosec)
@@ -126,22 +97,13 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version-file: 'go.mod'
 
       - name: Download dependencies
         run: go mod download
 
       - name: Run gosec
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"gosec","rules":[]}},"results":[]}]}' > results.sarif
-          $(go env GOPATH)/bin/gosec -fmt sarif -out results.sarif -quiet ./...
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: results.sarif
+        run: make security
 
   # ──────────────────────────────────────────────────
   # Vulnerability Check (govulncheck)
@@ -156,7 +118,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version-file: 'go.mod'
 
       - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
+        run: make vulncheck
