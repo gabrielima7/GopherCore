@@ -18,14 +18,14 @@ linters:
     govet:
       enable:
         - nilness
-
-issues:
-  max-same-issues: 0
   exclusions:
     rules:
       - path: _test\.go
         linters:
           - errcheck
+
+issues:
+  max-same-issues: 0
 
 output:
   formats:
