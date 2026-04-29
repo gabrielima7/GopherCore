@@ -11,6 +11,7 @@ import (
 
 // Config holds the configuration options necessary for initializing a new
 // structured slog.Logger instance.
+// Purpose: Dictates logging levels and destinations.
 // Thread-safety: Mutative during setup, read-only afterwards.
 type Config struct {
 	Level  slog.Level
@@ -19,10 +20,13 @@ type Config struct {
 
 // Option defines a functional option signature for configuring the logger
 // initialization process.
+// Purpose: Allows overriding default log properties.
+// Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
 // WithLevel dynamically sets the minimum severity level for the logger
 // (e.g., slog.LevelDebug, slog.LevelInfo). Logs below this level are discarded.
+// Constraints: Rejects logs that don't pass the check.
 // Thread-safety: Synchronous struct mutation.
 func WithLevel(level slog.Level) Option {
 	return func(c *Config) {
@@ -32,6 +36,8 @@ func WithLevel(level slog.Level) Option {
 
 // WithWriter overrides the default output destination (os.Stdout) for the logger.
 // Common targets include file handles, network sockets, or buffer streams.
+// Purpose: Maps the log output to a file or stream.
+// Constraints: Assumes the writer is available.
 // Thread-safety: Synchronous struct mutation.
 func WithWriter(w io.Writer) Option {
 	return func(c *Config) {

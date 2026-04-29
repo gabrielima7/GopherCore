@@ -12,17 +12,23 @@ import (
 )
 
 // ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
+// Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 
 // Strategy defines the backoff algorithm used to calculate the delay
 // between consecutive retry attempts.
+// Purpose: Used to switch mathematical decay mechanisms.
 // Thread-safety: Pure enum.
 type Strategy int
 
 const (
 	// StrategyConstant uses a fixed delay between retries.
+	// Purpose: Provides stable looping gaps without degradation.
+	// Thread-safety: Constant value.
 	StrategyConstant Strategy = iota
 	// StrategyExponential uses exponential backoff between retries.
+	// Purpose: Helps gracefully de-escalate resource usage while down.
+	// Thread-safety: Constant value.
 	StrategyExponential
 )
 
@@ -40,6 +46,8 @@ type Config struct {
 
 // Option defines a functional option signature for configuring retry behavior
 // mutatively during initialization.
+// Purpose: Allows overriding default retry configuration settings.
+// Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
 // defaultConfig returns sensible default configuration
@@ -56,6 +64,8 @@ func defaultConfig() *Config {
 }
 
 // WithMaxAttempts sets the maximum number of attempts (including the first).
+// Purpose: Bound the maximum amount of loops the retry block executes.
+// Constraints: Must be positive or default bound is used.
 // Thread-safety: Mutates configuration synchronously.
 func WithMaxAttempts(n int) Option {
 	return func(c *Config) {
@@ -66,6 +76,8 @@ func WithMaxAttempts(n int) Option {
 }
 
 // WithInitialDelay sets the initial delay between retries.
+// Purpose: Define a base wait offset.
+// Constraints: Usually bounded by MaxDelay.
 // Thread-safety: Mutates configuration synchronously.
 func WithInitialDelay(d time.Duration) Option {
 	return func(c *Config) {
@@ -74,6 +86,8 @@ func WithInitialDelay(d time.Duration) Option {
 }
 
 // WithMaxDelay sets the maximum delay between retries.
+// Purpose: Limit how far an exponential strategy scales the wait time.
+// Constraints: Should be longer than initial delay.
 // Thread-safety: Mutates configuration synchronously.
 func WithMaxDelay(d time.Duration) Option {
 	return func(c *Config) {
@@ -82,6 +96,8 @@ func WithMaxDelay(d time.Duration) Option {
 }
 
 // WithStrategy sets the backoff strategy.
+// Purpose: Configures which algorithm dictates backoff timing.
+// Constraints: Assumes StrategyConstant or StrategyExponential.
 // Thread-safety: Mutates configuration synchronously.
 func WithStrategy(s Strategy) Option {
 	return func(c *Config) {
@@ -90,6 +106,8 @@ func WithStrategy(s Strategy) Option {
 }
 
 // WithJitter enables or disables jitter on the backoff delay.
+// Purpose: Avoid concurrent 'thundering herd' spikes after transient outages.
+// Constraints: Usually implemented as full random jitter.
 // Thread-safety: Mutates configuration synchronously.
 func WithJitter(enabled bool) Option {
 	return func(c *Config) {

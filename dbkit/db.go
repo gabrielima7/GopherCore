@@ -11,6 +11,7 @@ import (
 )
 
 // Config holds database connection configuration.
+// Purpose: Dictates the connection pool boundaries and driver settings.
 // Thread-safety: Safely read-only post instantiation.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
@@ -29,6 +30,8 @@ type Config struct {
 
 // DefaultConfig returns a sensible default configuration
 // mapped to a stable production-ready baseline.
+// Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
+// Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultConfig(driver, dsn string) Config {
 	return Config{
 		Driver:          driver,
@@ -41,9 +44,12 @@ func DefaultConfig(driver, dsn string) Config {
 }
 
 // Option is a functional option for configuring the database connection mutatively.
+// Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
 // WithMaxOpenConns sets the maximum number of open connections.
+// Purpose: Adjusts the connection pool size limit.
+// Constraints: n should be greater than 0.
 // Thread-safety: Mutates configuration synchronously.
 func WithMaxOpenConns(n int) Option {
 	return func(c *Config) {
@@ -52,6 +58,8 @@ func WithMaxOpenConns(n int) Option {
 }
 
 // WithMaxIdleConns sets the maximum number of idle connections.
+// Purpose: Adjusts the connection pool idle limit.
+// Constraints: n should be >= 0.
 // Thread-safety: Mutates configuration synchronously.
 func WithMaxIdleConns(n int) Option {
 	return func(c *Config) {
@@ -60,6 +68,8 @@ func WithMaxIdleConns(n int) Option {
 }
 
 // WithConnMaxLifetime sets the maximum duration a connection can be reused.
+// Purpose: Defines connection recycle limits.
+// Constraints: Should be shorter than database-side closing timeouts.
 // Thread-safety: Mutates configuration synchronously.
 func WithConnMaxLifetime(d time.Duration) Option {
 	return func(c *Config) {
@@ -68,6 +78,8 @@ func WithConnMaxLifetime(d time.Duration) Option {
 }
 
 // WithConnMaxIdleTime sets the maximum duration a connection can be idle.
+// Purpose: Trims idle connections after this duration.
+// Constraints: Must be >= 0.
 // Thread-safety: Mutates configuration synchronously.
 func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(c *Config) {
