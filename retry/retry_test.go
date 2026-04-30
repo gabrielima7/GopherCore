@@ -478,3 +478,54 @@ func TestDo_TableDriven(t *testing.T) {
 		})
 	}
 }
+
+func TestDoConcurrency(t *testing.T) {
+	tests := []struct {
+		name        string
+		isValueTest bool
+	}{
+		{
+			name:        "Do concurrent execution",
+			isValueTest: false,
+		},
+		{
+			name:        "DoWithValue concurrent execution",
+			isValueTest: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const numGoroutines = 100
+			errCh := make(chan error, numGoroutines)
+			for i := 0; i < numGoroutines; i++ {
+				go func(val int) {
+					if tt.isValueTest {
+						res, err := DoWithValue(context.Background(), func(_ context.Context) (int, error) {
+							return val, nil
+						}, WithMaxAttempts(2), WithInitialDelay(time.Millisecond))
+						if err != nil {
+							errCh <- err
+							return
+						}
+						if res != val {
+							errCh <- errors.New("result mismatch")
+							return
+						}
+						errCh <- nil
+					} else {
+						err := Do(context.Background(), func(_ context.Context) error {
+							return nil
+						}, WithMaxAttempts(2), WithInitialDelay(time.Millisecond))
+						errCh <- err
+					}
+				}(i)
+			}
+			for i := 0; i < numGoroutines; i++ {
+				if err := <-errCh; err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
