@@ -168,3 +168,56 @@ func FuzzResultUnwrapOr(f *testing.F) {
 		}
 	})
 }
+
+func TestResultConcurrency(t *testing.T) {
+	tests := []struct {
+		name     string
+		isMap    bool
+		mapFn    func(int, int) Result[int]
+	}{
+		{
+			name:  "Map concurrent execution",
+			isMap: true,
+			mapFn: func(base, val int) Result[int] {
+				return Map(Ok(base), func(v int) int { return v + val })
+			},
+		},
+		{
+			name:  "FlatMap concurrent execution",
+			isMap: false,
+			mapFn: func(base, val int) Result[int] {
+				return FlatMap(Ok(base), func(v int) Result[int] { return Ok(v * val) })
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const numGoroutines = 100
+			errCh := make(chan error, numGoroutines)
+			for i := 0; i < numGoroutines; i++ {
+				go func(val int) {
+					res, err := tt.mapFn(10, val).Unwrap()
+					if err != nil {
+						errCh <- err
+						return
+					}
+					expected := 10 + val
+					if !tt.isMap {
+						expected = 10 * val
+					}
+					if res != expected {
+						errCh <- fmt.Errorf("result mismatch: expected %d, got %d", expected, res)
+						return
+					}
+					errCh <- nil
+				}(i)
+			}
+			for i := 0; i < numGoroutines; i++ {
+				if err := <-errCh; err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
