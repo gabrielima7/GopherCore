@@ -20,7 +20,8 @@ import (
 // RouterConfig holds configuration options for building and mounting the core
 // application router, including CORS, rate limiting, and HTTP timeouts.
 // Purpose: Aggregates all networking parameters for the application server.
-// All fields are read-only after initialization and thus thread-safe.
+// Constraints: Must be populated appropriately for the specific environment.
+// Thread-safety: All fields are read-only after initialization and thus thread-safe.
 type RouterConfig struct {
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	AllowedOrigins []string
@@ -46,6 +47,7 @@ type RouterConfig struct {
 
 // DefaultRouterConfig returns a secure and sensible baseline configuration
 // for the HTTP router to mitigate standard application vulnerabilities natively.
+// Purpose: Bootstraps a secure starting configuration.
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultRouterConfig() RouterConfig {
@@ -65,6 +67,7 @@ func DefaultRouterConfig() RouterConfig {
 // RouterOption defines a functional option signature for configuring the router instance
 // mutatively during setup.
 // Purpose: Enables functional option pattern configuration.
+// Constraints: Evaluated serially during configuration initialization.
 // Thread-safety: Safe when used sequentially during initialization.
 type RouterOption func(*RouterConfig)
 
@@ -115,6 +118,7 @@ func WithReadHeaderTimeout(d time.Duration) RouterOption {
 
 // WithWriteTimeout strictly enforces the maximum duration the server is allowed
 // to spend generating and writing the HTTP response back to the connected client.
+// Purpose: Frees resources associated with stalling clients or handlers.
 // Constraints: Bound your long-running handlers inside this window to avoid forced closures.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithWriteTimeout(d time.Duration) RouterOption {
@@ -125,6 +129,7 @@ func WithWriteTimeout(d time.Duration) RouterOption {
 
 // WithIdleTimeout strictly enforces the maximum duration the server is allowed
 // to keep idle keep-alive connections open.
+// Purpose: Limits the amount of inactive sockets held in memory.
 // Constraints: Should generally be longer than read timeouts.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithIdleTimeout(d time.Duration) RouterOption {
@@ -164,6 +169,7 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 // The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
 // panic safety (Recoverer), and strict security headers. Optional middlewares
 // (Logger, RateLimit, CORS) are injected based on the provided options.
+// Purpose: Quickly bootstraps a production-ready HTTP router.
 // Constraints: Expects valid setup parameters.
 // Thread-safety: Safely initializes global middlewares for concurrent request processing.
 func NewRouter(opts ...RouterOption) *chi.Mux {

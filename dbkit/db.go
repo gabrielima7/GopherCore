@@ -12,6 +12,7 @@ import (
 
 // Config holds database connection configuration.
 // Purpose: Dictates the connection pool boundaries and driver settings.
+// Constraints: Passed to connection handlers, typically not manually constructed.
 // Thread-safety: Safely read-only post instantiation.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
@@ -30,6 +31,8 @@ type Config struct {
 
 // DefaultConfig returns a sensible default configuration
 // mapped to a stable production-ready baseline.
+//
+// Purpose: Generates a baseline stable database connection configuration.
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultConfig(driver, dsn string) Config {
@@ -44,6 +47,9 @@ func DefaultConfig(driver, dsn string) Config {
 }
 
 // Option is a functional option for configuring the database connection mutatively.
+//
+// Purpose: Allows overriding default Config behavior.
+// Constraints: Used as variadic arguments during Connect or MustConnect.
 // Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
@@ -90,6 +96,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 // Connect safely initializes and establishes a new, connection-pooled database connection
 // using the provided driver and DSN.
 //
+// Purpose: Opens a managed connection pool to a backing database system safely.
 // Constraints: It fully respects the provided context for timeout/cancellation
 // during connection and subsequent connectivity verification (PingContext).
 // Thread-safety: The returned *sqlx.DB is inherently safe for concurrent access across multiple goroutines.
@@ -122,6 +129,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 // MustConnect acts exactly like Connect, but instead of returning an error, it deliberately panics
 // if the connection or ping fails.
 //
+// Purpose: Forces an immediate fatal panic if a connection fails, simplifying bootstrapping logic.
 // Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
 // Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
@@ -136,6 +144,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 // HealthCheck executes a lightweight ping against the configured database to ensure the
 // connection remains active and the underlying database is currently reachable.
 //
+// Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {

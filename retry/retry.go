@@ -12,28 +12,36 @@ import (
 )
 
 // ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
+// Purpose: Sentinel error indicating total failure of the retry loop.
+// Constraints: Can be used with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 
 // Strategy defines the backoff algorithm used to calculate the delay
 // between consecutive retry attempts.
 // Purpose: Used to switch mathematical decay mechanisms.
+// Constraints: Expected to be one of the pre-defined constants.
 // Thread-safety: Pure enum.
 type Strategy int
 
 const (
 	// StrategyConstant uses a fixed delay between retries.
 	// Purpose: Provides stable looping gaps without degradation.
+	// Constraints: Best for predictable internal operations.
 	// Thread-safety: Constant value.
 	StrategyConstant Strategy = iota
+
 	// StrategyExponential uses exponential backoff between retries.
 	// Purpose: Helps gracefully de-escalate resource usage while down.
+	// Constraints: Recommended for remote network calls.
 	// Thread-safety: Constant value.
 	StrategyExponential
 )
 
 // Config strictly holds the configuration parameters that govern
 // the behavior of a retry operation, including backoff algorithms and constraints.
+// Purpose: Parameterizes retry loops.
+// Constraints: Must be populated with sensible bounds.
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
 type Config struct {
 	MaxAttempts  int
@@ -47,6 +55,7 @@ type Config struct {
 // Option defines a functional option signature for configuring retry behavior
 // mutatively during initialization.
 // Purpose: Allows overriding default retry configuration settings.
+// Constraints: Apply synchronously before launching the loop.
 // Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
@@ -117,6 +126,7 @@ func WithJitter(enabled bool) Option {
 
 // WithRetryIf sets a predicate that determines whether an error is retryable.
 //
+// Purpose: Allows selective short-circuiting for fatal, unrecoverable errors.
 // Constraints: If the predicate returns false, the retry loop stops immediately.
 // Thread-safety: Mutates configuration synchronously.
 func WithRetryIf(fn func(error) bool) Option {
@@ -128,6 +138,7 @@ func WithRetryIf(fn func(error) bool) Option {
 // Do repeatedly executes the provided function fn until it succeeds,
 // the maximum number of attempts is exhausted, or the context is canceled.
 //
+// Purpose: Safely wrap side-effect operations in a resilient loop.
 // Constraints: It applies the configured backoff strategy between attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state loop
 // variables per individual invocation.
@@ -169,6 +180,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 // DoWithValue acts identical to Do, but is designed for functions that return
 // both a value and an error.
 //
+// Purpose: Safely wrap fallible pure computations or fetches in a resilient loop.
 // Constraints: It repeatedly executes fn until it succeeds and returns the result,
 // or fails after exhausting all attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state per call.
