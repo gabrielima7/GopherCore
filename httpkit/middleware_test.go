@@ -228,8 +228,11 @@ func TestCORSWildcard(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Header().Get("Access-Control-Allow-Origin") != "https://anything.com" {
-		t.Fatal("expected wildcard CORS to allow any origin")
+	if rr.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatal("expected wildcard CORS to allow any origin with *")
+	}
+	if rr.Header().Get("Access-Control-Allow-Credentials") == "true" {
+		t.Fatal("expected wildcard CORS to omit credentials")
 	}
 }
 
