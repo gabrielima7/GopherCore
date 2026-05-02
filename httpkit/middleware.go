@@ -1,3 +1,4 @@
+// Package httpkit provides HTTP utilities, routing, middleware, and standard responses.
 package httpkit
 
 import (
