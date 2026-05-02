@@ -49,7 +49,8 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !limiter.Allow() {
-				w.Header().Set("Retry-After", "1")
+				h := w.Header()
+				h["Retry-After"] = []string{"1"}
 				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 				return
 			}
@@ -85,12 +86,16 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 
 			if origin != "" && (allowAll || originsSet[origin]) {
 				h := w.Header()
-				h["Access-Control-Allow-Origin"] = []string{origin}
+				if allowAll {
+					h["Access-Control-Allow-Origin"] = []string{"*"}
+				} else {
+					h["Access-Control-Allow-Origin"] = []string{origin}
+					h["Access-Control-Allow-Credentials"] = []string{"true"}
+					h["Vary"] = []string{"Origin"}
+				}
 				h["Access-Control-Allow-Methods"] = []string{methodsStr}
 				h["Access-Control-Allow-Headers"] = []string{headersStr}
-				h["Access-Control-Allow-Credentials"] = []string{"true"}
 				h["Access-Control-Max-Age"] = []string{"86400"}
-				h["Vary"] = []string{"Origin"}
 			}
 
 			// Handle preflight.

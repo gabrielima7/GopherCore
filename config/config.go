@@ -35,7 +35,7 @@ var validate = validator.New()
 //   - `validate:"rule"`: Applies standard go-playground validation rules.
 func Load(cfg any) error {
 	v := reflect.ValueOf(cfg)
-	if v.Kind() != reflect.Ptr || v.IsNil() {
+	if v.Kind() != reflect.Pointer || v.IsNil() {
 		return errors.New("cfg must be a non-nil pointer to a struct")
 	}
 
@@ -78,7 +78,7 @@ func populate(v reflect.Value) error {
 		}
 
 		// Handle nested pointers to structs recursively, allocating if nil.
-		if fieldValue.Kind() == reflect.Ptr && fieldValue.Type().Elem().Kind() == reflect.Struct {
+		if fieldValue.Kind() == reflect.Pointer && fieldValue.Type().Elem().Kind() == reflect.Struct {
 			if fieldValue.IsNil() {
 				fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 			}
