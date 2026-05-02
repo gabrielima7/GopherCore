@@ -171,9 +171,9 @@ func FuzzResultUnwrapOr(f *testing.F) {
 
 func TestResultConcurrency(t *testing.T) {
 	tests := []struct {
-		name     string
-		isMap    bool
-		mapFn    func(int, int) Result[int]
+		name  string
+		isMap bool
+		mapFn func(int, int) Result[int]
 	}{
 		{
 			name:  "Map concurrent execution",

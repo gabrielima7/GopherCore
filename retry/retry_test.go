@@ -407,7 +407,7 @@ func TestDo_TableDriven(t *testing.T) {
 			fn: func(ctx context.Context) error {
 				return errTest
 			},
-			opts: []Option{WithMaxAttempts(3), WithInitialDelay(50 * time.Millisecond)},
+			opts: []Option{WithMaxAttempts(10), WithInitialDelay(50 * time.Millisecond)},
 			ctxCancelFn: func() (context.Context, context.CancelFunc) {
 				ctx, cancel := context.WithCancel(context.Background())
 				// Cancel shortly after the first attempt to interrupt the sleep
