@@ -208,7 +208,6 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 }
 
 // NewServer creates and returns an `http.Server` bound to the provided network address.
-//
 // Purpose: It applies the read/write timeouts derived from the router options to prevent
 // slowloris and other resource exhaustion attacks natively at the stdlib server level.
 // Constraints: Relies heavily on the exact timeout metrics defined.
@@ -227,7 +226,6 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 
 // GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
 // for OS termination signals (SIGINT, SIGTERM).
-//
 // Purpose: Upon receiving a termination signal, it invokes the server's Shutdown method, giving ongoing
 // active requests up to the specified timeout duration to complete before forcing a closure.
 // Constraints: Blocks until the server exits completely or the timeout expires.
