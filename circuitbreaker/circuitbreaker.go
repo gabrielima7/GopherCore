@@ -12,7 +12,6 @@ import (
 // ErrCircuitOpen is returned when the circuit is in the Open state
 // and no requests are permitted to execute. Callers should fast-fail
 // or fallback to a secondary mechanism.
-//
 // Purpose: Indicates that a circuit is fully tripped and cannot process requests.
 // Constraints: Treat as a sentinel error for matching with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
@@ -21,7 +20,6 @@ var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
 // ErrTooManyRequests is returned when the circuit is in the HalfOpen
 // state and the maximum number of concurrent probe requests has already
 // been reached.
-//
 // Purpose: Prevents overwhelming a recovering service with too many probes.
 // Constraints: Treat as a sentinel error for matching with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
@@ -37,7 +35,6 @@ const (
 	// StateClosed is the normal operational state. All requests are allowed
 	// through. The breaker counts consecutive failures to determine if it
 	// should trip to StateOpen.
-	//
 	// Purpose: Denotes the baseline healthy state.
 	// Constraints: Must be returned exclusively when the breaker is untripped.
 	// Thread-safety: Constant value.
@@ -45,7 +42,6 @@ const (
 
 	// StateOpen is the tripped state. All requests are immediately rejected
 	// with ErrCircuitOpen until the configured timeout duration expires.
-	//
 	// Purpose: Denotes the failing, protective state.
 	// Constraints: Must enforce fast-failure rejections.
 	// Thread-safety: Constant value.
@@ -53,7 +49,6 @@ const (
 
 	// StateHalfOpen is the recovery state. A limited number of probe requests
 	// are allowed through to test if the underlying service has recovered.
-	//
 	// Purpose: Denotes the tentative recovery state.
 	// Constraints: Must restrict the number of probes to avoid re-overloading.
 	// Thread-safety: Constant value.
@@ -61,7 +56,6 @@ const (
 )
 
 // String returns the human-readable string representation of the State.
-//
 // Purpose: Simplifies console output and logging of the circuit status.
 // Constraints: Always returns a valid string, defaulting to "unknown".
 // Thread-safety: Pure method on value receiver.
@@ -107,7 +101,6 @@ type Config struct {
 // DefaultConfig returns a sensible default configuration for a circuit breaker:
 // 5 failures to open, 30 seconds open timeout, 1 half-open request, and 2
 // consecutive successes to close.
-//
 // Purpose: Provides a safe, battle-tested baseline configuration.
 // Constraints: Generates defaults that can be optionally overridden.
 // Thread-safety: Returns a new instance.
@@ -121,7 +114,6 @@ func DefaultConfig() Config {
 }
 
 // Breaker is a thread-safe implementation of the Circuit Breaker pattern.
-//
 // Purpose: It coordinates concurrent access to the circuit's state and statistics
 // to prevent cascading failure patterns in microservice architectures.
 // Constraints: Must be created using New() and never copied by value after initialization.
@@ -138,7 +130,6 @@ type Breaker struct {
 }
 
 // New creates and returns a new Breaker initialized with the given configuration.
-//
 // Purpose: Instantiates and preconfigures a new active Circuit Breaker structure.
 // Constraints: It will apply sensible default values for any configuration fields that are
 // left as zero or invalid (<= 0). The breaker starts in the StateClosed state.
@@ -160,7 +151,6 @@ func New(cfg Config) *Breaker {
 }
 
 // State safely retrieves and returns the current operational state of the circuit breaker.
-//
 // Purpose: Allows synchronous querying of the active circuit phase.
 // Constraints: It handles potential state transitions (e.g., from Open to HalfOpen) if the timeout
 // has expired before returning the state.
@@ -173,7 +163,6 @@ func (b *Breaker) State() State {
 
 // Execute executes the provided function fn if the circuit breaker determines
 // that requests are currently permitted.
-//
 // Purpose: The primary execution wrapper that bounds requests based on health heuristics.
 // Constraints: If the circuit is Open, it immediately returns ErrCircuitOpen.
 // If the circuit is HalfOpen and the maximum probe limit is exceeded, it returns ErrTooManyRequests.
@@ -296,13 +285,11 @@ func (b *Breaker) transitionTo(newState State) {
 }
 
 // to is an internal helper that simply returns the provided State value.
-//
 // Purpose: It is used to bypass variable shadowing issues in closure contexts.
 func to(s State) State { return s }
 
 // Reset forcefully resets the circuit breaker back to the normal Closed state,
 // regardless of its current state or failure statistics.
-//
 // Purpose: Provide a manual override to instantly clear failure conditions.
 // Constraints: Fully ignores standard configuration thresholds when invoked.
 // Thread-safety: This safely locks the internal mutex to prevent race conditions during reset.

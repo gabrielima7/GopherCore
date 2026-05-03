@@ -1,3 +1,6 @@
+// Package httpkit provides an HTTP toolkit built on go-chi/chi with
+// pre-configured security middleware, rate limiting, CORS control,
+// and standardized JSON responses.
 package httpkit
 
 import (
@@ -39,7 +42,6 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 
 // RateLimitMiddleware enforces global inbound request rate limiting using a token
 // bucket algorithm (golang.org/x/time/rate).
-//
 // Purpose: Protects endpoints from abuse and DoS attacks by throttling traffic.
 // Constraints: If a request exceeds the permissible limit, it is immediately aborted,
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
@@ -61,7 +63,6 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 
 // CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
 // It verifies the Origin header against a pre-configured whitelist.
-//
 // Purpose: Enables browser-based cross-origin requests securely.
 // Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
 // without passing them down the middleware chain.

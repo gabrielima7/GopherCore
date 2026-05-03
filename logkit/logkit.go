@@ -50,7 +50,6 @@ func WithWriter(w io.Writer) Option {
 
 // NewLogger creates and returns an isolated, structured JSON logger initialized
 // with the provided functional options.
-//
 // Purpose: Instantiates a new independent slog logger.
 // Constraints: It defaults to writing to os.Stdout at the Info level.
 // Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
@@ -74,7 +73,6 @@ func NewLogger(opts ...Option) *slog.Logger {
 
 // Initialize instantiates a new logger and explicitly overwrites the global
 // slog.Default() logger.
-//
 // Purpose: Bootstraps the application-wide logging engine.
 // Constraints: This function mutates global application state and
 // should typically only be called once during the application's bootstrap phase.
