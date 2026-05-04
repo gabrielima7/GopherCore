@@ -6,10 +6,13 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"io"
 	"math"
 	"math/big"
 	"time"
 )
+
+var randReader io.Reader = rand.Reader
 
 // ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
 // Purpose: Sentinel error indicating total failure of the retry loop.
@@ -255,7 +258,7 @@ func calculateDelay(cfg *Config, attempt int) time.Duration {
 
 	if cfg.Jitter && delay > 0 {
 		// Full jitter: random value between 0 and delay.
-		jitterVal, err := rand.Int(rand.Reader, big.NewInt(int64(delay)))
+		jitterVal, err := rand.Int(randReader, big.NewInt(int64(delay)))
 		if err == nil {
 			delay = time.Duration(jitterVal.Int64())
 		}
