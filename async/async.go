@@ -11,7 +11,6 @@ import (
 )
 
 // PanicError wraps a recovered panic value with its corresponding stack trace.
-//
 // Purpose: This allows callers to inspect the exact location and cause of the panic
 // without terminating the entire application.
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
@@ -23,7 +22,6 @@ type PanicError struct {
 
 // Error implements the error interface for PanicError, returning a formatted
 // string containing the panic value and the full stack trace.
-//
 // Purpose: Implements the standard error interface.
 // Constraints: Assumes the internal stack trace string has been properly formatted.
 // Thread-safety: Read-only access to internal fields.
@@ -32,7 +30,6 @@ func (p *PanicError) Error() string {
 }
 
 // Go launches a new goroutine safely with automatic panic recovery.
-//
 // Purpose: Executes a function concurrently while guaranteeing that internal panics do not crash the application.
 // Constraints: If the provided function fn panics during execution, the panic is gracefully
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
@@ -56,7 +53,6 @@ func Go(fn func(), onPanic ...func(err error)) {
 }
 
 // GoErr launches a new goroutine safely that executes fn and returns an error channel.
-//
 // Purpose: To launch an async process and eventually receive its error (or nil) without blocking.
 // Constraints: The result of fn is sent to the returned channel, which is buffered to prevent
 // goroutine leaks if the caller does not read from it immediately.
@@ -76,7 +72,6 @@ func GoErr(fn func() error) <-chan error {
 }
 
 // Group manages a collection of goroutines and collects all errors returned by them.
-//
 // Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
 // built-in panic recovery for every launched goroutine.
 // Constraints: Must be instantiated using NewGroup to function correctly.
@@ -90,7 +85,6 @@ type Group struct {
 
 // NewGroup creates and returns a new Group instance ready for managing
 // a collection of goroutines safely.
-//
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.
@@ -99,7 +93,6 @@ func NewGroup() *Group {
 }
 
 // Go launches a goroutine within the Group to execute the provided function fn.
-//
 // Purpose: It automatically handles panic recovery by capturing the panic and appending
 // it to the Group's internal error slice as a PanicError.
 // Constraints: Expected to be called before Wait.
@@ -126,7 +119,6 @@ func (g *Group) Go(fn func() error) {
 
 // Wait blocks the calling goroutine until all goroutines launched within the Group
 // have completed execution.
-//
 // Purpose: Acts as a synchronization barrier, waiting for all dispatched goroutines to finish.
 // Constraints: It returns a slice containing all collected errors, including any recovered panics.
 // If no errors occurred, it returns nil.
@@ -144,7 +136,6 @@ func (g *Group) Wait() []error {
 
 // Map applies the function fn to each item in the items slice concurrently,
 // enforcing a strict bounded parallelism limit based on the concurrency parameter.
-//
 // Purpose: Efficiently apply a mapping function to a slice with controlled concurrent execution.
 // Constraints: It respects context cancellation, immediately halting further processing if
 // the context is canceled, returning ctx.Err(). It returns the mapped results in the exact
@@ -213,7 +204,6 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 
 // Fan launches the provided function fn for each item in the items slice concurrently
 // with no upper bound on parallelism (unbounded concurrency).
-//
 // Purpose: Rapidly disperse work across infinite goroutines simultaneously.
 // Constraints: It respects context cancellation, aborting the launch loop early if the context is
 // canceled. It safely collects and returns all errors encountered, including recovered panics.

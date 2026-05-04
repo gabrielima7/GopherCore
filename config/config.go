@@ -22,7 +22,6 @@ var validate = validator.New()
 // Load reflects upon the provided cfg parameter, recursively parsing environment
 // variables into its exported fields. It then validates the populated struct against
 // its `validate` tags using the go-playground/validator library.
-//
 // Purpose: Automatically loads and validates configuration data directly from the environment.
 // Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
@@ -54,7 +53,6 @@ func Load(cfg any) error {
 // populate iterates over the fields of the reflected struct, recursively
 // diving into nested structs and pointers to structs. It extracts values
 // from the environment and attempts to parse and set them dynamically.
-//
 // Purpose: This is the core logic that connects `env` string tags to actual OS
 // environment queries, abstracting the manual `os.LookupEnv` boilerplate.
 // Thread-safety: Safe for concurrent use so long as the target struct is not accessed.
@@ -113,7 +111,6 @@ func populate(v reflect.Value) error {
 // setField parses the string value obtained from the environment and assigns it
 // to the reflected target value, strictly checking for numeric overflows to prevent
 // silent truncation bugs at startup.
-//
 // Purpose: Handles type conversions from env string slices, floats, booleans, and duration types.
 // Thread-safety: Safe for concurrent use.
 func setField(v reflect.Value, value string) error {

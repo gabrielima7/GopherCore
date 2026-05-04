@@ -128,7 +128,6 @@ func WithJitter(enabled bool) Option {
 }
 
 // WithRetryIf sets a predicate that determines whether an error is retryable.
-//
 // Purpose: Allows selective short-circuiting for fatal, unrecoverable errors.
 // Constraints: If the predicate returns false, the retry loop stops immediately.
 // Thread-safety: Mutates configuration synchronously.
@@ -140,7 +139,6 @@ func WithRetryIf(fn func(error) bool) Option {
 
 // Do repeatedly executes the provided function fn until it succeeds,
 // the maximum number of attempts is exhausted, or the context is canceled.
-//
 // Purpose: Safely wrap side-effect operations in a resilient loop.
 // Constraints: It applies the configured backoff strategy between attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state loop
@@ -182,7 +180,6 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 
 // DoWithValue acts identical to Do, but is designed for functions that return
 // both a value and an error.
-//
 // Purpose: Safely wrap fallible pure computations or fetches in a resilient loop.
 // Constraints: It repeatedly executes fn until it succeeds and returns the result,
 // or fails after exhausting all attempts.
@@ -226,7 +223,6 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 
 // calculateDelay is an internal helper that computes the exact backoff delay
 // for the current attempt based on the chosen strategy.
-//
 // Purpose: Applies hard mathematical bounds to prevent extreme sleep times
 // and safely injects cryptographic randomness if full jitter is configured.
 // Thread-safety: Relies on `crypto/rand` which handles concurrent random draws safely.
