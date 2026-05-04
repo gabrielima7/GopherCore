@@ -43,7 +43,6 @@ func (v ValidationError) Error() string {
 
 // ValidationErrors represents a collection of one or more ValidationError instances.
 // It is typically generated resulting from a multi-field struct validation failure.
-//
 // Purpose: Groups multiple validation errors into a single structured response.
 // Constraints: Must be iterated over to inspect individual field errors.
 // Thread-safety: As a slice of errors, its methods are read-only and thread-safe.
@@ -66,7 +65,6 @@ func (ve ValidationErrors) Error() string {
 // If the struct violates any tags, it aggregates all failures into a ValidationErrors
 // slice which implements the error interface. It returns nil if the struct perfectly
 // satisfies all validation constraints.
-//
 // Purpose: Enforces struct field rules dynamically based on struct tags.
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely
@@ -97,7 +95,6 @@ func Validate(s any) error {
 // RegisterValidation registers a custom, user-defined validation function mapped to
 // a specific tag name. Once registered, this tag can be used in struct fields
 // throughout the application. It returns an error if the tag name is already registered.
-//
 // Purpose: Extends the validation engine with custom application-specific rules.
 // Constraints: MUST be invoked purely during initialization phases.
 // Thread-safety: This function modifies the global validator instance and is NOT thread-safe
@@ -110,7 +107,6 @@ func RegisterValidation(tag string, fn validator.Func) error {
 // SanitizeString performs primitive input scrubbing by stripping out invisible
 // Unicode control characters and aggressively trimming leading/trailing whitespace.
 // It creates a new allocated string to prevent modifying the original reference.
-//
 // Purpose: Strips out unwanted whitespace and control characters from strings.
 // Constraints: This is purely a basic data-hygiene mechanism and absolutely
 // MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
@@ -130,7 +126,6 @@ func SanitizeString(s string) string {
 
 // StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
 // payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
-//
 // Purpose: Mitigate Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving only plain text.
 // Constraints: Destroys markup, not meant for HTML manipulation where structure should be retained.
 // Thread-safety: It leverages a globally instantiated policy and is fully
@@ -141,7 +136,6 @@ func StripHTML(s string) string {
 
 // formatValidationError analyzes the specific tag that failed validation
 // and maps it to a clear, human-readable error message.
-//
 // Purpose: Acts as the central translation layer between raw validator errors
 // and client-friendly HTTP response messages. It switches on the exact tag name.
 // Thread-safety: Pure function, safe for concurrent use.

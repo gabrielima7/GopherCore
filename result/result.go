@@ -7,7 +7,6 @@ import "fmt"
 
 // Result is a generic container representing the outcome of an operation
 // that can either succeed with a value of type T, or fail with an error.
-//
 // Purpose: It encourages explicit error handling and functional transformations.
 // Constraints: Cannot be mutated after instantiation.
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
@@ -19,7 +18,6 @@ type Result[T any] struct {
 }
 
 // Ok creates and returns a successful Result encapsulating the provided value.
-//
 // Purpose: Wraps a raw value into a success state.
 // Constraints: The internal error state is implicitly nil.
 // Thread-safety: Pure functional constructor.
@@ -28,7 +26,6 @@ func Ok[T any](value T) Result[T] {
 }
 
 // Err creates and returns a failed Result encapsulating the provided error.
-//
 // Purpose: Wraps a raw error into a failure state.
 // Constraints: The internal value state is the zero value for type T.
 // Thread-safety: Pure functional constructor.
@@ -37,7 +34,6 @@ func Err[T any](err error) Result[T] {
 }
 
 // Errf constructs and returns a failed Result containing a formatted error message.
-//
 // Purpose: Formats an error string inline and wraps it.
 // Constraints: It is a convenience wrapper around fmt.Errorf and Err.
 // Thread-safety: Pure functional constructor.
@@ -47,7 +43,6 @@ func Errf[T any](format string, args ...any) Result[T] {
 
 // Of builds a Result by seamlessly encapsulating the standard Go tuple
 // return pattern (value T, err error).
-//
 // Purpose: Converts a classic (value, err) return tuple into a Result.
 // Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
 // Thread-safety: Pure functional constructor.
@@ -77,7 +72,6 @@ func (r Result[T]) IsErr() bool {
 }
 
 // Unwrap safely extracts and returns both the internal value and the error.
-//
 // Purpose: This allows the Result container to be bridged back into standard, idiomatic
 // Go error handling logic (value, err).
 // Constraints: Assumes the consumer will handle the returned error appropriately.
@@ -87,7 +81,6 @@ func (r Result[T]) Unwrap() (T, error) {
 }
 
 // UnwrapOr safely extracts the value if the Result is successful.
-//
 // Purpose: Retrieve the value while providing a default on failure.
 // Constraints: If the Result encapsulates an error, it ignores the error and
 // immediately returns the explicitly provided fallback value instead.
@@ -123,7 +116,6 @@ func (r Result[T]) Error() error {
 
 // Map transforms the underlying value of a successful Result[T] into a Result[U]
 // by applying the provided function fn.
-//
 // Purpose: Allows chaining operations on the happy path.
 // Constraints: If the original Result is an Err, the error is propagated unchanged and fn is never executed.
 // Thread-safety: Generates a new immutable Result. Safe as long as fn is safe.
@@ -136,7 +128,6 @@ func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 
 // FlatMap applies a fallible function fn to the underlying value of a successful
 // Result[T], returning the resulting Result[U].
-//
 // Purpose: Allows chaining operations that themselves may return errors.
 // Constraints: This enables elegant chaining of multiple operations that might fail.
 // If the original Result is an Err, the error is propagated unchanged.

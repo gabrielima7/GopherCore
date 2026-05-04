@@ -1,3 +1,6 @@
+// Package httpkit provides an HTTP toolkit built on go-chi/chi with
+// pre-configured security middleware, rate limiting, CORS control,
+// and standardized JSON responses.
 package httpkit
 
 import (
@@ -9,7 +12,6 @@ import (
 // ErrorResponse defines the standard, predictable JSON structure returned to
 // clients whenever an API error occurs. This ensures consistent error handling
 // on the consumer side. Structurally safe for JSON marshalling.
-//
 // Purpose: Defines standard layout for JSON API errors.
 // Constraints: Assumes error message text is safely sanitized for external viewing.
 // Thread-safety: Data structure, safe when not mutated concurrently.
@@ -22,7 +24,6 @@ type ErrorResponse struct {
 // JSON securely marshals the provided data interface into JSON and writes it
 // to the HTTP response with the specified status code. If marshaling fails,
 // it returns a generic 500 response without leaking internal structures.
-//
 // Purpose: Simplifies sending structured JSON to clients securely.
 // Constraints: The data payload must be serializable to JSON.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
