@@ -405,7 +405,8 @@ func TestValidateEdgeCases(t *testing.T) {
 			Exported   string `validate:"required"`
 			unexported string `validate:"required"`
 		}
-		input := hidden{Exported: "Visible"}
+		input := hidden{Exported: "Visible", unexported: "secret"}
+		_ = input.unexported
 		// The unexported field won't be validated because reflect package rules prevent it
 		if err := Validate(input); err != nil {
 			t.Fatalf("expected nil error, got %v", err)
