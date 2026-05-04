@@ -14,9 +14,15 @@ import (
 )
 
 // validate is the singleton validator instance.
+// Purpose: Holds the global go-playground/validator instance.
+// Constraints: Initialized once at startup.
+// Thread-safety: Methods provided by the validator are inherently thread-safe.
 var validate = validator.New()
 
 // htmlPolicy is the singleton bluemonday strict policy instance.
+// Purpose: Holds the global HTML sanitizer policy instance.
+// Constraints: Initialized once at startup.
+// Thread-safety: Methods provided by the policy are inherently thread-safe.
 var htmlPolicy = bluemonday.StrictPolicy()
 
 // ValidationError encapsulates the details of a single struct field validation failure.
@@ -138,6 +144,7 @@ func StripHTML(s string) string {
 // and maps it to a clear, human-readable error message.
 // Purpose: Acts as the central translation layer between raw validator errors
 // and client-friendly HTTP response messages. It switches on the exact tag name.
+// Constraints: Should only receive validation errors thrown from the validator package.
 // Thread-safety: Pure function, safe for concurrent use.
 func formatValidationError(fe validator.FieldError) string {
 	switch fe.Tag() {

@@ -211,6 +211,7 @@ func (b *Breaker) Execute(fn func() error) error {
 }
 
 // currentState evaluates and returns the current state.
+// Purpose: Computes the actual logical state, taking timeout expirations into account.
 //
 // Constraints: If the state is Open, it checks if the timeout duration has elapsed
 // since the last failure. If so, it automatically transitions the state
@@ -227,6 +228,7 @@ func (b *Breaker) currentState() State {
 }
 
 // recordSuccess updates internal statistics following a successful execution.
+// Purpose: Manages state transitions after successful probes or executions.
 //
 // Constraints: In the Closed state, it resets the consecutive failure count.
 // In the HalfOpen state, it increments the success count and transitions
@@ -245,6 +247,7 @@ func (b *Breaker) recordSuccess() {
 }
 
 // recordFailure updates internal statistics following a failed execution.
+// Purpose: Manages state transitions after a failed execution.
 //
 // Constraints: It records the time of the failure. In the Closed state, it increments the
 // failure count and transitions to Open if the threshold is reached.
@@ -266,6 +269,7 @@ func (b *Breaker) recordFailure() {
 
 // transitionTo safely changes the circuit breaker's state to newState,
 // resetting all internal tracking counters (failures, successes, half-open requests).
+// Purpose: Applies a complete internal state transition.
 //
 // Constraints: If a state change callback is configured, it is invoked synchronously.
 // Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller.
@@ -286,6 +290,8 @@ func (b *Breaker) transitionTo(newState State) {
 
 // to is an internal helper that simply returns the provided State value.
 // Purpose: It is used to bypass variable shadowing issues in closure contexts.
+// Constraints: Must only be used internally.
+// Thread-safety: Pure function.
 func to(s State) State { return s }
 
 // Reset forcefully resets the circuit breaker back to the normal Closed state,
