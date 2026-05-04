@@ -269,6 +269,12 @@ func TestTransitionToSameStateIsNoOp(t *testing.T) {
 	})
 	// Reset to Closed (already Closed) — should be a no-op.
 	cb.Reset()
+
+	// Force explicit transition to the exact same state (closed) via internals
+	cb.mu.Lock()
+	cb.transitionTo(StateClosed)
+	cb.mu.Unlock()
+
 	if called {
 		t.Fatal("OnStateChange should NOT be called when transitioning to same state")
 	}
