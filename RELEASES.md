@@ -4,6 +4,46 @@ This document tracks all major additions, alterations, deletions, and pull reque
 
 ---
 
+## [v0.2.1] - Maintenance, Test Coverage, and Security Refinement
+
+This patch release focuses on increasing test coverage, refining security configurations, and maintaining the project's living documentation. It addresses a CORS vulnerability, optimizes performance in HTTP middlewares, and ensures full compatibility with Go 1.26.
+
+### 🚀 Additions (Features & Enhancements)
+- **Security (HTTP):** Added `IdleTimeout` configuration to the HTTP server, strengthening protection against resource exhaustion. (PR #36)
+- **CI/CD Pipeline:** Refactored CI/release workflows to use dynamic Go versioning and centralized Make targets, improving build reproducibility. (PR #42)
+
+### 🛠 Alterações (Modifications & Optimizations)
+- **Security (CORS):** Fixed a vulnerability in the CORS middleware that could allow unauthorized origins in specific edge cases. (PR #46)
+- **Performance:** Optimized `Header` allocation in the HTTP middleware stack to reduce memory overhead and GC pressure. (PR #46)
+- **QA & Test Resilience:**
+    - Significantly increased branch coverage for `retry`, `circuitbreaker`, `dbkit`, `guard`, and `httpkit` packages. (PR #50, #49, #32)
+    - Implemented Table-Driven concurrency tests for the `result` and `retry` packages to ensure thread-safety under heavy load. (PR #45)
+    - Improved unit test coverage for edge cases across the entire toolkit. (PR #41)
+    - Fixed flaky context cancellation tests in the `retry` package.
+- **Living Documentation:** Performed an exhaustive, project-wide `godoc` synchronization and audit to maintain technical writing standards. (PR #43, #38, #48, #47)
+- **Maintenance:**
+    - Resolved CI lint issues caused by the deprecation of `reflect.Ptr` in Go 1.26. (PR #46)
+    - Updated internal and external dependencies to their latest stable versions. (PR #44, #40)
+
+### 📦 Pull Requests
+- **PR #50:** Improve branch coverage for `retry`, `circuitbreaker`, and `dbkit`.
+- **PR #49:** Increase test coverage for the `guard` package.
+- **PR #48:** Technical Writing audit for documentation consistency.
+- **PR #47:** Fix documentation synchronization in `httpkit`.
+- **PR #46:** Fix CORS vulnerability and optimize HTTP middleware allocations.
+- **PR #45:** Add Table-Driven concurrency tests to `result` and `retry`.
+- **PR #44:** Update project-wide dependencies.
+- **PR #43:** Exhaustive project-wide docstring synchronization.
+- **PR #42:** Refactor CI workflows for dynamic Go versioning.
+- **PR #41:** Improve unit test coverage for edge cases.
+- **PR #40:** Bump `github.com/mattn/go-sqlite3` dependency.
+- **PR #38:** Exhaustive project-wide godoc synchronization.
+- **PR #37:** Improve `retry` package coverage.
+- **PR #36:** Add `IdleTimeout` to HTTP server and security hardening.
+- **PR #32:** Expand `httpkit` branch coverage and concurrency tests.
+
+---
+
 ## [v0.2.0] - Security, QA Resilience, and Documentation Maturity
 
 This release consolidates significant structural work on the fundamental base of the `GopherCore` repository. The focus was directed towards three major pillars: **DevSecOps Security, Test Resilience (QA), and Documentation Maturity**.
