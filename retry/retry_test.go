@@ -3,6 +3,7 @@ package retry
 import (
 	"context"
 	"errors"
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -19,6 +20,33 @@ func TestDoSuccess(t *testing.T) {
 	}
 	if calls != 1 {
 		t.Fatalf("expected 1 call, got %d", calls)
+	}
+}
+
+func TestDoContextCancelledDuringDelay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	attempts := 0
+	dummyErr := errors.New("dummy")
+	err := Do(ctx, func(c context.Context) error {
+		attempts++
+		if attempts == 1 {
+			// Trigger a long delay.
+			// Start a goroutine to cancel the context strictly *during* the select wait block
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				cancel()
+			}()
+			return dummyErr
+		}
+		return nil
+	}, WithStrategy(StrategyConstant), WithInitialDelay(time.Hour))
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled error, got: %v", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("expected exactly 1 attempt, got: %d", attempts)
 	}
 }
 
@@ -300,6 +328,50 @@ func TestCalculateDelayUnknownStrategy(t *testing.T) {
 	delay := calculateDelay(cfg, 0)
 	if delay != 100*time.Millisecond {
 		t.Fatalf("expected 100ms (default fallback), got %v", delay)
+	}
+}
+
+type errorReader struct{}
+
+func (e errorReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("mock read error")
+}
+
+func TestCalculateDelayJitterErrorFallback(t *testing.T) {
+	originalReader := randReader
+	t.Cleanup(func() { randReader = originalReader })
+
+	// Inject error reader
+	randReader = errorReader{}
+
+	cfg := &Config{
+		InitialDelay: 100 * time.Millisecond,
+		MaxDelay:     10 * time.Second,
+		Strategy:     StrategyExponential,
+		Jitter:       true,
+	}
+
+	// Should fallback to base calculated delay without panic
+	delay := calculateDelay(cfg, 0)
+	if delay != 100*time.Millisecond {
+		t.Fatalf("expected fallback 100ms, got %v", delay)
+	}
+}
+
+func TestCalculateDelaySafeAttemptBound(t *testing.T) {
+	// A delay calculation without exceeding MaxDelay logic, but safeAttempt capped at 62
+	// 100ms * 2^62 is larger than max int64 duration, so we use a small initial delay
+	cfg := &Config{
+		InitialDelay: 1 * time.Nanosecond,
+		MaxDelay:     time.Duration(math.MaxInt64), // maximum duration
+		Strategy:     StrategyExponential,
+		Jitter:       false,
+	}
+
+	delay := calculateDelay(cfg, 100)
+	expected := time.Duration(math.Pow(2, 62))
+	if delay != expected {
+		t.Fatalf("expected capped duration %v, got %v", expected, delay)
 	}
 }
 

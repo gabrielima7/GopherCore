@@ -9,6 +9,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -312,6 +313,11 @@ func TestRunMigrationsBadSQL(t *testing.T) {
 	err := RunMigrations(sqlx.NewDb(db, "sqlite3"), "sqlite3", driver, "file://testdata/bad_migrations")
 	if err == nil {
 		t.Fatal("expected error for bad SQL migration")
+	}
+
+	// This ensures the m.Up() error path is hit and returned, bypassing ErrNoChange explicitly.
+	if errors.Is(err, migrate.ErrNoChange) {
+		t.Fatalf("expected specific migration error, got ErrNoChange: %v", err)
 	}
 }
 
