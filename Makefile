@@ -23,7 +23,7 @@ help:
 ## install-tools: Install golangci-lint, nilaway, gosec, govulncheck
 install-tools:
 	@echo "==> Installing development tools..."
-	GOTOOLCHAIN=go1.26.2 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	GOTOOLCHAIN=go1.26.2 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	GOTOOLCHAIN=go1.26.2 go install go.uber.org/nilaway/cmd/nilaway@latest
 	GOTOOLCHAIN=go1.26.2 go install github.com/securego/gosec/v2/cmd/gosec@latest
 	GOTOOLCHAIN=go1.26.2 go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -52,7 +52,7 @@ nilaway:
 ## lint: Run golangci-lint + NilAway
 lint:
 	@echo "==> Running linters..."
-	@GOTOOLCHAIN=go1.26.2 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@GOTOOLCHAIN=go1.26.2 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \
