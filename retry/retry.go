@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// randReader is an internal override point for tests.
+// Purpose: Allows injecting mocked random number generators during unit tests.
+// Constraints: Must implement io.Reader.
 var randReader io.Reader = rand.Reader
 
 // ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
@@ -64,6 +67,9 @@ type Option func(*Config)
 
 // defaultConfig returns sensible default configuration
 // that applies safe bounded limits and an exponential strategy.
+// Purpose: Generates an internal baseline default configuration for retries.
+// Constraints: Should be considered read-only after being returned unless mutated by functional options.
+// Thread-safety: Returns a new struct pointer, safe across goroutines before sharing.
 func defaultConfig() *Config {
 	return &Config{
 		MaxAttempts:  3,
