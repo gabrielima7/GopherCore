@@ -17,6 +17,10 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// validate is the singleton validator instance used for configuration validation.
+// Purpose: Holds the global go-playground/validator instance.
+// Constraints: Initialized once at startup.
+// Thread-safety: Methods provided by the validator are inherently thread-safe.
 var validate = validator.New()
 
 // Load reflects upon the provided cfg parameter, recursively parsing environment
@@ -55,6 +59,7 @@ func Load(cfg any) error {
 // from the environment and attempts to parse and set them dynamically.
 // Purpose: This is the core logic that connects `env` string tags to actual OS
 // environment queries, abstracting the manual `os.LookupEnv` boilerplate.
+// Constraints: Value v must be a settable reflect.Value representing a struct.
 // Thread-safety: Safe for concurrent use so long as the target struct is not accessed.
 func populate(v reflect.Value) error {
 	t := v.Type()
@@ -112,6 +117,7 @@ func populate(v reflect.Value) error {
 // to the reflected target value, strictly checking for numeric overflows to prevent
 // silent truncation bugs at startup.
 // Purpose: Handles type conversions from env string slices, floats, booleans, and duration types.
+// Constraints: Value v must be a settable reflect.Value, and value must be a valid string representation of the target type.
 // Thread-safety: Safe for concurrent use.
 func setField(v reflect.Value, value string) error {
 	switch v.Kind() {
