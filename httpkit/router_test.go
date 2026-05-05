@@ -200,7 +200,7 @@ func TestDefaultRouterConfig(t *testing.T) {
 
 func TestGracefulShutdown_Signal(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("Signal not supported on Windows")
+		return // Signal not supported on Windows
 	}
 
 	srv := &http.Server{
