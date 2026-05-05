@@ -152,6 +152,7 @@ func WithLogger(enabled bool) RouterOption {
 // parseOptions is an internal helper that initializes the DefaultRouterConfig
 // and then safely applies all provided functional options.
 // Purpose: Aggregates modular setup logic.
+// Constraints: Should only be called internally during router or server initialization.
 // Thread-safety: Synchronous and safe.
 func parseOptions(opts ...RouterOption) RouterConfig {
 	cfg := DefaultRouterConfig()
