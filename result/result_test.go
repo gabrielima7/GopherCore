@@ -53,22 +53,44 @@ func TestErrf(t *testing.T) {
 }
 
 func TestOf(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		r := Of(strconv.Atoi("42"))
-		if !r.IsOk() {
-			t.Fatal("expected Ok")
-		}
-		val, _ := r.Unwrap()
-		if val != 42 {
-			t.Fatalf("expected 42, got %d", val)
-		}
-	})
-	t.Run("failure", func(t *testing.T) {
-		r := Of(strconv.Atoi("not_a_number"))
-		if !r.IsErr() {
-			t.Fatal("expected Err")
-		}
-	})
+	tests := []struct {
+		name     string
+		valFn    func() (int, error)
+		expected int
+		wantErr  bool
+	}{
+		{
+			name:     "success",
+			valFn:    func() (int, error) { return strconv.Atoi("42") },
+			expected: 42,
+			wantErr:  false,
+		},
+		{
+			name:     "failure",
+			valFn:    func() (int, error) { return strconv.Atoi("not_a_number") },
+			expected: 0,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := Of(tt.valFn())
+			if tt.wantErr {
+				if !r.IsErr() {
+					t.Errorf("expected Err for %s", tt.name)
+				}
+			} else {
+				if !r.IsOk() {
+					t.Errorf("expected Ok for %s", tt.name)
+				}
+				val, _ := r.Unwrap()
+				if val != tt.expected {
+					t.Errorf("expected %d, got %d for %s", tt.expected, val, tt.name)
+				}
+			}
+		})
+	}
 }
 
 func TestUnwrapOr(t *testing.T) {
@@ -83,21 +105,88 @@ func TestUnwrapOr(t *testing.T) {
 }
 
 func TestUnwrapOrElse(t *testing.T) {
-	ok := Ok(10)
-	got := ok.UnwrapOrElse(func(_ error) int { return -1 })
-	if got != 10 {
-		t.Fatalf("expected 10, got %d", got)
+	tests := []struct {
+		name     string
+		res      Result[int]
+		fn       func(error) int
+		expected int
+	}{
+		{
+			name:     "success yields value",
+			res:      Ok(10),
+			fn:       func(_ error) int { return -1 },
+			expected: 10,
+		},
+		{
+			name: "failure invokes fallback func",
+			res:  Err[int](errors.New("boom")),
+			fn: func(err error) int {
+				if err.Error() == "boom" {
+					return -1
+				}
+				return 0
+			},
+			expected: -1,
+		},
+		{
+			name: "failure with nil error explicitly handled",
+			res:  Err[int](nil),
+			fn: func(err error) int {
+				if err == nil {
+					return 99
+				}
+				return 0
+			},
+			expected: 99,
+		},
 	}
 
-	fail := Err[int](errors.New("boom"))
-	got = fail.UnwrapOrElse(func(err error) int {
-		if err.Error() == "boom" {
-			return -1
-		}
-		return 0
-	})
-	if got != -1 {
-		t.Fatalf("expected -1, got %d", got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.res.UnwrapOrElse(tt.fn)
+			if got != tt.expected {
+				t.Errorf("expected %d, got %d", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestError(t *testing.T) {
+	tests := []struct {
+		name string
+		res  Result[int]
+		err  error
+	}{
+		{
+			name: "success has nil error",
+			res:  Ok(42),
+			err:  nil,
+		},
+		{
+			name: "failure has error",
+			res:  Err[int](errors.New("failed")),
+			err:  errors.New("failed"),
+		},
+		{
+			name: "failure with nil error",
+			res:  Err[int](nil),
+			err:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.res.Error()
+			if tt.err == nil {
+				if err != nil {
+					t.Errorf("expected nil error, got %v", err)
+				}
+			} else {
+				if err == nil || err.Error() != tt.err.Error() {
+					t.Errorf("expected %v error, got %v", tt.err, err)
+				}
+			}
+		})
 	}
 }
 
