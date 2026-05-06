@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-// PanicError wraps a recovered panic value with its corresponding stack trace.
+// PanicError encapsulates a violently intercepted runtime crash, preserving the exact internal memory state alongside a deep diagnostic stack trace for debugging continuity.
 // Purpose: This allows callers to inspect the exact location and cause of the panic
 // without terminating the entire application.
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
@@ -20,8 +20,7 @@ type PanicError struct {
 	Stack string
 }
 
-// Error implements the error interface for PanicError, returning a formatted
-// string containing the panic value and the full stack trace.
+// Error maps the natively intercepted crash object back into the standard Go error ecosystem, outputting a completely formatted summary block to facilitate unified log processing.
 // Purpose: Implements the standard error interface.
 // Constraints: Assumes the internal stack trace string has been properly formatted.
 // Thread-safety: Read-only access to internal fields.
@@ -29,7 +28,7 @@ func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
 
-// Go launches a new goroutine safely with automatic panic recovery.
+// Go spawns an isolated execution thread shielded by an aggressive deferred trap mechanism, fully neutralizing any sudden algorithmic crashes before they can detonate the core application framework.
 // Purpose: Executes a function concurrently while guaranteeing that internal panics do not crash the application.
 // Constraints: If the provided function fn panics during execution, the panic is gracefully
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
@@ -52,7 +51,7 @@ func Go(fn func(), onPanic ...func(err error)) {
 	}()
 }
 
-// GoErr launches a new goroutine safely that executes fn and returns an error channel.
+// GoErr dispatches an independent network of work while simultaneously spinning up an asynchronous communications channel to seamlessly report operational failure states back to the orchestrator.
 // Purpose: To launch an async process and eventually receive its error (or nil) without blocking.
 // Constraints: The result of fn is sent to the returned channel, which is buffered to prevent
 // goroutine leaks if the caller does not read from it immediately.
@@ -71,7 +70,7 @@ func GoErr(fn func() error) <-chan error {
 	return ch
 }
 
-// Group manages a collection of goroutines and collects all errors returned by them.
+// Group structurally orchestrates a distributed fleet of worker threads, systematically accumulating individual error states into a single unified array while maintaining strict panic isolation per node.
 // Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
 // built-in panic recovery for every launched goroutine.
 // Constraints: Must be instantiated using NewGroup to function correctly.
@@ -83,8 +82,7 @@ type Group struct {
 	errs []error
 }
 
-// NewGroup creates and returns a new Group instance ready for managing
-// a collection of goroutines safely.
+// NewGroup instantiates a pristine worker management harness equipped with all necessary blocking primitives to coordinate parallel operations immediately upon creation.
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.
@@ -92,7 +90,7 @@ func NewGroup() *Group {
 	return &Group{}
 }
 
-// Go launches a goroutine within the Group to execute the provided function fn.
+// Go schedules a distinct functional block onto the active worker group, intrinsically enforcing a rigid panic recovery perimeter to guarantee a single failing job cannot breach the entire cluster.
 // Purpose: It automatically handles panic recovery by capturing the panic and appending
 // it to the Group's internal error slice as a PanicError.
 // Constraints: Expected to be called before Wait.
@@ -117,8 +115,7 @@ func (g *Group) Go(fn func() error) {
 	}()
 }
 
-// Wait blocks the calling goroutine until all goroutines launched within the Group
-// have completed execution.
+// Wait physically arrests the progression of the calling thread, enforcing an impenetrable barrier until every associated worker node has explicitly reported completion to the group registry.
 // Purpose: Acts as a synchronization barrier, waiting for all dispatched goroutines to finish.
 // Constraints: It returns a slice containing all collected errors, including any recovered panics.
 // If no errors occurred, it returns nil.
@@ -126,6 +123,10 @@ func (g *Group) Go(fn func() error) {
 // Safe for concurrent calls, though typically called once by a single coordinator goroutine.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
+
+	// Ensure that readers of the error array view fully synchronized state across
+	// all completed goroutines. Without locking here, the caller could read stale
+	// cache lines on multi-core machines.
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if len(g.errs) == 0 {
@@ -134,8 +135,7 @@ func (g *Group) Wait() []error {
 	return g.errs
 }
 
-// Map applies the function fn to each item in the items slice concurrently,
-// enforcing a strict bounded parallelism limit based on the concurrency parameter.
+// Map disperses identical transformation logic against a massive collection of entities in parallel, leveraging a semaphore to strictly throttle total active throughput down to an exact ceiling value.
 // Purpose: Efficiently apply a mapping function to a slice with controlled concurrent execution.
 // Constraints: It respects context cancellation, immediately halting further processing if
 // the context is canceled, returning ctx.Err(). It returns the mapped results in the exact
@@ -202,8 +202,7 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	return results, nil
 }
 
-// Fan launches the provided function fn for each item in the items slice concurrently
-// with no upper bound on parallelism (unbounded concurrency).
+// Fan dramatically explodes the provided item slice outward into completely unbounded, simultaneous executions, intentionally flooding the scheduling engine for absolute maximum possible speed.
 // Purpose: Rapidly disperse work across infinite goroutines simultaneously.
 // Constraints: It respects context cancellation, aborting the launch loop early if the context is
 // canceled. It safely collects and returns all errors encountered, including recovered panics.

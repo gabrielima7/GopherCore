@@ -25,7 +25,7 @@ var validate = validator.New()
 // Thread-safety: Methods provided by the policy are inherently thread-safe.
 var htmlPolicy = bluemonday.StrictPolicy()
 
-// ValidationError encapsulates the details of a single struct field validation failure.
+// ValidationError represents a discrete, structural failure during struct evaluation, mapping exactly which field violated its bound constraints.
 // Purpose: Provides structured field-level error mapping.
 // Constraints: Normally generated internally via reflection checks.
 // Thread-safety: Safe for concurrent access when not mutated.
@@ -38,8 +38,7 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// Error implements the standard error interface for ValidationError, returning the human-readable
-// message specific to this single validation failure. It does not contain any thread-unsafe operations.
+// Error fulfills the standard Go error interface for ValidationError, yielding a pre-formatted, user-safe description of the exact constraint violation.
 // Purpose: Allows treating a ValidationError strictly as an error interface.
 // Constraints: Standard interface constraint.
 // Thread-safety: Pure method on value receiver.
@@ -47,15 +46,13 @@ func (v ValidationError) Error() string {
 	return v.Message
 }
 
-// ValidationErrors represents a collection of one or more ValidationError instances.
-// It is typically generated resulting from a multi-field struct validation failure.
+// ValidationErrors aggregates a slice of individual ValidationError items, typically accumulated when inspecting complex struct trees with multiple faulty fields.
 // Purpose: Groups multiple validation errors into a single structured response.
 // Constraints: Must be iterated over to inspect individual field errors.
 // Thread-safety: As a slice of errors, its methods are read-only and thread-safe.
 type ValidationErrors []ValidationError
 
-// Error implements the standard error interface for ValidationErrors, aggregating all underlying
-// individual field validation messages into a single semicolon-separated string.
+// Error flattens the aggregated ValidationErrors slice into a single, cohesive semicolon-separated string suitable for simple logging sinks.
 // Purpose: Flattens grouped errors into a single error interface.
 // Constraints: Aggregated string may be large if many fields failed.
 // Thread-safety: Safe for concurrent access.
@@ -67,25 +64,27 @@ func (ve ValidationErrors) Error() string {
 	return strings.Join(msgs, "; ")
 }
 
-// Validate inspects a given struct using its reflection-based `validate` tags.
-// If the struct violates any tags, it aggregates all failures into a ValidationErrors
-// slice which implements the error interface. It returns nil if the struct perfectly
-// satisfies all validation constraints.
+// Validate rigorously inspects the provided struct (or struct pointer) using reflection to ensure all fields perfectly satisfy their declared `validate` struct tags.
 // Purpose: Enforces struct field rules dynamically based on struct tags.
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely
 // thread-safe for concurrent use.
 func Validate(s any) error {
 	err := validate.Struct(s)
+	// Fast path: if the payload fully complies, avoid further reflection or allocations.
 	if err == nil {
 		return nil
 	}
 
+	// Determine if the failure originates from struct rules, or if it's an incompatible type
+	// (e.g., passing an integer instead of a struct).
 	var validationErrors validator.ValidationErrors
 	if !errors.As(err, &validationErrors) {
 		return err
 	}
 
+	// Pre-allocate the exact slice capacity since the number of failed constraints is strictly known.
+	// This minimizes heap allocations and reduces GC pressure on heavy validation requests.
 	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{
@@ -98,9 +97,7 @@ func Validate(s any) error {
 	return errs
 }
 
-// RegisterValidation registers a custom, user-defined validation function mapped to
-// a specific tag name. Once registered, this tag can be used in struct fields
-// throughout the application. It returns an error if the tag name is already registered.
+// RegisterValidation expands the internal ruleset by binding a custom validation function to a new struct tag identifier, permitting application-specific invariant checks.
 // Purpose: Extends the validation engine with custom application-specific rules.
 // Constraints: MUST be invoked purely during initialization phases.
 // Thread-safety: This function modifies the global validator instance and is NOT thread-safe
@@ -110,9 +107,7 @@ func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
 
-// SanitizeString performs primitive input scrubbing by stripping out invisible
-// Unicode control characters and aggressively trimming leading/trailing whitespace.
-// It creates a new allocated string to prevent modifying the original reference.
+// SanitizeString scrubs untrusted user input by systematically destroying invisible Unicode control characters and aggressively stripping surrounding whitespace.
 // Purpose: Strips out unwanted whitespace and control characters from strings.
 // Constraints: This is purely a basic data-hygiene mechanism and absolutely
 // MUST NOT be relied upon as a primary defense against injection attacks like XSS or SQLi.
@@ -121,8 +116,13 @@ func RegisterValidation(tag string, fn validator.Func) error {
 // Security Warning: Context-aware escaping at the respective boundaries is still strictly required.
 func SanitizeString(s string) string {
 	var b strings.Builder
+	// Preallocate buffer to the exact length of the input string to avoid reallocation
+	// penalties during iterative rune writing. This assumes the output will be close
+	// to the original size, optimizing for the happy path.
 	b.Grow(len(s))
 	for _, r := range s {
+		// Allow specific control characters that denote legitimate whitespace formatting
+		// (newlines, carriage returns, tabs) while filtering out invisible malicious payloads.
 		if !unicode.IsControl(r) || r == '\n' || r == '\r' || r == '\t' {
 			b.WriteRune(r)
 		}
@@ -130,8 +130,7 @@ func SanitizeString(s string) string {
 	return strings.TrimSpace(b.String())
 }
 
-// StripHTML aggressively strips all HTML tags, attributes, and potentially dangerous
-// payloads from the input string using the microcosm-cc/bluemonday StrictPolicy.
+// StripHTML neutralizes markup injection vectors by aggressively eliminating all HTML tags, attributes, and JavaScript payloads from the given string.
 // Purpose: Mitigate Cross-Site Scripting (XSS) vectors by destroying all markup structure, leaving only plain text.
 // Constraints: Destroys markup, not meant for HTML manipulation where structure should be retained.
 // Thread-safety: It leverages a globally instantiated policy and is fully

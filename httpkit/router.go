@@ -17,8 +17,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// RouterConfig holds configuration options for building and mounting the core
-// application router, including CORS, rate limiting, and HTTP timeouts.
+// RouterConfig models the immutable, global network topology limits and middleware injection triggers, directly governing how the underlying Chi multiplexer accepts traffic.
 // Purpose: Aggregates all networking parameters for the application server.
 // Constraints: Must be populated appropriately for the specific environment.
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
@@ -45,8 +44,7 @@ type RouterConfig struct {
 	EnableLogger bool
 }
 
-// DefaultRouterConfig returns a secure and sensible baseline configuration
-// for the HTTP router to mitigate standard application vulnerabilities natively.
+// DefaultRouterConfig allocates a predefined, highly opinionated configuration structure optimized to aggressively clamp down on network abuse without requiring manual developer tuning.
 // Purpose: Bootstraps a secure starting configuration.
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
@@ -64,15 +62,13 @@ func DefaultRouterConfig() RouterConfig {
 	}
 }
 
-// RouterOption defines a functional option signature for configuring the router instance
-// mutatively during setup.
+// RouterOption establishes a typed functional parameter contract, affording consumers the capability to sequentially override targeted properties inside the RouterConfig map.
 // Purpose: Enables functional option pattern configuration.
 // Constraints: Evaluated serially during configuration initialization.
 // Thread-safety: Safe when used sequentially during initialization.
 type RouterOption func(*RouterConfig)
 
-// WithCORS restricts the Cross-Origin Resource Sharing policy to only accept
-// preflight and incoming requests from the strictly allowed array of origins.
+// WithCORS mandates strict origin filtering on incoming HTTP requests by forcing the router to reject preflight handshakes originating from domain names not explicitly enumerated here.
 // Purpose: Adds allowed domains to the CORS middleware layer.
 // Constraints: Can be overridden or ignored if empty.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -82,8 +78,7 @@ func WithCORS(origins ...string) RouterOption {
 	}
 }
 
-// WithRateLimit configures global inbound traffic limits by specifying the allowed
-// requests per second (rps) and a maximum concurrent burst size.
+// WithRateLimit imposes a global token-bucket throttling ceiling on all active routing paths, shedding excess traffic that surpasses the designated requests-per-second or instantaneous burst threshold.
 // Purpose: Defends against volumetric traffic attacks.
 // Constraints: A zero value bypasses rate limiting entirely.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -94,8 +89,7 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 	}
 }
 
-// WithReadTimeout strictly enforces the maximum duration the server will wait
-// while reading the full client HTTP request headers and body payload.
+// WithReadTimeout permanently disconnects any client socket attempting to infinitely stall the server by streaming headers or POST body byte chunks at an unacceptably slow cadence.
 // Purpose: Preempts slow-loris attacks by capping total read duration.
 // Constraints: Must be positive or zero.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -105,8 +99,7 @@ func WithReadTimeout(d time.Duration) RouterOption {
 	}
 }
 
-// WithReadHeaderTimeout strictly enforces the maximum duration the server will wait
-// while reading the HTTP request headers, helping to mitigate Slowloris-style attacks.
+// WithReadHeaderTimeout aggressively snaps shut any connection unable to finalize its initial HTTP header transmission block before the provided countdown completely exhausts.
 // Purpose: Disconnects stalling clients.
 // Constraints: Must be provided unconditionally on exposed servers.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -116,8 +109,7 @@ func WithReadHeaderTimeout(d time.Duration) RouterOption {
 	}
 }
 
-// WithWriteTimeout strictly enforces the maximum duration the server is allowed
-// to spend generating and writing the HTTP response back to the connected client.
+// WithWriteTimeout preemptively aborts handlers running out of bounds by explicitly closing the client transport stream if computing or flushing the response bytes exceeds the given timespan.
 // Purpose: Frees resources associated with stalling clients or handlers.
 // Constraints: Bound your long-running handlers inside this window to avoid forced closures.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -127,8 +119,7 @@ func WithWriteTimeout(d time.Duration) RouterOption {
 	}
 }
 
-// WithIdleTimeout strictly enforces the maximum duration the server is allowed
-// to keep idle keep-alive connections open.
+// WithIdleTimeout proactively purges stagnant Keep-Alive socket connections sitting idly in the system pool once they surpass the specified inactivity threshold.
 // Purpose: Limits the amount of inactive sockets held in memory.
 // Constraints: Should generally be longer than read timeouts.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -138,8 +129,7 @@ func WithIdleTimeout(d time.Duration) RouterOption {
 	}
 }
 
-// WithLogger toggles the attachment of the chi structured HTTP request logging
-// middleware on the internal Mux router.
+// WithLogger conditionally patches a high-performance observability interceptor directly into the request processing chain, dumping formatted diagnostic logs to standard out for every routed call.
 // Purpose: Simplifies observing real-time HTTP metrics and route performance.
 // Constraints: Writes to standard output.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
@@ -164,8 +154,7 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 	return cfg
 }
 
-// NewRouter constructs and returns a highly-opinionated `chi.Mux` router
-// bundled with a robust, pre-configured middleware stack.
+// NewRouter fabricates an intensely opinionated multiplexer from the ground up, welding together an unbypassable chain of defense-in-depth interceptors alongside any user-selected functional options.
 //
 // The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
 // panic safety (Recoverer), and strict security headers. Optional middlewares
@@ -181,6 +170,8 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	// Core middleware stack.
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	// Gracefully handles panics inside route handlers, converting them to 500 Internal Server Errors
+	// to prevent the entire node process from crashing.
 	r.Use(middleware.Recoverer)
 
 	if cfg.EnableLogger {
@@ -190,7 +181,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	// Security headers — always enabled.
 	r.Use(SecurityHeadersMiddleware)
 
-	// Rate limiting.
+	// Rate limiting based on the x/time/rate token bucket algorithm.
 	if cfg.RateLimit > 0 {
 		burst := cfg.RateBurst
 		if burst <= 0 {
@@ -200,7 +191,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 		r.Use(RateLimitMiddleware(limiter))
 	}
 
-	// CORS.
+	// CORS conditionally injected if origins are specified.
 	if len(cfg.AllowedOrigins) > 0 {
 		r.Use(CORSMiddleware(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders))
 	}
@@ -208,7 +199,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	return r
 }
 
-// NewServer creates and returns an `http.Server` bound to the provided network address.
+// NewServer allocates a native HTTP transport daemon strictly governed by the precalculated network timeout parameters to act as a resilient fortress against malicious connection hogging attacks.
 // Purpose: It applies the read/write timeouts derived from the router options to prevent
 // slowloris and other resource exhaustion attacks natively at the stdlib server level.
 // Constraints: Relies heavily on the exact timeout metrics defined.
@@ -225,8 +216,7 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 	}
 }
 
-// GracefulShutdown starts the HTTP server in a background goroutine and concurrently listens
-// for OS termination signals (SIGINT, SIGTERM).
+// GracefulShutdown commandeers the main process thread, intercepting OS-level kill signals to gracefully drain all ongoing HTTP connections across the underlying server network pool before a hard deadline collapses.
 // Purpose: Upon receiving a termination signal, it invokes the server's Shutdown method, giving ongoing
 // active requests up to the specified timeout duration to complete before forcing a closure.
 // Constraints: Blocks until the server exits completely or the timeout expires.
@@ -235,13 +225,18 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	serverErr := make(chan error, 1)
 	go func() {
+		// Asynchronously launch the server. If it immediately fails (e.g. port already bound),
+		// we funnel the error to the select block via the channel.
 		serverErr <- srv.ListenAndServe()
 	}()
 
 	quit := make(chan os.Signal, 1)
+	// Register for typical OS container termination signals.
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(quit)
 
+	// Block the main thread. We wake up if the server crashes unexpectedly, or if
+	// the OS asks the process to exit.
 	select {
 	case err := <-serverErr:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -249,6 +244,8 @@ func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 		}
 		return nil
 	case <-quit:
+		// When a shutdown signal is caught, establish a bounded deadline. Any requests
+		// still processing when the context expires will be abruptly disconnected.
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		return srv.Shutdown(ctx)

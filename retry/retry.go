@@ -17,14 +17,13 @@ import (
 // Constraints: Must implement io.Reader.
 var randReader io.Reader = rand.Reader
 
-// ErrMaxAttemptsReached is returned when all retry attempts are exhausted.
+// ErrMaxAttemptsReached signifies a terminal failure state triggered internally whenever a supervised retry execution loop completely exhausts its configured maximum iteration count without a single success.
 // Purpose: Sentinel error indicating total failure of the retry loop.
 // Constraints: Can be used with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 
-// Strategy defines the backoff algorithm used to calculate the delay
-// between consecutive retry attempts.
+// Strategy isolates the algorithmic methodology leveraged by the delay calculator engine to dictate the exact duration applied during backoff sleep cycles between successive failures.
 // Purpose: Used to switch mathematical decay mechanisms.
 // Constraints: Expected to be one of the pre-defined constants.
 // Thread-safety: Pure enum.
@@ -44,8 +43,7 @@ const (
 	StrategyExponential
 )
 
-// Config strictly holds the configuration parameters that govern
-// the behavior of a retry operation, including backoff algorithms and constraints.
+// Config solidifies the exhaustive behavioral blueprint constraining how aggressively and how frequently a given failure handler attempts to repeat an aborted logical execution block.
 // Purpose: Parameterizes retry loops.
 // Constraints: Must be populated with sensible bounds.
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
@@ -58,8 +56,7 @@ type Config struct {
 	RetryIf      func(error) bool
 }
 
-// Option defines a functional option signature for configuring retry behavior
-// mutatively during initialization.
+// Option establishes a localized mutator function signature, cleanly encapsulating specific parameter overrides targeted at customizing the resilient retry configuration map.
 // Purpose: Allows overriding default retry configuration settings.
 // Constraints: Apply synchronously before launching the loop.
 // Thread-safety: Safe when used sequentially during initialization.
@@ -81,7 +78,7 @@ func defaultConfig() *Config {
 	}
 }
 
-// WithMaxAttempts sets the maximum number of attempts (including the first).
+// WithMaxAttempts directly restricts the absolute ceiling on how many iterative function loops are allowed to evaluate before immediately triggering a catastrophic timeout collapse.
 // Purpose: Bound the maximum amount of loops the retry block executes.
 // Constraints: Must be positive or default bound is used.
 // Thread-safety: Mutates configuration synchronously.
@@ -93,7 +90,7 @@ func WithMaxAttempts(n int) Option {
 	}
 }
 
-// WithInitialDelay sets the initial delay between retries.
+// WithInitialDelay dictates the fundamental wait block assigned following the very first algorithmic failure, functioning as the foundational seed multiplier for more complex decay algorithms.
 // Purpose: Define a base wait offset.
 // Constraints: Usually bounded by MaxDelay.
 // Thread-safety: Mutates configuration synchronously.
@@ -103,7 +100,7 @@ func WithInitialDelay(d time.Duration) Option {
 	}
 }
 
-// WithMaxDelay sets the maximum delay between retries.
+// WithMaxDelay places a strict, impenetrable limit on maximum backoff lengths to prevent escalating mathematical multipliers from forcing goroutines into functionally infinite sleep states.
 // Purpose: Limit how far an exponential strategy scales the wait time.
 // Constraints: Should be longer than initial delay.
 // Thread-safety: Mutates configuration synchronously.
@@ -113,7 +110,7 @@ func WithMaxDelay(d time.Duration) Option {
 	}
 }
 
-// WithStrategy sets the backoff strategy.
+// WithStrategy forcibly diverts the internal timing engine towards a specified delay curve calculation algorithm, usually toggling between flat-line pauses and dynamically escalating intervals.
 // Purpose: Configures which algorithm dictates backoff timing.
 // Constraints: Assumes StrategyConstant or StrategyExponential.
 // Thread-safety: Mutates configuration synchronously.
@@ -123,7 +120,7 @@ func WithStrategy(s Strategy) Option {
 	}
 }
 
-// WithJitter enables or disables jitter on the backoff delay.
+// WithJitter flips a boolean trigger that instructs the delay calculator to selectively inject cryptographically secure noise into its math boundaries to circumvent synchronized thundering herd storms.
 // Purpose: Avoid concurrent 'thundering herd' spikes after transient outages.
 // Constraints: Usually implemented as full random jitter.
 // Thread-safety: Mutates configuration synchronously.
@@ -133,7 +130,7 @@ func WithJitter(enabled bool) Option {
 	}
 }
 
-// WithRetryIf sets a predicate that determines whether an error is retryable.
+// WithRetryIf assigns an intelligent discriminator function callback tasked with dissecting incoming application errors, authorizing immediate termination logic for non-transient, permanently unrecoverable problems.
 // Purpose: Allows selective short-circuiting for fatal, unrecoverable errors.
 // Constraints: If the predicate returns false, the retry loop stops immediately.
 // Thread-safety: Mutates configuration synchronously.
@@ -143,8 +140,7 @@ func WithRetryIf(fn func(error) bool) Option {
 	}
 }
 
-// Do repeatedly executes the provided function fn until it succeeds,
-// the maximum number of attempts is exhausted, or the context is canceled.
+// Do isolates a purely side-effecting code block, endlessly attempting to push it toward success until artificially restrained by context deadlines, maximum bounds, or fatal error triggers.
 // Purpose: Safely wrap side-effect operations in a resilient loop.
 // Constraints: It applies the configured backoff strategy between attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state loop
@@ -157,6 +153,8 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 
 	var lastErr error
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ {
+		// Respect the caller's context lifecycle strictly by intercepting cancellations
+		// before doing any work, saving network/CPU cycles on aborted processes.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -166,14 +164,16 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 			return nil
 		}
 
+		// Delegate error introspection to the caller's defined RetryIf condition,
+		// allowing immediate bail-outs for deterministic, unrecoverable errors like 404s.
 		if !cfg.RetryIf(lastErr) {
 			return lastErr
 		}
 
-		// Delay before the next attempt, unless this was the final attempt.
 		if attempt < cfg.MaxAttempts-1 {
 			delay := calculateDelay(cfg, attempt)
-			// Wait for the delay or abort immediately if the context is canceled.
+			// Sleep block multiplexed with the context listener. Ensures that if the context
+			// expires during a long exponential backoff sleep, we awake and return instantly.
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -181,11 +181,13 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 			}
 		}
 	}
+
+	// Chain the sentinel error with the underlying error so the caller can inspect
+	// the final failure cause using errors.Is or errors.As.
 	return errors.Join(ErrMaxAttemptsReached, lastErr)
 }
 
-// DoWithValue acts identical to Do, but is designed for functions that return
-// both a value and an error.
+// DoWithValue wraps an opaque code segment demanding a concrete return payload in a highly fault-tolerant protective layer, actively resolving intermittent disruptions until retrieving valid data safely.
 // Purpose: Safely wrap fallible pure computations or fetches in a resilient loop.
 // Constraints: It repeatedly executes fn until it succeeds and returns the result,
 // or fails after exhausting all attempts.
@@ -217,6 +219,7 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 
 		if attempt < cfg.MaxAttempts-1 {
 			delay := calculateDelay(cfg, attempt)
+			// Yield the goroutine to the runtime scheduler securely while monitoring context.
 			select {
 			case <-ctx.Done():
 				return zero, ctx.Err()
