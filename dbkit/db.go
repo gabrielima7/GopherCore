@@ -10,7 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Config holds database connection configuration.
+// Config delineates the strict connectivity parameters and connection pooling thresholds used to dial the underlying remote database node.
 // Purpose: Dictates the connection pool boundaries and driver settings.
 // Constraints: Passed to connection handlers, typically not manually constructed.
 // Thread-safety: Safely read-only post instantiation.
@@ -29,8 +29,7 @@ type Config struct {
 	ConnMaxIdleTime time.Duration
 }
 
-// DefaultConfig returns a sensible default configuration
-// mapped to a stable production-ready baseline.
+// DefaultConfig generates a highly resilient network baseline, pre-populating safe connection thresholds that protect against arbitrary socket exhaustion in production.
 // Purpose: Generates a baseline stable database connection configuration.
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
@@ -45,13 +44,13 @@ func DefaultConfig(driver, dsn string) Config {
 	}
 }
 
-// Option is a functional option for configuring the database connection mutatively.
+// Option provides a composable configuration mutator, permitting callers to incrementally override bounded defaults prior to actively spinning up a database connection block.
 // Purpose: Allows overriding default Config behavior.
 // Constraints: Used as variadic arguments during Connect or MustConnect.
 // Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
-// WithMaxOpenConns sets the maximum number of open connections.
+// WithMaxOpenConns forcibly throttles the maximum volume of concurrent physical connections spawned across the entire connection pool lifecycle.
 // Purpose: Adjusts the connection pool size limit.
 // Constraints: n should be greater than 0.
 // Thread-safety: Mutates configuration synchronously.
@@ -61,7 +60,7 @@ func WithMaxOpenConns(n int) Option {
 	}
 }
 
-// WithMaxIdleConns sets the maximum number of idle connections.
+// WithMaxIdleConns dictates the exact ceiling of inactive sockets the host application will preserve in memory to accelerate upcoming network bursts.
 // Purpose: Adjusts the connection pool idle limit.
 // Constraints: n should be >= 0.
 // Thread-safety: Mutates configuration synchronously.
@@ -71,7 +70,7 @@ func WithMaxIdleConns(n int) Option {
 	}
 }
 
-// WithConnMaxLifetime sets the maximum duration a connection can be reused.
+// WithConnMaxLifetime actively caps the absolute chronological age of any connection inside the pool, severing stale transports that sit precariously close to typical database proxy drop timers.
 // Purpose: Defines connection recycle limits.
 // Constraints: Should be shorter than database-side closing timeouts.
 // Thread-safety: Mutates configuration synchronously.
@@ -81,7 +80,7 @@ func WithConnMaxLifetime(d time.Duration) Option {
 	}
 }
 
-// WithConnMaxIdleTime sets the maximum duration a connection can be idle.
+// WithConnMaxIdleTime trims down the pool proactively by destroying cached connections if they idle inertly beyond this specified mathematical duration boundary.
 // Purpose: Trims idle connections after this duration.
 // Constraints: Must be >= 0.
 // Thread-safety: Mutates configuration synchronously.
@@ -91,8 +90,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 	}
 }
 
-// Connect safely initializes and establishes a new, connection-pooled database connection
-// using the provided driver and DSN.
+// Connect constructs and strictly calibrates a thread-safe connection pooling multiplexer over the specified database driver dialect, instantly validating network liveliness.
 // Purpose: Opens a managed connection pool to a backing database system safely.
 // Constraints: It fully respects the provided context for timeout/cancellation
 // during connection and subsequent connectivity verification (PingContext).
@@ -110,11 +108,16 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 		opt(&cfg)
 	}
 
+	// ConnectContext opens the database and then pings it. We rely on the provided context
+	// to fail fast if the database is completely unreachable during application bootstrap.
 	db, err := sqlx.ConnectContext(ctx, cfg.Driver, cfg.DSN)
 	if err != nil {
 		return nil, err
 	}
 
+	// Enforce strict connection bounds to prevent connection starvation and database thrashing.
+	// Bounding MaxOpenConns protects the downstream database from being overwhelmed, while
+	// MaxIdleConns / MaxIdleTime ensures we aren't leaking stale sockets in memory.
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
@@ -123,8 +126,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 	return db, nil
 }
 
-// MustConnect acts exactly like Connect, but instead of returning an error, it deliberately panics
-// if the connection or ping fails.
+// MustConnect aggressively executes standard connection bootstrapping, deliberately collapsing the entire runtime environment immediately upon experiencing any network or authentication friction.
 // Purpose: Forces an immediate fatal panic if a connection fails, simplifying bootstrapping logic.
 // Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
@@ -137,8 +139,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 	return db
 }
 
-// HealthCheck executes a lightweight ping against the configured database to ensure the
-// connection remains active and the underlying database is currently reachable.
+// HealthCheck dispatches a rapid, lightweight verification packet directly to the underlying SQL driver engine to explicitly re-validate the current network socket stability state.
 // Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
