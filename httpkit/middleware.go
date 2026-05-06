@@ -10,9 +10,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// SecurityHeadersMiddleware injects a baseline set of strict HTTP security headers
-// into every outbound response. It mitigates common web vulnerabilities like
-// MIME-sniffing, clickjacking, and XSS.
+// SecurityHeadersMiddleware forcibly modifies the outgoing HTTP response stream by embedding a hardened matrix of web security directives designed to repel framing, sniffing, and cross-site scripting attacks.
 // Purpose: Protects HTTP endpoints natively against common web vulnerabilities.
 // Constraints: Must be applied globally or directly on routes providing web content.
 // Thread-safety: Safe for concurrent use across requests. It assigns to map directly
@@ -40,8 +38,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RateLimitMiddleware enforces global inbound request rate limiting using a token
-// bucket algorithm (golang.org/x/time/rate).
+// RateLimitMiddleware shields the core application router from denial-of-service volumetric floods by actively discarding connections that surpass the mathematically allocated token bucket allowances.
 // Purpose: Protects endpoints from abuse and DoS attacks by throttling traffic.
 // Constraints: If a request exceeds the permissible limit, it is immediately aborted,
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
@@ -61,14 +58,14 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 	}
 }
 
-// CORSMiddleware intercepts incoming requests to manage Cross-Origin Resource Sharing (CORS).
-// It verifies the Origin header against a pre-configured whitelist.
+// CORSMiddleware rigorously negotiates browser preflight constraints, inspecting the network Origin header and dynamically injecting explicit Access-Control allowances exclusively for whitelisted domains.
 // Purpose: Enables browser-based cross-origin requests securely.
 // Constraints: It automatically intercepts and responds to HTTP OPTIONS preflight requests
 // without passing them down the middleware chain.
 // Thread-safety: Configuration maps and slices are built during initialization closure time
 // and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
+	// Pre-compute O(1) origin lookup map to keep handler execution extremely fast during heavy loads.
 	originsSet := make(map[string]bool, len(allowedOrigins))
 	allowAll := false
 	for _, o := range allowedOrigins {
@@ -78,6 +75,7 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 		originsSet[o] = true
 	}
 
+	// Pre-join string slices to avoid executing strings.Join on every single request.
 	methodsStr := strings.Join(allowedMethods, ", ")
 	headersStr := strings.Join(allowedHeaders, ", ")
 
@@ -86,9 +84,13 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 			origin := r.Header.Get("Origin")
 
 			if origin != "" && (allowAll || originsSet[origin]) {
+				// We assign directly to the header map structure rather than using w.Header().Set()
+				// to avoid lock overhead, since we know these keys are unique and non-colliding here.
 				h := w.Header()
 				if allowAll {
 					h["Access-Control-Allow-Origin"] = []string{"*"}
+					// Note: Setting Allow-Credentials with a wildcard origin is explicitly forbidden
+					// by browser security models, so it is strictly omitted here.
 				} else {
 					h["Access-Control-Allow-Origin"] = []string{origin}
 					h["Access-Control-Allow-Credentials"] = []string{"true"}
@@ -96,10 +98,11 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 				}
 				h["Access-Control-Allow-Methods"] = []string{methodsStr}
 				h["Access-Control-Allow-Headers"] = []string{headersStr}
+				// Cache the preflight response in the browser for 24 hours to reduce OPTIONS traffic.
 				h["Access-Control-Max-Age"] = []string{"86400"}
 			}
 
-			// Handle preflight.
+			// Preflight requests (OPTIONS) shouldn't reach the actual API handlers. Break the chain.
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

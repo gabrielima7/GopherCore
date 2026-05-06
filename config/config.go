@@ -23,9 +23,7 @@ import (
 // Thread-safety: Methods provided by the validator are inherently thread-safe.
 var validate = validator.New()
 
-// Load reflects upon the provided cfg parameter, recursively parsing environment
-// variables into its exported fields. It then validates the populated struct against
-// its `validate` tags using the go-playground/validator library.
+// Load dynamically introspects the provided target struct pointer, systematically querying the OS environment to inject matching variables, followed by executing strict struct tag validation rules.
 // Purpose: Automatically loads and validates configuration data directly from the environment.
 // Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.
@@ -97,6 +95,8 @@ func populate(v reflect.Value) error {
 			continue
 		}
 
+		// Prioritize runtime OS environment variable lookups. If the key exists but is
+		// empty, it intentionally overwrites the default to allow explicitly blank overrides.
 		envVal, exists := os.LookupEnv(envKey)
 		if !exists {
 			defaultVal := field.Tag.Get("envDefault")
@@ -106,6 +106,7 @@ func populate(v reflect.Value) error {
 			envVal = defaultVal
 		}
 
+		// Delegate type casting and assignment to abstract the reflection complexities away.
 		if err := setField(fieldValue, envVal); err != nil {
 			return fmt.Errorf("failed to set field %s: %w", field.Name, err)
 		}
@@ -124,6 +125,8 @@ func setField(v reflect.Value, value string) error {
 	case reflect.String:
 		v.SetString(value)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// time.Duration is natively an int64 underneath, but requires a specialized parser
+		// to correctly interpret unit strings like '5s' or '10ms'.
 		if v.Type() == reflect.TypeOf(time.Duration(0)) {
 			d, err := time.ParseDuration(value)
 			if err != nil {
@@ -137,6 +140,8 @@ func setField(v reflect.Value, value string) error {
 		if err != nil {
 			return err
 		}
+		// Explicitly check bounds. Without this, downcasting a 64-bit int parsed from the OS
+		// into an Int8 could silently truncate the value if it exceeds bounds.
 		if v.OverflowInt(intVal) {
 			return fmt.Errorf("integer overflow for value %s", value)
 		}

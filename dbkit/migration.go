@@ -12,7 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// MigrationConfig holds configuration for running migrations.
+// MigrationConfig structures the mandatory routing parameters required to interface the schema migrator with physical filesystem directories and logical database drivers.
 // Purpose: Bundles migration source and database driver configs.
 // Constraints: Must point to a valid driver and source URL.
 // Thread-safety: Read-only after instantiation.
@@ -23,8 +23,7 @@ type MigrationConfig struct {
 	DatabaseName string
 }
 
-// RunMigrations incrementally applies all pending "up" migrations located at the specified sourceURL.
-// It relies on golang-migrate to orchestrate the internal schema_migrations table safely.
+// RunMigrations orchestrates a forward-moving schema reconciliation, scanning the specified source directory for pending DDL patches and applying them iteratively to the active database connection.
 // Purpose: Automates schema upgrades against the connected database.
 // Constraints: Note that schema migrations often perform DDL operations that cannot be fully encapsulated in
 // a transaction depending on the underlying database engine. Ensure backups are available.
@@ -36,18 +35,20 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 		return err
 	}
 	defer func() {
+		// Ensures the migration engine drops its internal connections and advisory locks
+		// cleanly, regardless of whether the migration succeeded or failed.
 		_, _ = m.Close()
 	}()
 
+	// ErrNoChange is explicitly ignored because reaching the target version successfully
+	// without applying new steps is considered a valid, non-erroneous terminal state.
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return err
 	}
 	return nil
 }
 
-// RollbackMigrations selectively reverts the last N migration steps by executing their
-// corresponding "down" migration files. If the steps parameter is exactly 0, it will
-// systematically revert all previously applied migrations.
+// RollbackMigrations forces a backwards schema degradation, unrolling the specified number of historical database patches by executing their corresponding destructive 'down' DDL instructions.
 // Purpose: Reverts applied database schema migrations.
 // Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
 // rolling back these types of operations transactionally.
@@ -61,6 +62,7 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 		_, _ = m.Close()
 	}()
 
+	// A value of 0 or below signals a total teardown, dropping all schema versions dynamically.
 	if steps <= 0 {
 		if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			return err
@@ -68,13 +70,14 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 		return nil
 	}
 
+	// Step backwards exactly N times. The negative integer signifies the inverse direction.
 	if err := m.Steps(-steps); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return err
 	}
 	return nil
 }
 
-// MigrationVersion represents the current migration state.
+// MigrationVersion captures the temporal snapshot of the database's structural integrity, signaling both the active schema integer and whether a previous rollout crashed mid-flight.
 // Purpose: Models the version and dirty state flag.
 // Constraints: A dirty flag typically blocks further migrations until manually resolved.
 // Thread-safety: Struct data.
@@ -83,8 +86,7 @@ type MigrationVersion struct {
 	Dirty   bool
 }
 
-// GetMigrationVersion queries the underlying migrate state machine to retrieve the current
-// active schema version.
+// GetMigrationVersion queries the internal synchronization tables inside the target database to extract the currently recognized schema generation timestamp alongside its cleanliness flag.
 // Purpose: Reads the active database schema version level.
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
