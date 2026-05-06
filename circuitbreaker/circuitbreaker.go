@@ -9,23 +9,19 @@ import (
 	"time"
 )
 
-// ErrCircuitOpen is returned when the circuit is in the Open state
-// and no requests are permitted to execute. Callers should fast-fail
-// or fallback to a secondary mechanism.
+// ErrCircuitOpen serves as an immediate terminal sentinel raised whenever execution is blocked by a tripped breaker, commanding upstream callers to rapidly failover.
 // Purpose: Indicates that a circuit is fully tripped and cannot process requests.
 // Constraints: Treat as a sentinel error for matching with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
 
-// ErrTooManyRequests is returned when the circuit is in the HalfOpen
-// state and the maximum number of concurrent probe requests has already
-// been reached.
+// ErrTooManyRequests actively repels secondary requests hitting a recovering half-open circuit once the strict probing ceiling is saturated, shielding the fragile downstream service.
 // Purpose: Prevents overwhelming a recovering service with too many probes.
 // Constraints: Treat as a sentinel error for matching with errors.Is.
 // Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
 
-// State represents the current operational state of the circuit breaker.
+// State mathematically tracks the logical operational phase of the breaker machine, directly controlling whether network traffic flows cleanly or is aggressively blackholed.
 // Purpose: Used to determine if requests should be allowed, rejected, or probed.
 // Constraints: Should only be one of the defined constants.
 // Thread-safety: Pure enum.
@@ -55,7 +51,7 @@ const (
 	StateHalfOpen
 )
 
-// String returns the human-readable string representation of the State.
+// String maps the internal integer phase enum into an intuitive, human-parseable text label, heavily utilized during metric exports and structured observability logging.
 // Purpose: Simplifies console output and logging of the circuit status.
 // Constraints: Always returns a valid string, defaulting to "unknown".
 // Thread-safety: Pure method on value receiver.
@@ -72,8 +68,7 @@ func (s State) String() string {
 	}
 }
 
-// Config holds the configuration parameters that dictate the behavior
-// and thresholds of a circuit breaker.
+// Config consolidates the sensitive tuning gauges controlling precisely how resiliently or aggressively the circuit breaker reacts to a sustained barrage of external execution failures.
 // Purpose: Defines operational limits like timeout and failure thresholds.
 // Constraints: All numeric fields must be strictly positive or will be set to defaults.
 // Thread-safety: Treat as read-only once passed to the Breaker constructor.
@@ -98,9 +93,7 @@ type Config struct {
 	OnStateChange func(from, to State)
 }
 
-// DefaultConfig returns a sensible default configuration for a circuit breaker:
-// 5 failures to open, 30 seconds open timeout, 1 half-open request, and 2
-// consecutive successes to close.
+// DefaultConfig establishes a highly battle-tested, conservative tolerance foundation designed to safely protect the majority of standard microservice architectures against cascading network death.
 // Purpose: Provides a safe, battle-tested baseline configuration.
 // Constraints: Generates defaults that can be optionally overridden.
 // Thread-safety: Returns a new instance.
@@ -113,7 +106,7 @@ func DefaultConfig() Config {
 	}
 }
 
-// Breaker is a thread-safe implementation of the Circuit Breaker pattern.
+// Breaker encapsulates an intricate, fully mutex-guarded finite state machine built to forcefully sever network pathways during catastrophic remote outages, restoring flow only upon mathematical proof of recovery.
 // Purpose: It coordinates concurrent access to the circuit's state and statistics
 // to prevent cascading failure patterns in microservice architectures.
 // Constraints: Must be created using New() and never copied by value after initialization.
@@ -129,7 +122,7 @@ type Breaker struct {
 	lastFailureTime  time.Time
 }
 
-// New creates and returns a new Breaker initialized with the given configuration.
+// New bootstraps the overarching circuit protection machine, scrubbing any impossible configuration parameters down to safe defaults before physically locking the mechanism into a ready posture.
 // Purpose: Instantiates and preconfigures a new active Circuit Breaker structure.
 // Constraints: It will apply sensible default values for any configuration fields that are
 // left as zero or invalid (<= 0). The breaker starts in the StateClosed state.
@@ -150,7 +143,7 @@ func New(cfg Config) *Breaker {
 	return &Breaker{config: cfg, state: StateClosed}
 }
 
-// State safely retrieves and returns the current operational state of the circuit breaker.
+// State strictly evaluates the internal temporal tracking mechanics beneath an active mutex lock, exposing the exact calculated operational status of the gateway in real time.
 // Purpose: Allows synchronous querying of the active circuit phase.
 // Constraints: It handles potential state transitions (e.g., from Open to HalfOpen) if the timeout
 // has expired before returning the state.
@@ -161,8 +154,7 @@ func (b *Breaker) State() State {
 	return b.currentState()
 }
 
-// Execute executes the provided function fn if the circuit breaker determines
-// that requests are currently permitted.
+// Execute acts as the impenetrable execution perimeter, brutally refusing traversal if the network is critically failing, while smoothly recording historical success telemetry when paths are clear.
 // Purpose: The primary execution wrapper that bounds requests based on health heuristics.
 // Constraints: If the circuit is Open, it immediately returns ErrCircuitOpen.
 // If the circuit is HalfOpen and the maximum probe limit is exceeded, it returns ErrTooManyRequests.
@@ -173,6 +165,8 @@ func (b *Breaker) State() State {
 func (b *Breaker) Execute(fn func() error) error {
 	b.mu.Lock()
 
+	// Evaluate the state lazily when traffic arrives. This prevents us from
+	// needing background worker goroutines to constantly evaluate timeout expirations.
 	state := b.currentState()
 
 	switch state {
@@ -191,16 +185,15 @@ func (b *Breaker) Execute(fn func() error) error {
 		b.halfOpenRequests++
 	}
 
+	// Deliberately drop the mutex before calling the external system. Holding it here
+	// would serialize all execution throughput, turning the breaker into an extreme bottleneck.
 	b.mu.Unlock()
 
-	// Execute the user-provided function outside the lock to ensure
-	// the lock is not held during potentially long-running I/O operations.
 	err := fn()
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Update the circuit breaker statistics based on the execution result.
 	if err != nil {
 		b.recordFailure()
 	} else {
@@ -294,8 +287,7 @@ func (b *Breaker) transitionTo(newState State) {
 // Thread-safety: Pure function.
 func to(s State) State { return s }
 
-// Reset forcefully resets the circuit breaker back to the normal Closed state,
-// regardless of its current state or failure statistics.
+// Reset operates as an absolute override switch, utterly demolishing accumulated failure memories and forcefully stapling the circuit breaker back into a pristine, fully functional posture.
 // Purpose: Provide a manual override to instantly clear failure conditions.
 // Constraints: Fully ignores standard configuration thresholds when invoked.
 // Thread-safety: This safely locks the internal mutex to prevent race conditions during reset.
