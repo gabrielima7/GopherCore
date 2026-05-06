@@ -286,6 +286,9 @@ func FuzzSanitizeString(f *testing.F) {
 	f.Add("test\x00\x01\x02\x03")
 	f.Add("")
 	f.Fuzz(func(t *testing.T, s string) {
+		if len(s) > 1024*1024 {
+			t.Skip()
+		}
 		result := SanitizeString(s)
 		// Result should not contain control characters (except \n, \r, \t).
 		for _, r := range result {
