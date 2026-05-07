@@ -253,3 +253,156 @@ func TestNoOriginHeader(t *testing.T) {
 		t.Fatal("expected no CORS headers without Origin")
 	}
 }
+
+func TestMiddleware_TableDriven(t *testing.T) {
+	dummyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	t.Run("SecurityHeadersMiddleware", func(t *testing.T) {
+		handler := SecurityHeadersMiddleware(dummyHandler)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		expectedHeaders := map[string]string{
+			"Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+			"X-Content-Type-Options":    "nosniff",
+			"X-Frame-Options":           "DENY",
+			"Referrer-Policy":           "strict-origin-when-cross-origin",
+			"Permissions-Policy":        "camera=(), microphone=(), geolocation=()",
+			"X-Xss-Protection":          "1; mode=block",
+			"Content-Security-Policy":   "default-src 'self'",
+		}
+		for k, v := range expectedHeaders {
+			if got := rr.Header().Get(k); got != v {
+				t.Errorf("expected %s=%s, got %s", k, v, got)
+			}
+		}
+	})
+
+	t.Run("CORSMiddleware", func(t *testing.T) {
+		corsHandler := CORSMiddleware(
+			[]string{"https://allowed.com", "*"},
+			[]string{"GET", "POST"},
+			[]string{"X-Test"},
+		)(dummyHandler)
+
+		tests := []struct {
+			name              string
+			method            string
+			origin            string
+			expectedStatus    int
+			expectedAllowOrig string
+			expectedAllowCred string
+			expectedAllowMeth string
+			expectedAllowHead string
+		}{
+			{
+				name:              "Wildcard Origin Allowed",
+				method:            http.MethodGet,
+				origin:            "https://random.com",
+				expectedStatus:    http.StatusOK,
+				expectedAllowOrig: "*",
+				expectedAllowCred: "", // credentials not allowed for wildcard
+				expectedAllowMeth: "GET, POST",
+				expectedAllowHead: "X-Test",
+			},
+			{
+				name:              "Preflight OPTIONS",
+				method:            http.MethodOptions,
+				origin:            "https://allowed.com",
+				expectedStatus:    http.StatusNoContent,
+				expectedAllowOrig: "*", // because * is in allowed origins
+				expectedAllowCred: "",
+				expectedAllowMeth: "GET, POST",
+				expectedAllowHead: "X-Test",
+			},
+			{
+				name:              "Missing Origin",
+				method:            http.MethodGet,
+				origin:            "",
+				expectedStatus:    http.StatusOK,
+				expectedAllowOrig: "",
+				expectedAllowCred: "",
+				expectedAllowMeth: "",
+				expectedAllowHead: "",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := httptest.NewRequest(tt.method, "/", nil)
+				if tt.origin != "" {
+					req.Header.Set("Origin", tt.origin)
+				}
+				rr := httptest.NewRecorder()
+				corsHandler.ServeHTTP(rr, req)
+
+				if rr.Code != tt.expectedStatus {
+					t.Errorf("expected status %d, got %d", tt.expectedStatus, rr.Code)
+				}
+				if got := rr.Header().Get("Access-Control-Allow-Origin"); got != tt.expectedAllowOrig {
+					t.Errorf("expected Allow-Origin %q, got %q", tt.expectedAllowOrig, got)
+				}
+				if got := rr.Header().Get("Access-Control-Allow-Credentials"); got != tt.expectedAllowCred {
+					t.Errorf("expected Allow-Credentials %q, got %q", tt.expectedAllowCred, got)
+				}
+				if tt.expectedAllowOrig != "" {
+					if got := rr.Header().Get("Access-Control-Allow-Methods"); got != tt.expectedAllowMeth {
+						t.Errorf("expected Allow-Methods %q, got %q", tt.expectedAllowMeth, got)
+					}
+					if got := rr.Header().Get("Access-Control-Allow-Headers"); got != tt.expectedAllowHead {
+						t.Errorf("expected Allow-Headers %q, got %q", tt.expectedAllowHead, got)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("CORSMiddleware Explicit Strict Origin", func(t *testing.T) {
+		strictCorsHandler := CORSMiddleware(
+			[]string{"https://strict.com"},
+			[]string{"PUT"},
+			[]string{"X-Strict"},
+		)(dummyHandler)
+
+		req := httptest.NewRequest(http.MethodPut, "/", nil)
+		req.Header.Set("Origin", "https://strict.com")
+		rr := httptest.NewRecorder()
+		strictCorsHandler.ServeHTTP(rr, req)
+
+		if rr.Header().Get("Access-Control-Allow-Origin") != "https://strict.com" {
+			t.Errorf("expected specific origin")
+		}
+		if rr.Header().Get("Access-Control-Allow-Credentials") != "true" {
+			t.Errorf("expected credentials true for strict origin")
+		}
+	})
+
+	t.Run("RateLimitMiddleware", func(t *testing.T) {
+		// Create a limiter that allows exactly 1 request immediately, then none.
+		limiter := rate.NewLimiter(0.0001, 1) // extremely slow refill, burst 1
+		handler := RateLimitMiddleware(limiter)(dummyHandler)
+
+		// First request (consumes burst)
+		req1 := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr1 := httptest.NewRecorder()
+		handler.ServeHTTP(rr1, req1)
+		if rr1.Code != http.StatusOK {
+			t.Errorf("expected first request OK, got %d", rr1.Code)
+		}
+
+		// Second request (throttled)
+		req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr2 := httptest.NewRecorder()
+		handler.ServeHTTP(rr2, req2)
+		if rr2.Code != http.StatusTooManyRequests {
+			t.Errorf("expected second request 429, got %d", rr2.Code)
+		}
+		if rr2.Header().Get("Retry-After") != "1" {
+			t.Errorf("expected Retry-After: 1, got %q", rr2.Header().Get("Retry-After"))
+		}
+	})
+}
