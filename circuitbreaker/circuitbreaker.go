@@ -270,6 +270,9 @@ func (b *Breaker) transitionTo(newState State) {
 	if b.state == newState {
 		return
 	}
+
+	// Reset all volatile metrics tracking historical behavior before assigning
+	// the new structural phase. This guarantees subsequent phases start cleanly.
 	from := b.state
 	b.state = newState
 	b.failureCount = 0

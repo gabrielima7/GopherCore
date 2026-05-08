@@ -26,6 +26,8 @@ type ErrorResponse struct {
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {
+		// If serialization completely fails (e.g. unsupported types like channels),
+		// we fallback to a hardcoded standard 500 JSON response to avoid breaking API contracts.
 		http.Error(w, `{"error":"internal server error","code":500}`, http.StatusInternalServerError)
 		return
 	}
