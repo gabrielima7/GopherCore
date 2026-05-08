@@ -4,6 +4,45 @@ This document tracks all major additions, alterations, deletions, and pull reque
 
 ---
 
+## [v0.2.3] - Security Hardening, Test Concurrency, and Godoc Maturity
+
+This release strengthens the project's security posture by updating the Go runtime and focuses on the "Living Documentation" philosophy by adding inline reasoning to complex logic. It also significantly improves QA resilience with new concurrency tests and a transition to Table-Driven Testing (TDT) for core packages.
+
+### 🚀 Additions (Features & Enhancements)
+- **QA & Concurrency (HTTP):** Implemented high-concurrency stress tests for the `httpkit` response package to ensure thread-safety under heavy load. (PR #57, #59)
+- **Security (Go Runtime):** Updated the project's Go version to `1.26.3` to incorporate critical security patches and vulnerability fixes in the standard library. (PR #59)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **QA Resilience (TDT):**
+    - Refactored `httpkit` middleware and response test suites to use strict Table-Driven Testing (TDT), improving maintainability and edge-case coverage. (PR #59)
+    - Transitioned the `result` package test suite to the TDT pattern. (PR #54)
+- **Documentation (Technical Writing):**
+    - Exhaustive rewrite of all exported `godoc` strings across the repository, focusing on clarity, thread-safety guarantees, and usage examples. (PR #55)
+    - Added inline documentation providing "reasoning" for architectural decisions within the source code. (PR #55)
+- **CI/CD Optimization:** Added a 1MB payload limit to string fuzzing in the `guard` package to prevent Out-Of-Memory (OOM) errors and stabilize CI pipeline execution time. (PR #56)
+- **Maintenance:** Updated internal dependencies and performed a global `go mod tidy` audit. (PR #59)
+
+### 📦 Pull Requests
+- **PR #59:** test: Enhance httpkit test coverage with TDT pattern (Includes go.mod update and concurrency tests).
+- **PR #57:** test(httpkit): refactor response tests to TDT and validate thread-safety.
+- **PR #56:** docs: audit and verify Living Documentation (Fuzz size limit).
+- **PR #55:** docs: exhaustive rewrite of exported godoc strings and inline reasoning.
+- **PR #54:** test: refactor result tests to use strict table-driven testing.
+
+---
+
+## [v0.2.2] - Documentation Audit and Consistency
+
+This patch release focuses strictly on a comprehensive audit of the project's living documentation to ensure absolute consistency between implementation and documentation.
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Documentation:** Performed a full-repository audit and synchronization of `godoc` strings to maintain the highest standard of technical writing. (PR #51)
+
+### 📦 Pull Requests
+- **PR #51:** docs: complete full-repository living documentation audit.
+
+---
+
 ## [v0.2.1] - Maintenance, Test Coverage, and Security Refinement
 
 This patch release focuses on increasing test coverage, refining security configurations, and maintaining the project's living documentation. It addresses a CORS vulnerability, optimizes performance in HTTP middlewares, and ensures full compatibility with Go 1.26.
@@ -12,7 +51,7 @@ This patch release focuses on increasing test coverage, refining security config
 - **Security (HTTP):** Added `IdleTimeout` configuration to the HTTP server, strengthening protection against resource exhaustion. (PR #36)
 - **CI/CD Pipeline:** Refactored CI/release workflows to use dynamic Go versioning and centralized Make targets, improving build reproducibility. (PR #42)
 
-### 🛠 Alterações (Modifications & Optimizations)
+### 🛠 Changes (Modifications & Optimizations)
 - **Security (CORS):** Fixed a vulnerability in the CORS middleware that could allow unauthorized origins in specific edge cases. (PR #46)
 - **Performance:** Optimized `Header` allocation in the HTTP middleware stack to reduce memory overhead and GC pressure. (PR #46)
 - **QA & Test Resilience:**
@@ -20,7 +59,7 @@ This patch release focuses on increasing test coverage, refining security config
     - Implemented Table-Driven concurrency tests for the `result` and `retry` packages to ensure thread-safety under heavy load. (PR #45)
     - Improved unit test coverage for edge cases across the entire toolkit. (PR #41)
     - Fixed flaky context cancellation tests in the `retry` package.
-- **Living Documentation:** Performed an exhaustive, project-wide `godoc` synchronization and audit to maintain technical writing standards. (PR #43, #38, #48, #47)
+- **Documentation:** Performed an exhaustive, project-wide `godoc` synchronization and audit to maintain technical writing standards. (PR #43, #38, #48, #47)
 - **Maintenance:**
     - Resolved CI lint issues caused by the deprecation of `reflect.Ptr` in Go 1.26. (PR #46)
     - Updated internal and external dependencies to their latest stable versions. (PR #44, #40)
@@ -55,9 +94,9 @@ This release consolidates significant structural work on the fundamental base of
 - **Quality Tooling:** Integrated strict new linters into the CI/CD pipeline (`nilnil`, `govet nilness`, `NilAway`), eliminating entire classes of bugs involving nil-pointers.
 - **Test Coverage (QA):** Added robust tests for server `graceful shutdown` and completely refactored the HTTP test suites using *Table-Driven Tests (TDT)* with mass concurrency guarantees.
 
-### 🛠 Alterações (Modifications & Optimizations)
+### 🛠 Changes (Modifications & Optimizations)
 - **HTTP Performance:** Optimized slice pre-allocation in validation functions (`guard`) and continuous optimizations in HTTP middlewares to reduce Garbage Collection (GC) pressure.
-- **Exhaustive Documentation (Technical Writing):** Conducted a repository-wide audit, resulting in high-level `godoc` synchronization regarding *Thread-safety*, function purity, and *Constraints* across the `retry`, `result`, `config`, `dbkit`, and `httpkit` packages.
+- **Documentation (Technical Writing):** Conducted a repository-wide audit, resulting in high-level `godoc` synchronization regarding *Thread-safety*, function purity, and *Constraints* across the `retry`, `result`, `config`, `dbkit`, and `httpkit` packages.
 - **Pipeline and Build:** Adjusted the `Makefile` to isolate tools in `GOBIN_PATH` and performed critical updates on external standard module dependencies.
 - **CI Stabilization:** Locked `execution count` usage in fuzzing tests, mitigating flakiness caused by context deadlines in concurrent GitHub Actions environments.
 
@@ -97,13 +136,13 @@ The first official release of the GopherCore modular toolkit, laying the foundat
 - **Logging:** Added the structured logging package `logkit`.
 - **HTTP Tooling:** Introduced the `GracefulShutdown` utility in `httpkit`.
 
-### 🛠 Alterações
+### 🛠 Changes
 - **Security & Parsing:** Refactored `StripHTML` to utilize the robust `microcosm-cc/bluemonday` engine.
 - **Runtime:** Updated the project's Go version in `go.mod` to `1.26.0` to utilize the latest compiler improvements.
 - **Refactoring:** Extracted duplicate router configuration logic to adhere to DRY principles.
 - **CI/CD:** Resolved multiple CI pipeline issues, fixing Gosec SARIF missing errors and Lint binary mismatches by installing tools from source via `go install`.
 
-### 🗑️ Exclusões
+### 🗑️ Exclusions
 - **Cleanup:** Removed runtime logs from the git hierarchy.
 
 ### 📦 Pull Requests
