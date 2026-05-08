@@ -35,11 +35,14 @@ var validate = validator.New()
 //   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
 //   - `validate:"rule"`: Applies standard go-playground validation rules.
 func Load(cfg any) error {
+	// Dynamically introspect the target struct and enforce it is a valid pointer.
+	// This is required to ensure we can assign values back to the original fields.
 	v := reflect.ValueOf(cfg)
 	if v.Kind() != reflect.Pointer || v.IsNil() {
 		return errors.New("cfg must be a non-nil pointer to a struct")
 	}
 
+	// Dereference the pointer to get to the underlying struct type before populating.
 	v = v.Elem()
 	if v.Kind() != reflect.Struct {
 		return errors.New("cfg must be a pointer to a struct")

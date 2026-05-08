@@ -102,6 +102,8 @@ func GetMigrationVersion(driverName string, driver database.Driver, sourceURL st
 
 	version, dirty, err := m.Version()
 	if err != nil {
+		// migrate.ErrNilVersion indicates no migrations have been applied yet.
+		// We safely absorb this specific error and report version 0.
 		if errors.Is(err, migrate.ErrNilVersion) {
 			return MigrationVersion{Version: 0, Dirty: false}, nil
 		}
