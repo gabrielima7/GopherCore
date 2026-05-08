@@ -1,8 +1,10 @@
 package httpkit
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
 
@@ -157,5 +159,56 @@ func TestResponses_TableDriven(t *testing.T) {
 				t.Errorf("expected body %q, got %q", tt.expectedBody, body)
 			}
 		})
+	}
+}
+
+func TestResponse_Concurrency(t *testing.T) {
+	const numGoroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines * 3)
+
+	errCh := make(chan error, numGoroutines*3)
+
+	// Test Ok
+	for i := 0; i < numGoroutines; i++ {
+		go func(val int) {
+			defer wg.Done()
+			rr := httptest.NewRecorder()
+			Ok(rr, map[string]int{"val": val})
+			if rr.Code != http.StatusOK {
+				errCh <- errors.New("expected Ok to return 200")
+			}
+		}(i)
+	}
+
+	// Test Error
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			rr := httptest.NewRecorder()
+			Error(rr, http.StatusBadRequest, "bad data")
+			if rr.Code != http.StatusBadRequest {
+				errCh <- errors.New("expected Error to return 400")
+			}
+		}()
+	}
+
+	// Test JSON
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			rr := httptest.NewRecorder()
+			JSON(rr, http.StatusAccepted, []string{"a", "b"})
+			if rr.Code != http.StatusAccepted {
+				errCh <- errors.New("expected JSON to return 202")
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		t.Errorf("concurrency error: %v", err)
 	}
 }
