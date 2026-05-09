@@ -26,6 +26,8 @@ import (
 //   - Content-Security-Policy: Restricts resource loading to 'self'.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Assigning directly to the Header map bypasses the default key canonicalization
+		// overhead of Set(), reducing CPU allocation micro-overheads per request.
 		h := w.Header()
 		h["Strict-Transport-Security"] = []string{"max-age=63072000; includeSubDomains; preload"}
 		h["X-Content-Type-Options"] = []string{"nosniff"}
