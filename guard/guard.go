@@ -146,6 +146,9 @@ func StripHTML(s string) string {
 // Constraints: Should only receive validation errors thrown from the validator package.
 // Thread-safety: Pure function, safe for concurrent use.
 func formatValidationError(fe validator.FieldError) string {
+	// Evaluates the raw underlying validation tag string and translates it directly
+	// into an end-user readable formatting string, protecting downstream clients from
+	// needing to parse raw validator syntax constants.
 	switch fe.Tag() {
 	case "required":
 		return fmt.Sprintf("field '%s' is required", fe.Field())
