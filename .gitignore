@@ -1,1 +1,5 @@
 logs/
+*.test
+coverage.out
+*.out
+*/testdata/fuzz
