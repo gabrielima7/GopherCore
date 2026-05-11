@@ -4,7 +4,7 @@
     <strong>Modular, secure, and scalable Go stack for robust development</strong>
   </p>
   <p align="center">
-    Security guards · Result types · Retry logic · Circuit breakers · HTTP toolkit · Database kit · Async helpers
+    Security guards · Result types · Retry logic · Circuit breakers · HTTP toolkit · gRPC toolkit · Database kit · Async helpers
   </p>
   <p align="center">
     <a href="https://github.com/gabrielima7/GopherCore/actions/workflows/ci.yml"><img src="https://github.com/gabrielima7/GopherCore/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -31,6 +31,7 @@ Gopher Core is a collection of production-ready Go packages designed to accelera
 | [`guard`](#guard) | Input validation and sanitization |
 | [`jsonutil`](#json-utilities) | Fast JSON encoding/decoding via `goccy/go-json` |
 | [`httpkit`](#http-toolkit) | Chi router with security middleware, rate limiting, CORS |
+| [`grpckit`](#grpc-toolkit) | Production-ready gRPC server/client with recovery and logging |
 | [`dbkit`](#database-toolkit) | Database connections via sqlx + migration management |
 | [`async`](#async-helpers) | Safe goroutine management with panic recovery |
 | [`logkit`](#structured-logs) | Structured logging in JSON format via `log/slog` |
@@ -219,6 +220,47 @@ log.Fatal(srv.ListenAndServe())
 - `X-XSS-Protection: 1; mode=block`
 - `Permissions-Policy`
 
+### gRPC Toolkit
+
+Production-ready gRPC abstraction with mandatory panic recovery and structured logging.
+
+#### Server
+
+```go
+import "github.com/gabrielima7/GopherCore/grpckit"
+
+srv := grpckit.NewServer(
+    grpckit.WithServerAddress(":50051"),
+    grpckit.WithServerLogger(myLogger),
+    // grpckit.WithServerTLS(tlsConfig),
+)
+
+// The server includes mandatory built-in interceptors:
+// - Recovery: Recovers from panics, logs stack traces, and returns codes.Internal
+// - Logging: Logs method, duration, and status code via slog
+
+ln, _ := net.Listen("tcp", ":50051")
+log.Fatal(srv.Serve(ln))
+```
+
+#### Client
+
+```go
+import "github.com/gabrielima7/GopherCore/grpckit"
+
+conn, err := grpckit.NewClient("localhost:50051",
+    grpckit.WithDialTimeout(5*time.Second),
+    // grpckit.WithClientTLS(tlsConfig),
+    grpckit.WithRawDialOptions(grpc.WithBlock()),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer conn.Close()
+
+client := pb.NewMyServiceClient(conn)
+```
+
 ### Database Toolkit
 
 Secure database connections with sqlx and golang-migrate integration.
@@ -343,6 +385,7 @@ The project uses GitHub Actions with a rigorous pipeline:
 - **Input validation** via `go-playground/validator` (guard package)
 - **SQL injection prevention** via prepared statements (`database/sql` + `sqlx`)
 - **Security headers** (HSTS, CSP, X-Frame-Options, etc.)
+- **gRPC Panic Recovery** outermost safety net for all RPC handlers
 - **Rate limiting** via `golang.org/x/time/rate`
 - **CORS control** with configurable origins
 - **Static analysis** with gosec in CI/CD
