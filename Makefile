@@ -1,4 +1,4 @@
-.PHONY: all lint nilaway test fuzz security vulncheck audit tidy fmt vet install-tools help
+.PHONY: all lint nilaway test fuzz security vulncheck sbom audit tidy fmt vet install-tools help
 
 # Default target
 all: audit
@@ -13,7 +13,8 @@ help:
 	@echo "  make fuzz        Run fuzz tests (30s per target)"
 	@echo "  make security    Run gosec security analysis"
 	@echo "  make vulncheck   Run govulncheck dependency audit"
-	@echo "  make audit       Run all checks (lint + test + security + vulncheck)"
+	@echo "  make sbom        Generate SPDX SBOM via Syft"
+	@echo "  make audit       Run all checks (lint + test + security + vulncheck + sbom)"
 	@echo "  make tidy        Tidy go.mod and go.sum"
 	@echo "  make fmt         Format all Go files"
 	@echo "  make vet         Run go vet"
@@ -98,7 +99,24 @@ tidy:
 	@echo "==> Tidying modules..."
 	go mod tidy
 
-## audit: Run all checks (lint + test + security + vulncheck)
-audit: lint vet test security vulncheck
+## sbom: Generate SBOM using syft
+sbom:
+	@echo "==> Generating SBOM..."
+	@GOBIN_PATH="$$(go env GOBIN)"; \
+	if [ -z "$$GOBIN_PATH" ]; then \
+		GOBIN_PATH="$$(go env GOPATH)/bin"; \
+	fi; \
+	if ! command -v "$$GOBIN_PATH/syft" > /dev/null 2>&1 && ! command -v syft > /dev/null 2>&1; then \
+		echo "    Syft not found. Installing into $$GOBIN_PATH..."; \
+		curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$$GOBIN_PATH"; \
+	fi; \
+	SYFT_BIN="syft"; \
+	if [ -x "$$GOBIN_PATH/syft" ]; then \
+		SYFT_BIN="$$GOBIN_PATH/syft"; \
+	fi; \
+	"$$SYFT_BIN" packages dir:. -o spdx-json > sbom.spdx.json
+
+## audit: Run all checks (lint + test + security + vulncheck + sbom)
+audit: lint vet test security vulncheck sbom
 	@echo ""
 	@echo "==> All checks passed!"
