@@ -3,3 +3,4 @@ logs/
 coverage.out
 *.out
 */testdata/fuzz
+sbom.spdx.json
