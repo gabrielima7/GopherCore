@@ -3,3 +3,4 @@ logs/
 coverage.out
 *.out
 */testdata/fuzz
+gophercore-sbom.spdx.json
