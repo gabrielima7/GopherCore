@@ -40,7 +40,7 @@ func TestDoContextCancelledDuringDelay(t *testing.T) {
 			return dummyErr
 		}
 		return nil
-	}, WithStrategy(StrategyConstant), WithInitialDelay(time.Hour))
+	}, WithStrategy(StrategyConstant), WithInitialDelay(time.Hour), WithJitter(false))
 
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context canceled error, got: %v", err)
