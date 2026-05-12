@@ -1,0 +1,8 @@
+name: "GopherCore CodeQL Config"
+
+disable-default-queries: false
+
+paths-ignore:
+  - "**/*_test.go"
+  - "**/*_fuzz_test.go"
+  - "**/testdata/**"
