@@ -4,6 +4,15 @@ This document tracks all major additions, alterations, deletions, and pull reque
 
 ---
 
+## [v0.3.1] - CI/CD Maintenance and SLSA Provenance Fix
+
+This patch release fixes the automated SBOM generation in the release pipeline and enables SLSA Level 3 provenance asset uploading to GitHub Releases.
+
+### 🛠 Changes (Modifications & Optimizations)
+- **CI/CD:** Fixed SBOM generation parameter in `release.yml` and enabled `upload-assets` for SLSA provenance.
+
+---
+
 ## [v0.3.0] - gRPC Integration, Fuzz Testing, and DevSecOps Hardening
 
 This major minor release introduces a production-ready gRPC package (`grpckit`), implements exhaustive fuzz testing across the entire toolkit, and significantly strengthens the project's security posture with CodeQL and SLSA Level 3 provenance integration.
