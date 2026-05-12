@@ -114,7 +114,7 @@ sbom:
 	if [ -x "$$GOBIN_PATH/syft" ]; then \
 		SYFT_BIN="$$GOBIN_PATH/syft"; \
 	fi; \
-	"$$SYFT_BIN" packages dir:. -o spdx-json > sbom.spdx.json
+	"$$SYFT_BIN" packages dir:. -o spdx-json > gophercore-sbom.spdx.json
 
 ## audit: Run all checks (lint + test + security + vulncheck + sbom)
 audit: lint vet test security vulncheck sbom
