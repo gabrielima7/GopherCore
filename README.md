@@ -390,6 +390,8 @@ The project uses GitHub Actions with a rigorous pipeline:
 - **Rate limiting** via `golang.org/x/time/rate`
 - **CORS control** with configurable origins
 - **Static Analysis (SAST)** and **Taint Tracking** via **CodeQL** combined with `gosec` in CI/CD
+- **SLSA Level 3 Provenance** for all release artifacts, ensuring supply-chain security
+- **SBOM (Software Bill of Materials)** generation in SPDX format for full transparency of dependencies
 - **Static nil dereference analysis** with NilAway in CI/CD
 - **Dependency scanning** with govulncheck
 - **Linting** with golangci-lint (errcheck, nilerr, staticcheck)

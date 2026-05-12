@@ -4,6 +4,35 @@ This document tracks all major additions, alterations, deletions, and pull reque
 
 ---
 
+## [v0.3.0] - gRPC Integration, Fuzz Testing, and DevSecOps Hardening
+
+This major minor release introduces a production-ready gRPC package (`grpckit`), implements exhaustive fuzz testing across the entire toolkit, and significantly strengthens the project's security posture with CodeQL and SLSA Level 3 provenance integration.
+
+### 🚀 Additions (Features & Enhancements)
+- **gRPC Toolkit (`grpckit`):** Introduced a comprehensive package for building resilient gRPC services, including production-ready server and client implementations, middleware/interceptors, and 100% test coverage. (Commit ca6b98b, f57258b)
+- **DevSecOps (Security):**
+    - **CodeQL Integration:** Integrated GitHub CodeQL for automated Static Analysis Security Testing (SAST) and advanced taint tracking to detect potential vulnerabilities. (PR #67)
+    - **SLSA & SBOM:** Implemented SLSA (Supply-chain Levels for Software Artifacts) Level 3 provenance and automated Software Bill of Materials (SBOM) generation in SPDX format (`gophercore-sbom.spdx.json`). (PR #68)
+- **QA & Testing:**
+    - **Exhaustive Fuzz Testing:** Implemented project-wide fuzz testing for core packages (`async`, `config`, `dbkit`, `grpckit`, `httpkit`, `logkit`) to identify edge-case bugs and ensure robustness against malformed input. (PR #62)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **QA Resilience:** Fixed flakiness in the `retry` package's context cancellation tests by disabling jitter during specific test scenarios. (Commit cfc88a2)
+- **Documentation (Technical Writing):**
+    - Performed a repository-wide "Living Documentation" audit to ensure absolute synchronization between code and comments. (PR #66)
+    - Added detailed internal logic comments explaining complex architectural decisions and corrected technical inaccuracies. (PR #60)
+- **Maintenance:** Performed a global update of all dependencies to their latest stable versions and optimized the module graph. (PR #61)
+
+### 📦 Pull Requests
+- **PR #68:** ci: integrate SBOM and SLSA Level 3 provenance.
+- **PR #67:** ci: integrate CodeQL for SAST and taint tracking.
+- **PR #66:** docs: exhaustive living documentation audit across repository.
+- **PR #62:** test: implement exhaustive fuzz testing across core packages.
+- **PR #61:** build(deps): update project dependencies to latest versions.
+- **PR #60:** docs: add internal logic comments and correct inaccuracies.
+
+---
+
 ## [v0.2.3] - Security Hardening, Test Concurrency, and Godoc Maturity
 
 This release strengthens the project's security posture by updating the Go runtime and focuses on the "Living Documentation" philosophy by adding inline reasoning to complex logic. It also significantly improves QA resilience with new concurrency tests and a transition to Table-Driven Testing (TDT) for core packages.
