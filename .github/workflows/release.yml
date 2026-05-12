@@ -52,7 +52,7 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          file: gophercore-sbom.spdx.json
+          output-file: gophercore-sbom.spdx.json
           format: spdx-json
 
       - name: Generate checksums
