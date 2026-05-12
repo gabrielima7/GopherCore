@@ -49,6 +49,9 @@ type RouterConfig struct {
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultRouterConfig() RouterConfig {
+	// These default parameters are strictly tuned for production defensive posture.
+	// We mandate conservative ReadHeaderTimeout and WriteTimeout values specifically
+	// to sever stalling connections, neutralizing Slowloris and other resource-exhaustion vectors.
 	return RouterConfig{
 		AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:    []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
@@ -206,6 +209,9 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 // Thread-safety: Initialization only; the underlying net/http handling is safely concurrent.
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
 	cfg := parseOptions(opts...)
+	// Explicitly propagating derived timeouts into the net/http server structure ensures
+	// that even standard library vulnerabilities related to connection stalling are
+	// forcefully mitigated at the lowest possible networking tier.
 	return &http.Server{
 		Addr:              addr,
 		Handler:           handler,

@@ -34,6 +34,9 @@ type Config struct {
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultConfig(driver, dsn string) Config {
+	// These specific thresholds are chosen to prevent sudden bursts of traffic from
+	// exhausting the upstream database's connection limits, balancing active capacity
+	// against the memory overhead of maintaining stale idle sockets.
 	return Config{
 		Driver:          driver,
 		DSN:             dsn,
@@ -132,6 +135,9 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
 // Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
 func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
+	// Execute standard connection bootstrapping, intentionally panicking on failure.
+	// This is strictly designed for the application bootstrap phase where running
+	// without a database connection leads to an unrecoverable zombie state.
 	db, err := Connect(ctx, driver, dsn, opts...)
 	if err != nil {
 		panic("dbkit: " + err.Error())

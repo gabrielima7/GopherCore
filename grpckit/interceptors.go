@@ -41,6 +41,9 @@ func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp any, err error) {
+		// We defer a recovery function to catch any panics from downstream handlers.
+		// This guarantees that the gRPC server process stays alive even if an individual
+		// request encounters a critical bug, converting the panic into an Internal server error.
 		defer func() {
 			if r := recover(); r != nil {
 				stack := debug.Stack()
@@ -76,6 +79,9 @@ func RecoveryStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) (err error) {
+		// Similar to the unary interceptor, this deferred function catches and isolates
+		// panics within streaming RPCs. It ensures streaming handlers can fail safely
+		// without compromising the stability of other concurrent streams on the server.
 		defer func() {
 			if r := recover(); r != nil {
 				stack := debug.Stack()
@@ -124,6 +130,9 @@ func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 		resp, err := handler(ctx, req)
 		duration := time.Since(start)
 
+		// We extract the underlying gRPC status code to emit structured logs.
+		// This allows monitoring tools to easily aggregate metrics based on
+		// specific RPC success or failure outcomes.
 		code := status.Code(err)
 		attrs := []any{
 			slog.String("grpc.method", info.FullMethod),
@@ -165,6 +174,9 @@ func LoggingStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor 
 		err := handler(srv, ss)
 		duration := time.Since(start)
 
+		// Extracting the final status code from the streaming error output.
+		// By logging this explicitly as an attribute, we maintain consistency
+		// with the unary log format for seamless observability integration.
 		code := status.Code(err)
 		attrs := []any{
 			slog.String("grpc.method", info.FullMethod),

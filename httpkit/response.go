@@ -42,6 +42,8 @@ func JSON(w http.ResponseWriter, status int, data any) {
 // Constraints: Status should be a valid HTTP status code.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
 func Error(w http.ResponseWriter, status int, message string) {
+	// Standardize error structures so downstream API consumers can reliably parse
+	// fault states without writing bespoke parsing logic for every different endpoint.
 	JSON(w, status, ErrorResponse{
 		Error:   http.StatusText(status),
 		Code:    status,
