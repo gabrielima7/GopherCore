@@ -4,7 +4,7 @@ This document tracks all major additions, alterations, deletions, and pull reque
 
 ---
 
-## [v0.3.0] - gRPC Integration, Fuzz Testing, and DevSecOps Hardening
+## [v0.3.1] - gRPC Integration, Fuzz Testing, and DevSecOps Hardening
 
 This major minor release introduces a production-ready gRPC package (`grpckit`), implements exhaustive fuzz testing across the entire toolkit, and significantly strengthens the project's security posture with CodeQL and SLSA Level 3 provenance integration.
 
