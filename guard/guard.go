@@ -58,6 +58,8 @@ type ValidationErrors []ValidationError
 // Thread-safety: Safe for concurrent access.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
+	// Linearly map the individually nested validation errors to avoid losing context
+	// when logging, ensuring all broken constraints are visible in a single log trace.
 	for _, e := range ve {
 		msgs = append(msgs, e.Message)
 	}
