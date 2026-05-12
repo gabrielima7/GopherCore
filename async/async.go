@@ -36,6 +36,9 @@ func (p *PanicError) Error() string {
 // Thread-safety: Safely detaches and isolates panic propagation from the calling goroutine.
 func Go(fn func(), onPanic ...func(err error)) {
 	go func() {
+		// By injecting a strict recovery block at the root of every dispatched goroutine,
+		// we prevent localized algorithmic faults from escalating into full application crashes,
+		// preserving system availability even if background tasks fail unexpectedly.
 		defer func() {
 			if r := recover(); r != nil {
 				panicErr := &PanicError{
@@ -60,6 +63,9 @@ func Go(fn func(), onPanic ...func(err error)) {
 func GoErr(fn func() error) <-chan error {
 	ch := make(chan error, 1)
 	go func() {
+		// Ensuring that even if the executed function triggers a fatal panic, the
+		// error channel receives a gracefully wrapped payload. This enables callers
+		// to securely select on the channel without risking indefinite blocking.
 		defer func() {
 			if r := recover(); r != nil {
 				ch <- &PanicError{Value: r, Stack: string(debug.Stack())}
@@ -100,6 +106,9 @@ func (g *Group) Go(fn func() error) {
 	g.wg.Add(1)
 	go func() {
 		defer g.wg.Done()
+		// Wrap each group worker with a robust panic recovery mechanism. This ensures
+		// the entire group does not collapse if one worker panics, safely accumulating
+		// the fault alongside standard errors for downstream handling.
 		defer func() {
 			if r := recover(); r != nil {
 				g.mu.Lock()

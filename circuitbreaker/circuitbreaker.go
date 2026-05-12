@@ -56,6 +56,9 @@ const (
 // Constraints: Always returns a valid string, defaulting to "unknown".
 // Thread-safety: Pure method on value receiver.
 func (s State) String() string {
+	// Directly convert enum values into human-readable representations.
+	// This makes it vastly simpler to aggregate and query circuit breaker
+	// statuses securely in metrics dashboards (like Prometheus/Grafana) and logging pipelines.
 	switch s {
 	case StateClosed:
 		return "closed"
@@ -128,6 +131,9 @@ type Breaker struct {
 // left as zero or invalid (<= 0). The breaker starts in the StateClosed state.
 // Thread-safety: Initialization is inherently safe as no references have been shared yet.
 func New(cfg Config) *Breaker {
+	// Sanitize configuration arguments silently rather than panicking or failing.
+	// This defensive posture ensures the circuit breaker guarantees system resilience
+	// even if injected configuration sources feed it partially malformed definitions.
 	if cfg.FailureThreshold <= 0 {
 		cfg.FailureThreshold = 5
 	}
@@ -228,6 +234,9 @@ func (b *Breaker) currentState() State {
 // back to Closed if the success threshold is met.
 // Thread-safety: This function REQUIRES the Breaker's mutex to be strictly held by the caller.
 func (b *Breaker) recordSuccess() {
+	// A successful execution resets accumulated failure metrics differently
+	// depending on the active phase. In a tentative HalfOpen state, we require
+	// consistent consecutive successes before officially declaring the network healthy.
 	switch b.state {
 	case StateClosed:
 		b.failureCount = 0
@@ -249,6 +258,9 @@ func (b *Breaker) recordSuccess() {
 func (b *Breaker) recordFailure() {
 	b.lastFailureTime = time.Now()
 
+	// Handle failures aggressively based on the current state. If in HalfOpen,
+	// even a single failure confirms the underlying service is still broken,
+	// immediately tripping the circuit back to Open to shield the network.
 	switch b.state {
 	case StateClosed:
 		b.failureCount++
