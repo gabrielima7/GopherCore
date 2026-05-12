@@ -8,6 +8,7 @@
   </p>
   <p align="center">
     <a href="https://github.com/gabrielima7/GopherCore/actions/workflows/ci.yml"><img src="https://github.com/gabrielima7/GopherCore/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/gabrielima7/GopherCore/actions/workflows/codeql.yml"><img src="https://github.com/gabrielima7/GopherCore/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Analysis"></a>
     <a href="https://pkg.go.dev/github.com/gabrielima7/GopherCore"><img src="https://pkg.go.dev/badge/github.com/gabrielima7/GopherCore.svg" alt="Go Reference"></a>
     <a href="https://goreportcard.com/report/github.com/gabrielima7/GopherCore"><img src="https://goreportcard.com/badge/github.com/gabrielima7/GopherCore" alt="Go Report Card"></a>
     <img src="https://img.shields.io/badge/go-1.26-00ADD8?logo=go" alt="Go 1.26">
@@ -388,7 +389,7 @@ The project uses GitHub Actions with a rigorous pipeline:
 - **gRPC Panic Recovery** outermost safety net for all RPC handlers
 - **Rate limiting** via `golang.org/x/time/rate`
 - **CORS control** with configurable origins
-- **Static analysis** with gosec in CI/CD
+- **Static Analysis (SAST)** and **Taint Tracking** via **CodeQL** combined with `gosec` in CI/CD
 - **Static nil dereference analysis** with NilAway in CI/CD
 - **Dependency scanning** with govulncheck
 - **Linting** with golangci-lint (errcheck, nilerr, staticcheck)
