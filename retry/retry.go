@@ -68,6 +68,9 @@ type Option func(*Config)
 // Constraints: Should be considered read-only after being returned unless mutated by functional options.
 // Thread-safety: Returns a new struct pointer, safe across goroutines before sharing.
 func defaultConfig() *Config {
+	// These default tunings enforce an exponential backoff capped at 10 seconds with full jitter.
+	// This specific combination guarantees that widespread transient failures don't
+	// accidentally synchronize massive waves of retries that could crush external services.
 	return &Config{
 		MaxAttempts:  3,
 		InitialDelay: 100 * time.Millisecond,

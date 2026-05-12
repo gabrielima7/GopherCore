@@ -114,6 +114,8 @@ func WithServerLogger(logger *slog.Logger) ServerOption {
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
+		// Filter out nil interceptors gracefully, ensuring the downstream
+		// middleware execution pipeline does not panic due to empty function pointers.
 		for _, i := range interceptors {
 			if i != nil {
 				c.unaryInterceptors = append(c.unaryInterceptors, i)
@@ -129,6 +131,8 @@ func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOp
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
+		// Like unary interceptors, we filter out nils to maintain safety
+		// in the ordered stream middleware chain.
 		for _, i := range interceptors {
 			if i != nil {
 				c.streamInterceptors = append(c.streamInterceptors, i)
@@ -145,6 +149,8 @@ func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) Server
 // Thread-safety: Synchronous and safe.
 func parseServerOptions(opts ...ServerOption) serverConfig {
 	cfg := defaultServerConfig()
+	// Safely evaluate all functional options in order, discarding nils
+	// to prevent configuration panics during application bootstrap.
 	for _, opt := range opts {
 		if opt != nil {
 			opt(&cfg)

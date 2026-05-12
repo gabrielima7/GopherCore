@@ -49,6 +49,9 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Fast-path token bucket evaluation. By dropping traffic instantaneously and
+			// providing a static Retry-After header, we mitigate CPU exhaustion attacks
+			// securely without executing downstream routing or serialization logic.
 			if !limiter.Allow() {
 				h := w.Header()
 				h["Retry-After"] = []string{"1"}
