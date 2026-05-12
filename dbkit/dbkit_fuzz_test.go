@@ -22,7 +22,7 @@ func FuzzConnect(f *testing.F) {
 
 		db, err := Connect(context.Background(), driver, dsn)
 		if db != nil {
-			db.Close()
+			_ = db.Close()
 		}
 		_ = err
 	})

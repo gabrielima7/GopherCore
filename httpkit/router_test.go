@@ -119,37 +119,62 @@ func TestRouterOptions(t *testing.T) {
 	}
 }
 
-func TestNewRouterWithDisabledRateLimit(t *testing.T) {
-	r := NewRouter(
-		WithRateLimit(0, 0), // Disabled
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
+func TestRateLimitOptions(t *testing.T) {
+	tests := []struct {
+		name         string
+		limit        float64
+		burst        int
+		numRequests  int
+		expectedCode int // Expected code on the last request
+	}{
+		{
+			name:         "Rate limit disabled",
+			limit:        0,
+			burst:        0,
+			numRequests:  10,
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Rate burst zero defaults to int(limit)",
+			limit:        2,
+			burst:        0,
+			numRequests:  5,
+			expectedCode: http.StatusTooManyRequests,
+		},
+		{
+			name:         "Rate limit exceeded",
+			limit:        1,
+			burst:        1,
+			numRequests:  3,
+			expectedCode: http.StatusTooManyRequests,
+		},
 	}
-	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 
-	// Multiple requests should all succeed.
-	for i := 0; i < 10; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		rr := httptest.NewRecorder()
-		r.ServeHTTP(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Fatalf("request %d: expected 200, got %d", i, rr.Code)
-		}
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(
+				WithRateLimit(tt.limit, tt.burst),
+				WithLogger(false),
+			)
+			if r == nil {
+				t.Fatal("expected non-nil router")
+			}
+			r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
 
-func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
-	// RateLimit > 0 but RateBurst <= 0 → burst defaults to int(RateLimit).
-	r := NewRouter(
-		WithRateLimit(10, 0),
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
+			var lastCode int
+			for i := 0; i < tt.numRequests; i++ {
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+				lastCode = rr.Code
+			}
+
+			if lastCode != tt.expectedCode {
+				t.Errorf("expected last request to have status %d, got %d", tt.expectedCode, lastCode)
+			}
+		})
 	}
 }
 

@@ -287,7 +287,7 @@ func FuzzSanitizeString(f *testing.F) {
 	f.Add("")
 	f.Fuzz(func(t *testing.T, s string) {
 		if len(s) > 1024*1024 {
-			t.Skip()
+			s = s[:1024*1024]
 		}
 		result := SanitizeString(s)
 		// Result should not contain control characters (except \n, \r, \t).
