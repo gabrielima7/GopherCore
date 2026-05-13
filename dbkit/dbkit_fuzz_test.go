@@ -22,7 +22,9 @@ func FuzzConnect(f *testing.F) {
 
 		db, err := Connect(context.Background(), driver, dsn)
 		if db != nil {
-			db.Close()
+			if closeErr := db.Close(); closeErr != nil {
+				t.Errorf("failed to close database connection: %v", closeErr)
+			}
 		}
 		_ = err
 	})
