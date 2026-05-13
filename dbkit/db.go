@@ -108,7 +108,9 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 
 	cfg := DefaultConfig(driver, dsn)
 	for _, opt := range opts {
-		opt(&cfg)
+		if opt != nil {
+			opt(&cfg)
+		}
 	}
 
 	// ConnectContext opens the database and then pings it. We rely on the provided context

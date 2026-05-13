@@ -271,3 +271,160 @@ func TestConnectCancelledContext(t *testing.T) {
 	// the driver implementation. We just test that it doesn't panic.
 	_ = err
 }
+
+func TestConnect_TableDriven(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "tdt_connect_test.db")
+
+	tests := []struct {
+		name      string
+		driver    string
+		dsn       string
+		opts      []Option
+		ctxFn     func() (context.Context, context.CancelFunc)
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name:      "empty driver",
+			driver:    "",
+			dsn:       "some-dsn",
+			expectErr: true,
+			errMsg:    "dbkit: driver is required",
+		},
+		{
+			name:      "empty dsn",
+			driver:    "sqlite3",
+			dsn:       "",
+			expectErr: true,
+			errMsg:    "dbkit: dsn is required",
+		},
+		{
+			name:      "valid connection",
+			driver:    "sqlite3",
+			dsn:       dbPath,
+			opts:      []Option{WithMaxOpenConns(10), WithMaxIdleConns(3)},
+			expectErr: false,
+		},
+		{
+			name:      "nil option safety",
+			driver:    "sqlite3",
+			dsn:       dbPath,
+			opts:      []Option{nil, WithMaxOpenConns(5), nil},
+			expectErr: false,
+		},
+		{
+			name:      "unknown driver",
+			driver:    "nonexistent_driver",
+			dsn:       "some-dsn",
+			expectErr: true,
+		},
+		{
+			name:   "cancelled context",
+			driver: "sqlite3",
+			dsn:    dbPath,
+			ctxFn: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // cancel immediately
+				return ctx, cancel
+			},
+			// Note: sqlite3 driver ignores the cancelled context during Connect,
+			// so it might actually succeed or fail depending on OS/driver.
+			// We just ensure it doesn't panic.
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			var cancel context.CancelFunc
+			if tt.ctxFn != nil {
+				ctx, cancel = tt.ctxFn()
+				defer cancel()
+			}
+
+			db, err := Connect(ctx, tt.driver, tt.dsn, tt.opts...)
+			if tt.expectErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if tt.errMsg != "" && err.Error() != tt.errMsg {
+					t.Fatalf("expected error message %q, got %q", tt.errMsg, err.Error())
+				}
+			} else {
+				// if we don't expect an error, but it fails due to cancellation, we shouldn't strictly fail
+				// if the failure is context.Canceled. But sqlite3 typically doesn't fail here.
+				if err != nil && err != context.Canceled {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if db != nil {
+					mustClose(t, db)
+				}
+			}
+		})
+	}
+}
+
+func TestMustConnect_TableDriven(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "tdt_must_connect_test.db")
+
+	tests := []struct {
+		name        string
+		driver      string
+		dsn         string
+		opts        []Option
+		expectPanic bool
+		panicMsg    string
+	}{
+		{
+			name:        "valid connection",
+			driver:      "sqlite3",
+			dsn:         dbPath,
+			expectPanic: false,
+		},
+		{
+			name:        "empty driver panics",
+			driver:      "",
+			dsn:         "some-dsn",
+			expectPanic: true,
+			panicMsg:    "dbkit: dbkit: driver is required",
+		},
+		{
+			name:        "invalid driver panics",
+			driver:      "invalid_driver",
+			dsn:         "invalid_dsn",
+			expectPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if tt.expectPanic {
+					if r == nil {
+						t.Fatalf("expected panic, got none")
+					}
+					if tt.panicMsg != "" {
+						msg, ok := r.(string)
+						if !ok {
+							t.Fatalf("expected panic string, got %T", r)
+						}
+						if msg != tt.panicMsg {
+							t.Fatalf("expected panic message %q, got %q", tt.panicMsg, msg)
+						}
+					}
+				} else {
+					if r != nil {
+						t.Fatalf("unexpected panic: %v", r)
+					}
+				}
+			}()
+
+			db := MustConnect(context.Background(), tt.driver, tt.dsn, tt.opts...)
+			if db != nil {
+				mustClose(t, db)
+			}
+		})
+	}
+}
