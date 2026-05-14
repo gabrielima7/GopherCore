@@ -511,6 +511,16 @@ func TestDo_TableDriven(t *testing.T) {
 			expectedError: errAbort,
 			expectedCalls: 1,
 		},
+		{
+			name:        "nil option safety",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			opts:          []Option{nil, WithMaxAttempts(3), nil},
+			expectedError: nil,
+			expectedCalls: 1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -597,6 +607,81 @@ func TestDoConcurrency(t *testing.T) {
 				if err := <-errCh; err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestDoWithValue_TableDriven(t *testing.T) {
+	errAbort := errors.New("abort error")
+
+	tests := []struct {
+		name          string
+		maxAttempts   int
+		fn            func(ctx context.Context) (int, error)
+		opts          []Option
+		expectedError error
+		expectedValue int
+		expectedCalls int
+	}{
+		{
+			name:        "nil option safety",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) (int, error) {
+				return 42, nil
+			},
+			opts:          []Option{nil, WithMaxAttempts(3), nil},
+			expectedError: nil,
+			expectedValue: 42,
+			expectedCalls: 1,
+		},
+		{
+			name:        "early abort due to RetryIf",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) (int, error) {
+				return 0, errAbort
+			},
+			opts: []Option{
+				WithMaxAttempts(3),
+				WithInitialDelay(time.Millisecond),
+				WithRetryIf(func(err error) bool {
+					return err != errAbort
+				}),
+			},
+			expectedError: errAbort,
+			expectedValue: 0,
+			expectedCalls: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
+			calls := 0
+			wrappedFn := func(c context.Context) (int, error) {
+				calls++
+				return tt.fn(c)
+			}
+
+			val, err := DoWithValue(ctx, wrappedFn, tt.opts...)
+
+			if tt.expectedError != nil {
+				if !errors.Is(err, tt.expectedError) {
+					t.Errorf("expected error %v, got %v", tt.expectedError, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			}
+
+			if val != tt.expectedValue {
+				t.Errorf("expected value %v, got %v", tt.expectedValue, val)
+			}
+
+			if tt.expectedCalls > 0 && calls != tt.expectedCalls {
+				t.Errorf("expected %d calls, got %d", tt.expectedCalls, calls)
 			}
 		})
 	}

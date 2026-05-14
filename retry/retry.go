@@ -151,7 +151,9 @@ func WithRetryIf(fn func(error) bool) Option {
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
 	cfg := defaultConfig()
 	for _, opt := range opts {
-		opt(cfg)
+		if opt != nil {
+			opt(cfg)
+		}
 	}
 
 	var lastErr error
@@ -198,7 +200,9 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
 	cfg := defaultConfig()
 	for _, opt := range opts {
-		opt(cfg)
+		if opt != nil {
+			opt(cfg)
+		}
 	}
 
 	var (
