@@ -29,7 +29,7 @@ type MigrationConfig struct {
 // a transaction depending on the underlying database engine. Ensure backups are available.
 // Thread-safety: Operations are inherently stateful on the database side; concurrent migration execution from
 // multiple nodes is usually handled safely by golang-migrate's internal advisory locks.
-func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) error {
+func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
 		return err
@@ -37,13 +37,19 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 	defer func() {
 		// Ensures the migration engine drops its internal connections and advisory locks
 		// cleanly, regardless of whether the migration succeeded or failed.
-		_, _ = m.Close()
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil && err == nil {
+			err = sourceErr
+		}
+		if dbErr != nil && err == nil {
+			err = dbErr
+		}
 	}()
 
 	// ErrNoChange is explicitly ignored because reaching the target version successfully
 	// without applying new steps is considered a valid, non-erroneous terminal state.
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return err
+	if upErr := m.Up(); upErr != nil && !errors.Is(upErr, migrate.ErrNoChange) {
+		return upErr
 	}
 	return nil
 }
@@ -53,26 +59,32 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 // Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
 // rolling back these types of operations transactionally.
 // Thread-safety: Concurrent execution relies on the underlying golang-migrate advisory locks on the DB.
-func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) error {
+func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_, _ = m.Close()
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil && err == nil {
+			err = sourceErr
+		}
+		if dbErr != nil && err == nil {
+			err = dbErr
+		}
 	}()
 
 	// A value of 0 or below signals a total teardown, dropping all schema versions dynamically.
 	if steps <= 0 {
-		if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-			return err
+		if downErr := m.Down(); downErr != nil && !errors.Is(downErr, migrate.ErrNoChange) {
+			return downErr
 		}
 		return nil
 	}
 
 	// Step backwards exactly N times. The negative integer signifies the inverse direction.
-	if err := m.Steps(-steps); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return err
+	if stepErr := m.Steps(-steps); stepErr != nil && !errors.Is(stepErr, migrate.ErrNoChange) {
+		return stepErr
 	}
 	return nil
 }
@@ -91,23 +103,29 @@ type MigrationVersion struct {
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
 // Thread-safety: Safe for concurrent queries across multiple nodes reading state.
-func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (MigrationVersion, error) {
+func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (mv MigrationVersion, err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
 		return MigrationVersion{}, err
 	}
 	defer func() {
-		_, _ = m.Close()
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil && err == nil {
+			err = sourceErr
+		}
+		if dbErr != nil && err == nil {
+			err = dbErr
+		}
 	}()
 
-	version, dirty, err := m.Version()
-	if err != nil {
+	version, dirty, verErr := m.Version()
+	if verErr != nil {
 		// migrate.ErrNilVersion indicates no migrations have been applied yet.
 		// We safely absorb this specific error and report version 0.
-		if errors.Is(err, migrate.ErrNilVersion) {
+		if errors.Is(verErr, migrate.ErrNilVersion) {
 			return MigrationVersion{Version: 0, Dirty: false}, nil
 		}
-		return MigrationVersion{}, err
+		return MigrationVersion{}, verErr
 	}
 
 	return MigrationVersion{Version: version, Dirty: dirty}, nil
