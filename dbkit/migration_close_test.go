@@ -34,6 +34,9 @@ func (s *errCloseSource) Close() error {
 
 func (s *errCloseSource) Open(url string) (source.Driver, error) {
 	f := &file.File{}
+	// Windows absolute paths might have a colon, but url parsing in migrate
+	// might treat it differently. file source driver uses the raw string usually,
+	// so let's unprefix errclosefile:// and open that.
 	d, err := f.Open("file://" + strings.TrimPrefix(url, "errclosefile://"))
 	if err != nil {
 		return nil, err
@@ -51,10 +54,18 @@ func getSourceURLs(t *testing.T) (string, string) {
 	if err != nil {
 		t.Fatalf("failed to get wd: %v", err)
 	}
-	path := filepath.Join(wd, "testdata/migrations")
+	path := filepath.Join(wd, "testdata", "migrations")
 
 	if _, err := os.Stat(path); err != nil {
-		path = "testdata/migrations"
+		path = filepath.Join("testdata", "migrations")
+	}
+
+	path = filepath.ToSlash(path)
+
+	// Convert to file:// format properly. For windows this is file:///C:/path
+	// This is because the url parser treats the first part as host if not 3 slashes.
+	if filepath.IsAbs(path) && !strings.HasPrefix(path, "/") {
+		path = "/" + path
 	}
 
 	return "file://" + path, "errclosefile://" + path
