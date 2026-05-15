@@ -60,7 +60,8 @@ func getSourceURLs(t *testing.T) (string, string) {
 		path = filepath.Join("testdata", "migrations")
 	}
 
-	path = filepath.ToSlash(path)
+	// Ensure all backslashes are replaced by forward slashes to correctly format as file URL
+	path = strings.ReplaceAll(path, "\\", "/")
 
 	// Convert to file:// format properly. For windows this is file:///C:/path
 	// This is because the url parser treats the first part as host if not 3 slashes.
