@@ -2,6 +2,30 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.3.2] - QA Resilience, Nil-Safety, and Windows Test Compatibility
+
+This release focuses on strengthening the project's reliability by addressing potential nil-pointer panics in the `retry` package, improving test coverage and error handling in `dbkit` migrations, and ensuring full test suite compatibility with Windows environments.
+
+### 🚀 Additions (Features & Enhancements)
+- **QA & Test Resilience (dbkit):** Introduced `migration_close_test.go` with comprehensive table-driven tests for deferred close errors in database migrations. (Commit 5dd07a6)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Reliability (Retry):** Fixed a potential nil-pointer panic in `Do` and `DoWithValue` loops by adding explicit checks for nil options. (PR #71)
+- **Security & QA (dbkit):**
+    - Fixed a `gosec G104` violation by ensuring `m.Close()` errors are handled gracefully via named returns in migrations. (PR #72)
+    - Improved fuzz testing robustness by properly handling `db.Close()` errors. (PR #70)
+- **QA & Test Coverage:** Optimized table-driven tests for `dbkit` options and expanded coverage across core utilities. (PR #69, #75)
+- **Compatibility:** Fixed Windows-specific path formatting and handling issues in migration tests to ensure cross-platform CI stability. (Commits a83df74, 8a75cb4, 97bf33d)
+- **Maintenance:** Updated all project dependencies to their latest stable versions, including critical updates to `google.golang.org/grpc`. (PR #76)
+
+### 📦 Pull Requests
+- **PR #76:** chore(deps): bump google.golang.org/grpc in the go-minor-patch group.
+- **PR #75:** fix: improve dbkit test coverage and resilience.
+- **PR #72:** fix: address gosec G104 in migration closing logic.
+- **PR #71:** fix: prevent nil-pointer panic in retry options.
+- **PR #70:** fix(dbkit): handle database close errors in fuzz tests.
+- **PR #69:** test: implement comprehensive table-driven tests for dbkit options.
+
 ---
 
 ## [v0.3.1] - CI/CD Maintenance and SLSA Provenance Fix
