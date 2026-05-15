@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -34,10 +35,12 @@ func (s *errCloseSource) Close() error {
 
 func (s *errCloseSource) Open(url string) (source.Driver, error) {
 	f := &file.File{}
-	// Windows absolute paths might have a colon, but url parsing in migrate
-	// might treat it differently. file source driver uses the raw string usually,
-	// so let's unprefix errclosefile:// and open that.
-	d, err := f.Open("file://" + strings.TrimPrefix(url, "errclosefile://"))
+
+	// Unprefix our custom scheme
+	pathStr := strings.TrimPrefix(url, "errclosefile://")
+
+	// Open it using the standard file source driver mechanism
+	d, err := f.Open("file://" + pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +63,38 @@ func getSourceURLs(t *testing.T) (string, string) {
 		path = filepath.Join("testdata", "migrations")
 	}
 
-	// Ensure all backslashes are replaced by forward slashes to correctly format as file URL
-	path = strings.ReplaceAll(path, "\\", "/")
+	path = filepath.ToSlash(path)
 
-	// Convert to file:// format properly. For windows this is file:///C:/path
-	// This is because the url parser treats the first part as host if not 3 slashes.
-	if filepath.IsAbs(path) && !strings.HasPrefix(path, "/") {
-		path = "/" + path
+	// In migrate/v4 the file scheme expects the path string.
+	// We want to pass an absolute file URL for local filesystem if possible,
+	// but on Windows if we format as file:///C:/path, url.Parse sometimes trips or file.Open treats it weirdly.
+	// The standard way migrate handles Windows paths is to just prefix `file://` directly to `C:/path`
+	// which parses into Opaque rather than Host/Path, OR use relative paths like `file://./testdata`.
+	// For robust testing across OSes, using relative paths is safest to avoid Windows drive letter colon issues.
+
+	// Convert to relative if we are already inside the package dir
+	if filepath.IsAbs(path) {
+		rel, err := filepath.Rel(wd, filepath.FromSlash(path))
+		if err == nil {
+			path = filepath.ToSlash(rel)
+		}
+	}
+
+	if !strings.HasPrefix(path, ".") && !filepath.IsAbs(path) {
+		path = "./" + path
+	}
+
+	// Just prefix file:// to whatever the path is.
+	// If it's relative like file://./testdata/migrations it works perfectly on all OS.
+	// If it's absolute, Windows path parsing with colon might be tricky, so relative is best.
+
+	// However, if we absolutely must pass absolute Windows path, file:///C:/... is technically correct.
+	// We'll stick to relative if possible for safety to avoid url.Parse issues in golang-migrate source/file driver.
+	if filepath.IsAbs(path) && runtime.GOOS == "windows" {
+		// e.g. C:/path -> file:///C:/path
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
 	}
 
 	return "file://" + path, "errclosefile://" + path
