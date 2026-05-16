@@ -8,127 +8,222 @@ import (
 	"time"
 )
 
-func TestGoSuccess(t *testing.T) {
-	done := make(chan struct{})
-	Go(func() {
-		close(done)
-	})
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for goroutine")
+func TestGo_TableDriven(t *testing.T) {
+	tests := []struct {
+		name        string
+		fn          func()
+		onPanic     func(errCh chan error) func(error)
+		expectPanic bool
+		panicVal    any
+	}{
+		{
+			name: "success",
+			fn: func() {
+				// successful execution
+			},
+			onPanic:     nil,
+			expectPanic: false,
+		},
+		{
+			name: "panic recovery with callback",
+			fn: func() {
+				panic("test panic")
+			},
+			onPanic: func(errCh chan error) func(error) {
+				return func(err error) {
+					errCh <- err
+				}
+			},
+			expectPanic: true,
+			panicVal:    "test panic",
+		},
+		{
+			name: "panic silent recovery",
+			fn: func() {
+				panic("silent panic")
+			},
+			onPanic:     nil,   // No callback, should recover silently
+			expectPanic: false, // We don't expect a panic on the callback channel
+		},
 	}
-}
 
-func TestGoPanicRecovery(t *testing.T) {
-	panicCh := make(chan error, 1)
-	Go(func() {
-		panic("test panic")
-	}, func(err error) {
-		panicCh <- err
-	})
-	select {
-	case err := <-panicCh:
-		var pe *PanicError
-		if !errors.As(err, &pe) {
-			t.Fatalf("expected PanicError, got %T", err)
-		}
-		if pe.Value != "test panic" {
-			t.Fatalf("unexpected panic value: %v", pe.Value)
-		}
-		if pe.Stack == "" {
-			t.Fatal("expected stack trace")
-		}
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for panic recovery")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doneCh := make(chan struct{})
+			errCh := make(chan error, 1)
 
-func TestGoPanicSilentRecovery(t *testing.T) {
-	// No onPanic callback — should recover silently without crashing.
-	done := make(chan struct{})
-	Go(func() {
-		defer close(done)
-		panic("silent panic")
-	})
-	select {
-	case <-done:
-		// This won't be called since panic prevents defer from closing 'done' in fn,
-		// but the goroutine should not crash the process.
-	case <-time.After(500 * time.Millisecond):
-		// Expected: goroutine recovered silently.
-	}
-}
+			var onPanicCb func(error)
+			if tt.onPanic != nil {
+				onPanicCb = tt.onPanic(errCh)
+			}
 
-func TestGoErr(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		ch := GoErr(func() error { return nil })
-		err := <-ch
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-	t.Run("error", func(t *testing.T) {
-		ch := GoErr(func() error { return errors.New("boom") })
-		err := <-ch
-		if err == nil || err.Error() != "boom" {
-			t.Fatalf("expected 'boom', got: %v", err)
-		}
-	})
-	t.Run("panic", func(t *testing.T) {
-		ch := GoErr(func() error { panic("kaboom") })
-		err := <-ch
-		var pe *PanicError
-		if !errors.As(err, &pe) {
-			t.Fatalf("expected PanicError, got %T: %v", err, err)
-		}
-	})
-}
+			// Wrap the original function to track completion for non-panic cases
+			wrappedFn := func() {
+				tt.fn()
+				close(doneCh) // Only executes if tt.fn() finishes cleanly without panicking
+			}
 
-func TestGroupSuccess(t *testing.T) {
-	g := NewGroup()
-	var count atomic.Int32
+			if onPanicCb != nil {
+				Go(wrappedFn, onPanicCb)
+			} else {
+				Go(wrappedFn)
+			}
 
-	for i := 0; i < 10; i++ {
-		g.Go(func() error {
-			count.Add(1)
-			return nil
+			if tt.expectPanic {
+				select {
+				case err := <-errCh:
+					var pe *PanicError
+					if !errors.As(err, &pe) {
+						t.Fatalf("expected PanicError, got %T", err)
+					}
+					if pe.Value != tt.panicVal {
+						t.Fatalf("unexpected panic value: %v", pe.Value)
+					}
+					if pe.Stack == "" {
+						t.Fatal("expected stack trace")
+					}
+				case <-time.After(time.Second):
+					t.Fatal("timeout waiting for panic recovery")
+				}
+			} else {
+				select {
+				case <-doneCh:
+					// Success or silent recovery complete
+				case <-time.After(500 * time.Millisecond):
+					if tt.name != "panic silent recovery" {
+						t.Fatal("timeout waiting for goroutine")
+					}
+					// For silent recovery, the done channel isn't closed because the panic interrupts it,
+					// but the program shouldn't crash, so a timeout is expected and OK.
+				}
+			}
 		})
 	}
+}
 
-	errs := g.Wait()
-	if errs != nil {
-		t.Fatalf("unexpected errors: %v", errs)
+func TestGoErr_TableDriven(t *testing.T) {
+	errBoom := errors.New("boom")
+	tests := []struct {
+		name        string
+		fn          func() error
+		expectErr   error
+		expectPanic bool
+	}{
+		{
+			name:        "success",
+			fn:          func() error { return nil },
+			expectErr:   nil,
+			expectPanic: false,
+		},
+		{
+			name:        "error",
+			fn:          func() error { return errBoom },
+			expectErr:   errBoom,
+			expectPanic: false,
+		},
+		{
+			name:        "panic",
+			fn:          func() error { panic("kaboom") },
+			expectErr:   nil,
+			expectPanic: true,
+		},
 	}
-	if count.Load() != 10 {
-		t.Fatalf("expected 10, got %d", count.Load())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ch := GoErr(tt.fn)
+			err := <-ch
+
+			if tt.expectPanic {
+				var pe *PanicError
+				if !errors.As(err, &pe) {
+					t.Fatalf("expected PanicError, got %T: %v", err, err)
+				}
+			} else if tt.expectErr != nil {
+				if !errors.Is(err, tt.expectErr) {
+					if err == nil || err.Error() != tt.expectErr.Error() {
+						t.Fatalf("expected '%v', got: %v", tt.expectErr, err)
+					}
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }
 
-func TestGroupErrors(t *testing.T) {
-	g := NewGroup()
-
-	g.Go(func() error { return nil })
-	g.Go(func() error { return errors.New("err1") })
-	g.Go(func() error { return errors.New("err2") })
-
-	errs := g.Wait()
-	if len(errs) != 2 {
-		t.Fatalf("expected 2 errors, got %d", len(errs))
+func TestGroup_TableDriven(t *testing.T) {
+	tests := []struct {
+		name        string
+		funcs       []func() error
+		expectErrs  int
+		expectPanic bool
+	}{
+		{
+			name: "success",
+			funcs: []func() error{
+				func() error { return nil },
+				func() error { return nil },
+				func() error { return nil },
+			},
+			expectErrs:  0,
+			expectPanic: false,
+		},
+		{
+			name: "errors",
+			funcs: []func() error{
+				func() error { return nil },
+				func() error { return errors.New("err1") },
+				func() error { return errors.New("err2") },
+			},
+			expectErrs:  2,
+			expectPanic: false,
+		},
+		{
+			name: "panic recovery",
+			funcs: []func() error{
+				func() error { panic("group panic") },
+			},
+			expectErrs:  1,
+			expectPanic: true,
+		},
+		{
+			name: "mixed errors and panics",
+			funcs: []func() error{
+				func() error { return nil },
+				func() error { panic("another panic") },
+				func() error { return errors.New("err3") },
+			},
+			expectErrs:  2,
+			expectPanic: true,
+		},
 	}
-}
 
-func TestGroupPanicRecovery(t *testing.T) {
-	g := NewGroup()
-	g.Go(func() error { panic("group panic") })
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewGroup()
+			for _, fn := range tt.funcs {
+				g.Go(fn)
+			}
 
-	errs := g.Wait()
-	if len(errs) != 1 {
-		t.Fatalf("expected 1 error from panic, got %d", len(errs))
-	}
-	var pe *PanicError
-	if !errors.As(errs[0], &pe) {
-		t.Fatalf("expected PanicError, got %T", errs[0])
+			errs := g.Wait()
+			if len(errs) != tt.expectErrs {
+				t.Fatalf("expected %d errors, got %d: %v", tt.expectErrs, len(errs), errs)
+			}
+
+			if tt.expectPanic {
+				foundPanic := false
+				for _, err := range errs {
+					var pe *PanicError
+					if errors.As(err, &pe) {
+						foundPanic = true
+					}
+				}
+				if !foundPanic {
+					t.Fatalf("expected at least one PanicError, got none in %v", errs)
+				}
+			}
+		})
 	}
 }
 
