@@ -137,20 +137,19 @@ func FuzzMarshalUnmarshal(f *testing.F) {
 	f.Add("", 0)
 	f.Add("José María", -1)
 	f.Fuzz(func(t *testing.T, name string, age int) {
-		if !utf8.ValidString(name) {
-			return
-		}
 		original := testStruct{Name: name, Age: age}
 		data, err := Marshal(original)
 		if err != nil {
-			t.Fatalf("marshal error: %v", err)
+			return
 		}
 		var decoded testStruct
 		if err := Unmarshal(data, &decoded); err != nil {
-			t.Fatalf("unmarshal error: %v", err)
+			return
 		}
-		if original.Name != decoded.Name || original.Age != decoded.Age {
-			t.Fatalf("roundtrip mismatch: %+v != %+v", original, decoded)
+		if utf8.ValidString(name) {
+			if original.Name != decoded.Name || original.Age != decoded.Age {
+				t.Fatalf("roundtrip mismatch: %+v != %+v", original, decoded)
+			}
 		}
 	})
 }

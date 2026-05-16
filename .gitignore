@@ -1,6 +1,6 @@
-logs/
-*.test
+bin/
 coverage.out
 *.out
 */testdata/fuzz
 gophercore-sbom.spdx.json
+dbkit/testdata
