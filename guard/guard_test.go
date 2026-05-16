@@ -14,73 +14,150 @@ type createUserInput struct {
 	Age   int    `validate:"gte=0,lte=150"`
 }
 
-func TestValidateSuccess(t *testing.T) {
-	input := createUserInput{
-		Name:  "Alice",
-		Email: "alice@example.com",
-		Age:   30,
+func TestValidate_TableDriven(t *testing.T) {
+	type Inner struct {
+		Code string `validate:"required,min=3"`
 	}
-	if err := Validate(input); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	type Outer struct {
+		Data Inner `validate:"required"`
 	}
-}
-
-func TestValidateFailure(t *testing.T) {
-	input := createUserInput{
-		Name:  "",
-		Email: "not-an-email",
-		Age:   -1,
-	}
-	err := Validate(input)
-	if err == nil {
-		t.Fatal("expected validation error")
+	type hidden struct {
+		Exported   string `validate:"required"`
+		unexported string `validate:"required"`
 	}
 
-	var ve ValidationErrors
-	if !errors.As(err, &ve) {
-		t.Fatalf("expected ValidationErrors, got %T: %v", err, err)
-	}
-	if len(ve) != 3 {
-		t.Fatalf("expected 3 errors, got %d: %v", len(ve), ve)
-	}
-}
+	ptrInput := &createUserInput{Name: "Dave", Email: "dave@example.com", Age: 40}
 
-func TestValidateRequiredOnly(t *testing.T) {
-	input := createUserInput{
-		Name:  "",
-		Email: "valid@example.com",
-		Age:   25,
+	tests := []struct {
+		name                 string
+		input                any
+		expectErr            bool
+		expectValidationErrs bool
+		expectedErrCount     int
+		expectedTags         map[string]string // map field name to expected tag failure
+	}{
+		{
+			name: "success",
+			input: createUserInput{
+				Name:  "Alice",
+				Email: "alice@example.com",
+				Age:   30,
+			},
+			expectErr: false,
+		},
+		{
+			name: "failure multiple errors",
+			input: createUserInput{
+				Name:  "",
+				Email: "not-an-email",
+				Age:   -1,
+			},
+			expectErr:            true,
+			expectValidationErrs: true,
+			expectedErrCount:     3,
+		},
+		{
+			name: "failure required only",
+			input: createUserInput{
+				Name:  "",
+				Email: "valid@example.com",
+				Age:   25,
+			},
+			expectErr:            true,
+			expectValidationErrs: true,
+			expectedErrCount:     1,
+			expectedTags:         map[string]string{"Name": "required"},
+		},
+		{
+			name:                 "non-struct input",
+			input:                "not a struct",
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
+		{
+			name:                 "nil input",
+			input:                nil,
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
+		{
+			name: "pointer to struct",
+			input: &createUserInput{
+				Name:  "Charlie",
+				Email: "charlie@example.com",
+				Age:   35,
+			},
+			expectErr: false,
+		},
+		{
+			name:      "deeply nested struct valid",
+			input:     Outer{Data: Inner{Code: "ABC"}},
+			expectErr: false,
+		},
+		{
+			name:                 "deeply nested struct invalid",
+			input:                Outer{Data: Inner{Code: "A"}},
+			expectErr:            true,
+			expectValidationErrs: true,
+			expectedErrCount:     1,
+			expectedTags:         map[string]string{"Code": "min"},
+		},
+		{
+			name:      "unexported fields ignored",
+			input:     hidden{Exported: "Visible", unexported: "secret"},
+			expectErr: false,
+		},
+		{
+			name:                 "pointer to pointer to struct",
+			input:                &ptrInput,
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
 	}
-	err := Validate(input)
-	if err == nil {
-		t.Fatal("expected validation error for missing name")
-	}
-	var ve ValidationErrors
-	if !errors.As(err, &ve) {
-		t.Fatalf("expected ValidationErrors, got %T", err)
-	}
-	found := false
-	for _, e := range ve {
-		if e.Field == "Name" && e.Tag == "required" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("expected required error for Name")
-	}
-}
 
-func TestValidateNonStructInput(t *testing.T) {
-	// Passing a non-struct value triggers the non-validator.ValidationErrors branch.
-	err := Validate("not a struct")
-	if err == nil {
-		t.Fatal("expected error for non-struct input")
-	}
-	// The underlying error from validator is NOT validator.ValidationErrors,
-	// so it should be returned as-is.
-	var ve ValidationErrors
-	if errors.As(err, &ve) {
-		t.Fatal("should not be ValidationErrors for non-struct input")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(tt.input)
+			if !tt.expectErr {
+				if err != nil {
+					t.Fatalf("expected nil error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error but got nil")
+			}
+
+			var ve ValidationErrors
+			isValidationErrs := errors.As(err, &ve)
+
+			if tt.expectValidationErrs {
+				if !isValidationErrs {
+					t.Fatalf("expected ValidationErrors, got %T: %v", err, err)
+				}
+				if len(ve) != tt.expectedErrCount {
+					t.Fatalf("expected %d errors, got %d: %v", tt.expectedErrCount, len(ve), ve)
+				}
+				if tt.expectedTags != nil {
+					for field, expectedTag := range tt.expectedTags {
+						found := false
+						for _, e := range ve {
+							if e.Field == field && e.Tag == expectedTag {
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Fatalf("expected validation error for field %s with tag %s, but not found in %v", field, expectedTag, ve)
+						}
+					}
+				}
+			} else {
+				if isValidationErrs {
+					t.Fatalf("expected standard error, got ValidationErrors")
+				}
+			}
+		})
 	}
 }
 
@@ -360,69 +437,4 @@ func TestGuardConcurrency(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestValidateEdgeCases(t *testing.T) {
-	t.Run("Pointer to Struct", func(t *testing.T) {
-		input := &createUserInput{Name: "Charlie", Email: "charlie@example.com", Age: 35}
-		if err := Validate(input); err != nil {
-			t.Fatalf("expected nil error, got %v", err)
-		}
-	})
-
-	t.Run("Deeply Nested Structs", func(t *testing.T) {
-		type Inner struct {
-			Code string `validate:"required,min=3"`
-		}
-		type Outer struct {
-			Data Inner `validate:"required"`
-		}
-
-		validOuter := Outer{Data: Inner{Code: "ABC"}}
-		if err := Validate(validOuter); err != nil {
-			t.Fatalf("expected nil error for valid nested struct, got %v", err)
-		}
-
-		invalidOuter := Outer{Data: Inner{Code: "A"}}
-		err := Validate(invalidOuter)
-		if err == nil {
-			t.Fatal("expected error for invalid nested struct")
-		}
-
-		var ve ValidationErrors
-		if errors.As(err, &ve) {
-			found := false
-			for _, e := range ve {
-				if e.Field == "Code" && e.Tag == "min" {
-					found = true
-				}
-			}
-			if !found {
-				t.Fatal("expected min validation error on deeply nested struct field")
-			}
-		}
-	})
-
-	t.Run("Unexported Fields Ignored by Validator", func(t *testing.T) {
-		type hidden struct {
-			Exported   string `validate:"required"`
-			unexported string `validate:"required"`
-		}
-		input := hidden{Exported: "Visible", unexported: "secret"}
-		_ = input.unexported
-		// The unexported field won't be validated because reflect package rules prevent it
-		if err := Validate(input); err != nil {
-			t.Fatalf("expected nil error, got %v", err)
-		}
-	})
-
-	t.Run("Pointer to Pointer to Struct", func(t *testing.T) {
-		input := &createUserInput{Name: "Dave", Email: "dave@example.com", Age: 40}
-		ptrToInput := &input
-		// Passing a pointer to a pointer is not allowed if Validate expects a struct or *struct
-		err := Validate(ptrToInput)
-		if err == nil {
-			t.Fatal("expected error when validating a pointer to a pointer, got nil")
-		}
-	})
 }
