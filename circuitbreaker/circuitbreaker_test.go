@@ -114,14 +114,33 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 	}
 	time.Sleep(60 * time.Millisecond)
 
-	// First request in half-open is allowed.
-	_ = cb.Execute(func() error { return nil })
+	// To test "TooManyRequests", we need concurrent requests before the first one finishes,
+	// because now Execute properly decrements halfOpenRequests upon return.
+	// We'll block the first request so the second one hits the limit.
+	ch := make(chan struct{})
 
-	// Second request should be rejected.
+	// Also use a waitgroup so the test doesn't exit before the goroutine finishes
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_ = cb.Execute(func() error {
+			<-ch
+			return nil
+		})
+	}()
+
+	// Wait briefly to ensure the goroutine enters the Execute block and increments the counter
+	time.Sleep(10 * time.Millisecond)
+
+	// Second request should be rejected immediately
 	err := cb.Execute(func() error { return nil })
 	if !errors.Is(err, ErrTooManyRequests) {
 		t.Fatalf("expected ErrTooManyRequests, got: %v", err)
 	}
+
+	close(ch)
+	wg.Wait()
 }
 
 func TestReset(t *testing.T) {
