@@ -2,6 +2,34 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.3.3] - Chaos Simulation, Finite State Machine Rigor, and Living Documentation Assurance
+
+This release introduces comprehensive concurrency chaos simulation capabilities, enforces strict mathematical validation of concurrent synchronization models, refactors core test suites to robust Table-Driven Patterns (TDT) for `circuitbreaker` and `result` packages, resolves a critical half-open request leak in Circuit Breaker state transitions, and achieves 100% compliance with the repository's strict "Living Documentation" philosophy.
+
+### 🚀 Additions (Features & Enhancements)
+- **Chaos & Resilience Testing (Simulation):** Introduced [chaos_test.go] to validate GopherCore components (HTTP, JSON, Retry, Circuit Breaker) under concurrent stress and randomized latency, ensuring no data races or goroutine leaks under extreme conditions. (Commit f3d7023)
+- **Formal Verification (Documentation):** Added [FORMAL_PROOF.md] describing mathematical formulations, invariant rules, and O(1) performance characteristics behind the toolkit's synchronization strategy. (Commit f3d7023)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Resilience & State Integrity (CircuitBreaker):**
+    - Refactored `Execute` in [circuitbreaker.go] to use defer blocks for state mutations, fixing a half-open request leak where `halfOpenRequests` would not decrement properly if user functions failed, leaving the circuit stuck returning `ErrTooManyRequests`. (PR #82)
+    - Hardened panic recovery paths inside concurrent user execution loops to preserve mutex state consistency before bubble-up. (PR #82)
+- **QA & Test Rigor:**
+    - Refactored all standalone tests in the `async` and `guard` packages into high-coverage, parameter-driven Table-Driven Test (TDT) structures. (PR #78)
+    - Expanded TDT coverage in `circuitbreaker` and `result` packages to achieve an absolute **100.0% statement coverage** across all modules, including full validation of panic propagation paths. (PR #84)
+- **Living Documentation Audit:** Conducted a comprehensive repository-wide Abstract Syntax Tree (AST) validation to ensure every exported function, type, and package symbol maintains complete, non-superficial inline docs (Purpose, Constraints, and Thread-Safety tags). (PR #83)
+- **CI/CD Maintenance:** Upgraded the SLSA Level 3 dynamic provenance generator configuration in release pipelines to `v2.1.0`. (PR #79)
+
+### 📦 Pull Requests
+- **PR #85:** test: implement chaos simulations and formal mathematical proofs.
+- **PR #84:** test(core): improve test rigor with Table-Driven Tests for circuitbreaker and result packages.
+- **PR #83:** docs: maintain living documentation and eliminate superficial comments.
+- **PR #82:** fix(circuitbreaker): resolve half-open request leak and panic handling.
+- **PR #79:** chore(deps): bump slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml from 2.0.0 to 2.1.0 in the actions-minor-patch group.
+- **PR #78:** test: refactor async and guard tests to comprehensive TDT structures.
+
+---
+
 ## [v0.3.2] - QA Resilience, Nil-Safety, and Windows Test Compatibility
 
 This release focuses on strengthening the project's reliability by addressing potential nil-pointer panics in the `retry` package, improving test coverage and error handling in `dbkit` migrations, and ensuring full test suite compatibility with Windows environments.
