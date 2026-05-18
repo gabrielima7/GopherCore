@@ -175,6 +175,7 @@ func (b *Breaker) Execute(fn func() error) error {
 	// needing background worker goroutines to constantly evaluate timeout expirations.
 	state := b.currentState()
 
+	var isHalfOpenProbe bool
 	switch state {
 	case StateOpen:
 		b.mu.Unlock()
@@ -189,22 +190,37 @@ func (b *Breaker) Execute(fn func() error) error {
 			return ErrTooManyRequests
 		}
 		b.halfOpenRequests++
+		isHalfOpenProbe = true
 	}
 
 	// Deliberately drop the mutex before calling the external system. Holding it here
 	// would serialize all execution throughput, turning the breaker into an extreme bottleneck.
 	b.mu.Unlock()
 
-	err := fn()
+	var err error
+	panicked := true
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	defer func() {
+		b.mu.Lock()
+		defer b.mu.Unlock()
 
-	if err != nil {
-		b.recordFailure()
-	} else {
-		b.recordSuccess()
-	}
+		if isHalfOpenProbe {
+			b.halfOpenRequests--
+		}
+
+		if panicked {
+			// A panic is considered a catastrophic failure,
+			// so we record it before the panic continues bubbling up.
+			b.recordFailure()
+		} else if err != nil {
+			b.recordFailure()
+		} else {
+			b.recordSuccess()
+		}
+	}()
+
+	err = fn()
+	panicked = false
 
 	return err
 }
