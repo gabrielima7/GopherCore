@@ -28,7 +28,7 @@ var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-o
 type State int
 
 const (
-	// StateClosed is the normal operational state. All requests are allowed
+	// StateClosed represents the normal operational state. All requests are allowed
 	// through. The breaker counts consecutive failures to determine if it
 	// should trip to StateOpen.
 	// Purpose: Denotes the baseline healthy state.
@@ -36,14 +36,14 @@ const (
 	// Thread-safety: Constant value.
 	StateClosed State = iota
 
-	// StateOpen is the tripped state. All requests are immediately rejected
+	// StateOpen represents the tripped state. All requests are immediately rejected
 	// with ErrCircuitOpen until the configured timeout duration expires.
 	// Purpose: Denotes the failing, protective state.
 	// Constraints: Must enforce fast-failure rejections.
 	// Thread-safety: Constant value.
 	StateOpen
 
-	// StateHalfOpen is the recovery state. A limited number of probe requests
+	// StateHalfOpen represents the recovery state. A limited number of probe requests
 	// are allowed through to test if the underlying service has recovered.
 	// Purpose: Denotes the tentative recovery state.
 	// Constraints: Must restrict the number of probes to avoid re-overloading.
