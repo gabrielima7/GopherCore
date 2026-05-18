@@ -198,6 +198,122 @@ func TestStateString(t *testing.T) {
 	}
 }
 
+func TestBreaker_Execute_TableDriven(t *testing.T) {
+	errGeneric := errors.New("generic error")
+
+	tests := []struct {
+		name          string
+		initialState  State
+		halfOpenReqs  int
+		lastFailTime  time.Time
+		timeout       time.Duration
+		executeFnErr  error
+		expectedErr   error
+		expectedState State
+		validate      func(*testing.T, *Breaker)
+	}{
+		{
+			name:          "StateOpen fast fails with ErrCircuitOpen",
+			initialState:  StateOpen,
+			lastFailTime:  time.Now(),
+			timeout:       50 * time.Millisecond,
+			executeFnErr:  nil, // Should not be called
+			expectedErr:   ErrCircuitOpen,
+			expectedState: StateOpen,
+		},
+		{
+			name:          "StateOpen transitions to StateHalfOpen when timeout expires",
+			initialState:  StateOpen,
+			lastFailTime:  time.Now().Add(-100 * time.Millisecond),
+			timeout:       50 * time.Millisecond,
+			executeFnErr:  nil,
+			expectedErr:   nil,
+			expectedState: StateHalfOpen, // After 1 success it doesn't immediately close (SuccessThreshold is 2)
+			validate: func(t *testing.T, b *Breaker) {
+				if b.successCount != 1 {
+					t.Errorf("expected 1 success count, got %d", b.successCount)
+				}
+			},
+		},
+		{
+			name:          "StateHalfOpen rejects request if MaxHalfOpenRequests exceeded",
+			initialState:  StateHalfOpen,
+			halfOpenReqs:  2,   // Config MaxHalfOpenRequests is 2
+			executeFnErr:  nil, // Should not be called
+			expectedErr:   ErrTooManyRequests,
+			expectedState: StateHalfOpen,
+		},
+		{
+			name:          "StateHalfOpen transitions to StateOpen on failure",
+			initialState:  StateHalfOpen,
+			halfOpenReqs:  0,
+			executeFnErr:  errGeneric,
+			expectedErr:   errGeneric,
+			expectedState: StateOpen,
+		},
+		{
+			name:          "StateClosed transitions to StateOpen on reaching failure threshold",
+			initialState:  StateClosed,
+			executeFnErr:  errGeneric,
+			expectedErr:   errGeneric,
+			expectedState: StateOpen,
+			validate: func(t *testing.T, b *Breaker) {
+				// We inject 2 initial failures, then the execution causes the 3rd, hitting the threshold of 3.
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			timeout := tt.timeout
+			if timeout == 0 {
+				timeout = 50 * time.Millisecond
+			}
+
+			cb := New(Config{
+				FailureThreshold:    3,
+				SuccessThreshold:    2,
+				Timeout:             timeout,
+				MaxHalfOpenRequests: 2,
+			})
+
+			// Force internal state
+			cb.mu.Lock()
+			cb.state = tt.initialState
+			cb.halfOpenRequests = tt.halfOpenReqs
+			cb.lastFailureTime = tt.lastFailTime
+			if tt.name == "StateClosed transitions to StateOpen on reaching failure threshold" {
+				cb.failureCount = 2 // 1 failure away from threshold
+			}
+			cb.mu.Unlock()
+
+			err := cb.Execute(func() error {
+				return tt.executeFnErr
+			})
+
+			if tt.expectedErr == nil {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			} else {
+				if !errors.Is(err, tt.expectedErr) {
+					t.Errorf("expected error %v, got %v", tt.expectedErr, err)
+				}
+			}
+
+			if cb.State() != tt.expectedState {
+				t.Errorf("expected state %s, got %s", tt.expectedState, cb.State())
+			}
+
+			if tt.validate != nil {
+				cb.mu.Lock()
+				tt.validate(t, cb)
+				cb.mu.Unlock()
+			}
+		})
+	}
+}
+
 func TestConcurrentExecute(t *testing.T) {
 	cb := New(Config{
 		FailureThreshold:    100,
