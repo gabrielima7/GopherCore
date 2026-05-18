@@ -242,6 +242,174 @@ func TestString(t *testing.T) {
 	}
 }
 
+func TestResult_Methods_TableDriven(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name         string
+		res          Result[int]
+		op           string // Map, FlatMap, UnwrapOr, UnwrapOrElse, IsOk, IsErr
+		fallbackVal  int
+		fallbackFn   func(error) int
+		mapFn        func(int) int
+		flatMapFn    func(int) Result[int]
+		expectedOk   bool
+		expectedVal  int
+		expectedErr  error
+		expectedBool bool // for IsOk/IsErr
+	}{
+		{
+			name:        "Map over Ok",
+			res:         Ok(5),
+			op:          "Map",
+			mapFn:       func(v int) int { return v * 2 },
+			expectedOk:  true,
+			expectedVal: 10,
+		},
+		{
+			name:        "Map over Err propagates error",
+			res:         Err[int](errBoom),
+			op:          "Map",
+			mapFn:       func(v int) int { return v * 2 },
+			expectedOk:  false,
+			expectedErr: errBoom,
+		},
+		{
+			name:        "FlatMap over Ok returning Ok",
+			res:         Ok(10),
+			op:          "FlatMap",
+			flatMapFn:   func(v int) Result[int] { return Ok(v / 2) },
+			expectedOk:  true,
+			expectedVal: 5,
+		},
+		{
+			name:        "FlatMap over Ok returning Err",
+			res:         Ok(10),
+			op:          "FlatMap",
+			flatMapFn:   func(v int) Result[int] { return Err[int](errBoom) },
+			expectedOk:  false,
+			expectedErr: errBoom,
+		},
+		{
+			name:        "FlatMap over Err propagates initial error",
+			res:         Err[int](errBoom),
+			op:          "FlatMap",
+			flatMapFn:   func(v int) Result[int] { return Ok(v * 2) },
+			expectedOk:  false,
+			expectedErr: errBoom,
+		},
+		{
+			name:        "UnwrapOr on Ok returns value",
+			res:         Ok(42),
+			op:          "UnwrapOr",
+			fallbackVal: 99,
+			expectedVal: 42,
+		},
+		{
+			name:        "UnwrapOr on Err returns fallback",
+			res:         Err[int](errBoom),
+			op:          "UnwrapOr",
+			fallbackVal: 99,
+			expectedVal: 99,
+		},
+		{
+			name:        "UnwrapOrElse on Ok returns value",
+			res:         Ok(42),
+			op:          "UnwrapOrElse",
+			fallbackFn:  func(e error) int { return 99 },
+			expectedVal: 42,
+		},
+		{
+			name:        "UnwrapOrElse on Err invokes fallback function",
+			res:         Err[int](errBoom),
+			op:          "UnwrapOrElse",
+			fallbackFn:  func(e error) int { return 99 },
+			expectedVal: 99,
+		},
+		{
+			name:         "IsOk returns true for Ok",
+			res:          Ok(1),
+			op:           "IsOk",
+			expectedBool: true,
+		},
+		{
+			name:         "IsOk returns false for Err",
+			res:          Err[int](errBoom),
+			op:           "IsOk",
+			expectedBool: false,
+		},
+		{
+			name:         "IsErr returns true for Err",
+			res:          Err[int](errBoom),
+			op:           "IsErr",
+			expectedBool: true,
+		},
+		{
+			name:         "IsErr returns false for Ok",
+			res:          Ok(1),
+			op:           "IsErr",
+			expectedBool: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch tt.op {
+			case "Map":
+				mapped := Map(tt.res, tt.mapFn)
+				if mapped.IsOk() != tt.expectedOk {
+					t.Errorf("Map expected Ok=%v, got %v", tt.expectedOk, mapped.IsOk())
+				}
+				if tt.expectedOk {
+					val, _ := mapped.Unwrap()
+					if val != tt.expectedVal {
+						t.Errorf("Map expected value %d, got %d", tt.expectedVal, val)
+					}
+				} else {
+					if !errors.Is(mapped.Error(), tt.expectedErr) {
+						t.Errorf("Map expected error %v, got %v", tt.expectedErr, mapped.Error())
+					}
+				}
+			case "FlatMap":
+				flatMapped := FlatMap(tt.res, tt.flatMapFn)
+				if flatMapped.IsOk() != tt.expectedOk {
+					t.Errorf("FlatMap expected Ok=%v, got %v", tt.expectedOk, flatMapped.IsOk())
+				}
+				if tt.expectedOk {
+					val, _ := flatMapped.Unwrap()
+					if val != tt.expectedVal {
+						t.Errorf("FlatMap expected value %d, got %d", tt.expectedVal, val)
+					}
+				} else {
+					if !errors.Is(flatMapped.Error(), tt.expectedErr) {
+						t.Errorf("FlatMap expected error %v, got %v", tt.expectedErr, flatMapped.Error())
+					}
+				}
+			case "UnwrapOr":
+				val := tt.res.UnwrapOr(tt.fallbackVal)
+				if val != tt.expectedVal {
+					t.Errorf("UnwrapOr expected %d, got %d", tt.expectedVal, val)
+				}
+			case "UnwrapOrElse":
+				val := tt.res.UnwrapOrElse(tt.fallbackFn)
+				if val != tt.expectedVal {
+					t.Errorf("UnwrapOrElse expected %d, got %d", tt.expectedVal, val)
+				}
+			case "IsOk":
+				if tt.res.IsOk() != tt.expectedBool {
+					t.Errorf("IsOk expected %v, got %v", tt.expectedBool, tt.res.IsOk())
+				}
+			case "IsErr":
+				if tt.res.IsErr() != tt.expectedBool {
+					t.Errorf("IsErr expected %v, got %v", tt.expectedBool, tt.res.IsErr())
+				}
+			default:
+				t.Fatalf("unknown op: %s", tt.op)
+			}
+		})
+	}
+}
+
 func FuzzResultUnwrapOr(f *testing.F) {
 	f.Add(42, 0)
 	f.Add(0, -1)
