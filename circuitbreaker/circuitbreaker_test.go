@@ -505,3 +505,25 @@ func FuzzBreakerThresholds(f *testing.F) {
 		_ = cb.State()
 	})
 }
+
+func TestExecutePanic(t *testing.T) {
+	cb := newTestBreaker()
+
+	// Ensure a panic inside Execute records a failure and propagates the panic.
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic, got none")
+		}
+
+		// The panic should be counted as a failure, so failure count should be 1.
+		cb.mu.Lock()
+		defer cb.mu.Unlock()
+		if cb.failureCount != 1 {
+			t.Errorf("expected failureCount 1 after panic, got %d", cb.failureCount)
+		}
+	}()
+
+	_ = cb.Execute(func() error {
+		panic("catastrophic failure")
+	})
+}
