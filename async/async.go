@@ -1,6 +1,9 @@
 // Package async provides safe goroutine management utilities including
 // panic recovery, fan-out/fan-in patterns, and bounded concurrent mapping.
 // All functions accept context.Context for cancellation support.
+// Purpose: Enables zero-crash concurrent executions.
+// Constraints: Assumes that panics can be captured gracefully.
+// Thread-safety: Highly concurrent, safe for simultaneous invocations across unbounded goroutines.
 package async
 
 import (
@@ -16,7 +19,9 @@ import (
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
 type PanicError struct {
+	// Value holds the raw panic interface{} caught during execution.
 	Value any
+	// Stack holds the runtime stack trace captured immediately at the panic site.
 	Stack string
 }
 

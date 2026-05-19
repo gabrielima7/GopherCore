@@ -1,6 +1,9 @@
 // Package circuitbreaker implements the Circuit Breaker pattern to prevent
 // cascading failures. It wraps fallible operations and trips when too many
 // failures occur, allowing the system to recover gracefully.
+// Purpose: Intercepts and shields backend services from redundant strain during outages.
+// Constraints: Operates based on stateful probabilistic thresholds.
+// Thread-safety: Relies on deep atomic locks, entirely safe for shared usage across high load.
 package circuitbreaker
 
 import (

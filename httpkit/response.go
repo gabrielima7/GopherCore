@@ -1,6 +1,9 @@
 // Package httpkit provides an HTTP toolkit built on go-chi/chi with
 // pre-configured security middleware, rate limiting, CORS control,
 // and standardized JSON responses.
+// Purpose: Manages HTTP request routing and server lifecycle initialization securely.
+// Constraints: Requires strict parameter configuration to defend against Slowloris.
+// Thread-safety: Router execution and server spinning are safe for multi-core multiplexing.
 package httpkit
 
 import (
@@ -14,8 +17,11 @@ import (
 // Constraints: Assumes error message text is safely sanitized for external viewing.
 // Thread-safety: Data structure, safe when not mutated concurrently.
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    int    `json:"code"`
+	// Error provides a machine-readable string describing the general failure category.
+	Error string `json:"error"`
+	// Code matches the HTTP status code returned in the response header.
+	Code int `json:"code"`
+	// Message offers an optional, human-readable description intended for developers or end-users.
 	Message string `json:"message,omitempty"`
 }
 
