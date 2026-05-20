@@ -591,3 +591,41 @@ func TestFan_TableDriven(t *testing.T) {
 		})
 	}
 }
+
+type customCtxForTest struct {
+	context.Context
+	counter int32
+}
+
+func (c *customCtxForTest) Err() error {
+	if atomic.AddInt32(&c.counter, 1) > 2 {
+		return context.Canceled
+	}
+	return nil
+}
+
+func (c *customCtxForTest) Done() <-chan struct{} {
+	return nil // Never done to prevent select block from matching ctx.Done()
+}
+
+func TestMapContextCancelledInsideGoroutineUncovered(t *testing.T) {
+	ctx := &customCtxForTest{Context: context.Background()}
+	items := []int{1, 2}
+	results, err := Map(ctx, items, 2, func(c context.Context, n int) (int, error) {
+		return n, nil
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
+	}
+}
+
+func TestMapWorkerReturnsContextCanceledWithActiveContext(t *testing.T) {
+	items := []int{1}
+	results, err := Map(context.Background(), items, 1, func(c context.Context, n int) (int, error) {
+		return 0, context.Canceled
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
+	}
+}
+

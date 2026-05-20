@@ -212,3 +212,23 @@ func TestResponse_Concurrency(t *testing.T) {
 		t.Errorf("concurrency error: %v", err)
 	}
 }
+
+type errorResponseWriter struct {
+	header http.Header
+}
+
+func (e *errorResponseWriter) Header() http.Header {
+	return e.header
+}
+
+func (e *errorResponseWriter) Write(b []byte) (int, error) {
+	return 0, errors.New("simulated write error")
+}
+
+func (e *errorResponseWriter) WriteHeader(statusCode int) {}
+
+func TestJSONWriteError(t *testing.T) {
+	w := &errorResponseWriter{header: make(http.Header)}
+	JSON(w, http.StatusOK, map[string]string{"foo": "bar"})
+}
+
