@@ -81,21 +81,36 @@ func (s State) String() string {
 type Config struct {
 	// FailureThreshold is the number of consecutive failures before
 	// the circuit breaker transitions from Closed to Open.
+	// Purpose: Determines how many consecutive failures trip the breaker.
+	// Constraints: Must be greater than 0.
+	// Thread-safety: Read-only during execution.
 	FailureThreshold int
 
 	// SuccessThreshold is the number of consecutive successes in
 	// HalfOpen state required to transition back to Closed.
+	// Purpose: Determines how many consecutive successes reset the breaker.
+	// Constraints: Must be greater than 0.
+	// Thread-safety: Read-only during execution.
 	SuccessThreshold int
 
 	// Timeout is the duration the circuit stays in the Open state
 	// before transitioning to HalfOpen.
+	// Purpose: Determines the cooldown period before probing the service again.
+	// Constraints: Must be greater than 0.
+	// Thread-safety: Read-only during execution.
 	Timeout time.Duration
 
 	// MaxHalfOpenRequests is the maximum number of requests allowed
 	// in the HalfOpen state. Defaults to 1.
+	// Purpose: Limits concurrent probes to the recovering service.
+	// Constraints: Must be greater than 0.
+	// Thread-safety: Read-only during execution.
 	MaxHalfOpenRequests int
 
 	// OnStateChange is called when the circuit breaker transitions state.
+	// Purpose: Allows observing internal circuit breaker state changes.
+	// Constraints: Can be nil. If provided, it blocks state transitions.
+	// Thread-safety: Called synchronously under the breaker's mutex lock.
 	OnStateChange func(from, to State)
 }
 

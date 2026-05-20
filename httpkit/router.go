@@ -26,24 +26,54 @@ import (
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
 type RouterConfig struct {
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
+	// Purpose: Configures CORS Access-Control-Allow-Origin dynamically.
+	// Constraints: Can be empty to bypass CORS entirely.
+	// Thread-safety: Read-only slice.
 	AllowedOrigins []string
 	// AllowedMethods for CORS. Defaults to GET, POST, PUT, DELETE, OPTIONS.
+	// Purpose: Configures CORS Access-Control-Allow-Methods dynamically.
+	// Constraints: Read-only, pre-joined during initialization.
+	// Thread-safety: Read-only slice.
 	AllowedMethods []string
 	// AllowedHeaders for CORS. Defaults to Accept, Authorization, Content-Type.
+	// Purpose: Configures CORS Access-Control-Allow-Headers dynamically.
+	// Constraints: Read-only, pre-joined during initialization.
+	// Thread-safety: Read-only slice.
 	AllowedHeaders []string
 	// RateLimit is the maximum requests per second. 0 disables rate limiting.
+	// Purpose: Limits incoming traffic rates to prevent resource exhaustion.
+	// Constraints: Ignored if set to 0.
+	// Thread-safety: Read-only float64.
 	RateLimit float64
 	// RateBurst is the maximum burst size for rate limiting. Defaults to RateLimit.
+	// Purpose: Configures the burst tolerance over the rate limit.
+	// Constraints: Ignored if RateLimit is 0.
+	// Thread-safety: Read-only int.
 	RateBurst int
 	// ReadTimeout for the HTTP server.
+	// Purpose: Time allowed to read the entire request, including the body.
+	// Constraints: Protects against slowloris attacks.
+	// Thread-safety: Read-only duration.
 	ReadTimeout time.Duration
 	// ReadHeaderTimeout for the HTTP server.
+	// Purpose: Time allowed to read request headers.
+	// Constraints: Protects against slowloris attacks targeting headers.
+	// Thread-safety: Read-only duration.
 	ReadHeaderTimeout time.Duration
 	// WriteTimeout for the HTTP server.
+	// Purpose: Time allowed to write the response.
+	// Constraints: Protects against slow clients.
+	// Thread-safety: Read-only duration.
 	WriteTimeout time.Duration
 	// IdleTimeout for the HTTP server.
+	// Purpose: Time allowed for idle keep-alive connections.
+	// Constraints: Determines how aggressively idle sockets are closed.
+	// Thread-safety: Read-only duration.
 	IdleTimeout time.Duration
 	// EnableLogger enables the chi request logger middleware.
+	// Purpose: Toggles basic HTTP request logging automatically.
+	// Constraints: Boolean flag.
+	// Thread-safety: Read-only boolean.
 	EnableLogger bool
 }
 

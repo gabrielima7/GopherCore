@@ -52,16 +52,34 @@ const (
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
 type Config struct {
 	// MaxAttempts limits the total number of execution iterations before completely failing.
+	// Purpose: Provides a hard upper bound on retry loops.
+	// Constraints: Should be > 0.
+	// Thread-safety: Read-only integer.
 	MaxAttempts int
 	// InitialDelay is the starting sleep duration used by backoff strategies after the first failure.
+	// Purpose: Determines the baseline sleep time.
+	// Constraints: Should be >= 0.
+	// Thread-safety: Read-only duration.
 	InitialDelay time.Duration
 	// MaxDelay aggressively caps the exponentially growing sleep duration to prevent infinitely increasing wait times.
+	// Purpose: Limits how long a single backoff sleep can take.
+	// Constraints: Should be >= InitialDelay.
+	// Thread-safety: Read-only duration.
 	MaxDelay time.Duration
 	// Strategy determines the mathematical decay mechanism applied between subsequent retries.
+	// Purpose: Chooses the backoff algorithm (e.g. constant vs exponential).
+	// Constraints: Should be a valid Strategy enum.
+	// Thread-safety: Read-only enum.
 	Strategy Strategy
 	// Jitter enables the injection of cryptographic randomness into sleep durations to thwart thundering herd bottlenecks.
+	// Purpose: Prevents synchronized retries from overwhelming dependencies.
+	// Constraints: Boolean flag.
+	// Thread-safety: Read-only boolean.
 	Jitter bool
 	// RetryIf acts as a custom predicate interceptor, allowing the system to selectively abort retries for non-recoverable errors.
+	// Purpose: Allows short-circuiting the retry loop for fatal errors.
+	// Constraints: If nil, all errors are retried.
+	// Thread-safety: Executed synchronously by the caller goroutine.
 	RetryIf func(error) bool
 }
 
