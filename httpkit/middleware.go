@@ -1,6 +1,3 @@
-// Package httpkit provides an HTTP toolkit built on go-chi/chi with
-// pre-configured security middleware, rate limiting, CORS control,
-// and standardized JSON responses.
 package httpkit
 
 import (

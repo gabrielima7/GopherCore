@@ -1,5 +1,8 @@
 // Package retry provides configurable retry logic with exponential backoff,
 // jitter, and context-aware cancellation for fallible operations.
+// Purpose: Orchestrates systematic re-executions for transiently failing network operations.
+// Constraints: Dependent on accurate strategy configuration.
+// Thread-safety: The engine handles independent isolated execution blocks concurrently.
 package retry
 
 import (
@@ -48,12 +51,18 @@ const (
 // Constraints: Must be populated with sensible bounds.
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
 type Config struct {
-	MaxAttempts  int
+	// MaxAttempts limits the total number of execution iterations before completely failing.
+	MaxAttempts int
+	// InitialDelay is the starting sleep duration used by backoff strategies after the first failure.
 	InitialDelay time.Duration
-	MaxDelay     time.Duration
-	Strategy     Strategy
-	Jitter       bool
-	RetryIf      func(error) bool
+	// MaxDelay aggressively caps the exponentially growing sleep duration to prevent infinitely increasing wait times.
+	MaxDelay time.Duration
+	// Strategy determines the mathematical decay mechanism applied between subsequent retries.
+	Strategy Strategy
+	// Jitter enables the injection of cryptographic randomness into sleep durations to thwart thundering herd bottlenecks.
+	Jitter bool
+	// RetryIf acts as a custom predicate interceptor, allowing the system to selectively abort retries for non-recoverable errors.
+	RetryIf func(error) bool
 }
 
 // Option establishes a localized mutator function signature, cleanly encapsulating specific parameter overrides targeted at customizing the resilient retry configuration map.

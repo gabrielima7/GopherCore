@@ -1,6 +1,9 @@
 // Package guard provides security guard helpers that wrap the go-playground/validator
 // library to offer structured validation and basic input sanitization.
 // It is designed to be fully thread-safe for concurrent use across multiple goroutines.
+// Purpose: Implements unified input sanitization and struct validation routines.
+// Constraints: Relies on the go-playground/validator library for the heavy lifting.
+// Thread-safety: Pure and concurrent-safe string operations, globally synchronized validator instance.
 package guard
 
 import (
@@ -32,9 +35,13 @@ var htmlPolicy = bluemonday.StrictPolicy()
 // It structurally maps the field name, failed validation tag, rejected value, and a
 // generated human-readable message.
 type ValidationError struct {
-	Field   string `json:"field"`
-	Tag     string `json:"tag"`
-	Value   string `json:"value"`
+	// Field is the struct property name that failed validation.
+	Field string `json:"field"`
+	// Tag is the specific validation rule that triggered the failure.
+	Tag string `json:"tag"`
+	// Value is the actual input value that was rejected, formatted as a string.
+	Value string `json:"value"`
+	// Message is a human-readable explanation of why the validation failed.
 	Message string `json:"message"`
 }
 
