@@ -167,7 +167,7 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	for i, item := range items {
 		// Fast-path context cancellation check before spawning.
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			break
 		}
 
 		// Acquire semaphore slot to enforce bounded concurrency limit.
@@ -201,6 +201,11 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	}
 
 	wg.Wait()
+
+	// If the loop was broken early due to context cancellation, we must still respect it.
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 
 	for _, err := range errs {
 		if err != nil {
