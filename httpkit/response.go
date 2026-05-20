@@ -7,6 +7,7 @@
 package httpkit
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gabrielima7/GopherCore/jsonutil"
@@ -40,7 +41,9 @@ func JSON(w http.ResponseWriter, status int, data any) {
 	h := w.Header()
 	h["Content-Type"] = []string{"application/json; charset=utf-8"}
 	w.WriteHeader(status)
-	_, _ = w.Write(body)
+	if _, err := w.Write(body); err != nil {
+		slog.Warn("failed to write response body", "error", err)
+	}
 }
 
 // Error fabricates a meticulously structured ErrorResponse dictionary mapped to the corresponding HTTP status code and instantly broadcasts it to the connecting client socket.

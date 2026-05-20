@@ -143,19 +143,59 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 	wg.Wait()
 }
 
-func TestReset(t *testing.T) {
-	cb := newTestBreaker()
-
-	for i := 0; i < 3; i++ {
-		_ = cb.Execute(func() error { return errTest })
+func TestReset_TableDriven(t *testing.T) {
+	tests := []struct {
+		name          string
+		setup         func(*testing.T, *Breaker)
+		expectedState State
+	}{
+		{
+			name: "Reset from Open State",
+			setup: func(t *testing.T, cb *Breaker) {
+				for i := 0; i < 3; i++ {
+					_ = cb.Execute(func() error { return errTest })
+				}
+				if cb.State() != StateOpen {
+					t.Fatalf("expected Open state before reset, got %v", cb.State())
+				}
+			},
+			expectedState: StateClosed,
+		},
+		{
+			name: "Reset from HalfOpen State",
+			setup: func(t *testing.T, cb *Breaker) {
+				for i := 0; i < 3; i++ {
+					_ = cb.Execute(func() error { return errTest })
+				}
+				cb.mu.Lock()
+				cb.lastFailureTime = time.Now().Add(-100 * time.Millisecond) // force timeout expiration
+				cb.mu.Unlock()
+				if cb.State() != StateHalfOpen {
+					t.Fatalf("expected HalfOpen state before reset, got %v", cb.State())
+				}
+			},
+			expectedState: StateClosed,
+		},
+		{
+			name: "Reset from Closed State",
+			setup: func(t *testing.T, cb *Breaker) {
+				if cb.State() != StateClosed {
+					t.Fatalf("expected Closed state before reset, got %v", cb.State())
+				}
+			},
+			expectedState: StateClosed,
+		},
 	}
-	if cb.State() != StateOpen {
-		t.Fatalf("expected Open, got %s", cb.State())
-	}
 
-	cb.Reset()
-	if cb.State() != StateClosed {
-		t.Fatalf("expected Closed after Reset, got %s", cb.State())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cb := newTestBreaker()
+			tt.setup(t, cb)
+			cb.Reset()
+			if cb.State() != tt.expectedState {
+				t.Errorf("expected %v after Reset, got %v", tt.expectedState, cb.State())
+			}
+		})
 	}
 }
 
@@ -337,57 +377,80 @@ func TestConcurrentExecute(t *testing.T) {
 	}
 }
 
-func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
-	if cfg.FailureThreshold != 5 {
-		t.Fatalf("expected 5, got %d", cfg.FailureThreshold)
+func TestConfig_TableDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    Config
+		expected Config
+	}{
+		{
+			name:  "DefaultConfig",
+			input: DefaultConfig(),
+			expected: Config{
+				FailureThreshold:    5,
+				SuccessThreshold:    2,
+				Timeout:             30 * time.Second,
+				MaxHalfOpenRequests: 1,
+			},
+		},
+		{
+			name:  "Zero values",
+			input: Config{},
+			expected: Config{
+				FailureThreshold:    5,
+				SuccessThreshold:    2,
+				Timeout:             30 * time.Second,
+				MaxHalfOpenRequests: 1,
+			},
+		},
+		{
+			name: "Negative values",
+			input: Config{
+				FailureThreshold:    -1,
+				SuccessThreshold:    -1,
+				Timeout:             -1,
+				MaxHalfOpenRequests: -1,
+			},
+			expected: Config{
+				FailureThreshold:    5,
+				SuccessThreshold:    2,
+				Timeout:             30 * time.Second,
+				MaxHalfOpenRequests: 1,
+			},
+		},
+		{
+			name: "Valid values",
+			input: Config{
+				FailureThreshold:    10,
+				SuccessThreshold:    5,
+				Timeout:             10 * time.Second,
+				MaxHalfOpenRequests: 3,
+			},
+			expected: Config{
+				FailureThreshold:    10,
+				SuccessThreshold:    5,
+				Timeout:             10 * time.Second,
+				MaxHalfOpenRequests: 3,
+			},
+		},
 	}
-	if cfg.SuccessThreshold != 2 {
-		t.Fatalf("expected 2, got %d", cfg.SuccessThreshold)
-	}
-	if cfg.Timeout != 30*time.Second {
-		t.Fatalf("expected 30s, got %v", cfg.Timeout)
-	}
-	if cfg.MaxHalfOpenRequests != 1 {
-		t.Fatalf("expected 1, got %d", cfg.MaxHalfOpenRequests)
-	}
-}
 
-func TestNewWithZeroConfig(t *testing.T) {
-	// All zero values should get defaults.
-	cb := New(Config{})
-	if cb.config.FailureThreshold != 5 {
-		t.Fatalf("expected default 5, got %d", cb.config.FailureThreshold)
-	}
-	if cb.config.SuccessThreshold != 2 {
-		t.Fatalf("expected default 2, got %d", cb.config.SuccessThreshold)
-	}
-	if cb.config.Timeout != 30*time.Second {
-		t.Fatalf("expected default 30s, got %v", cb.config.Timeout)
-	}
-	if cb.config.MaxHalfOpenRequests != 1 {
-		t.Fatalf("expected default 1, got %d", cb.config.MaxHalfOpenRequests)
-	}
-}
-
-func TestNewWithNegativeConfig(t *testing.T) {
-	cb := New(Config{
-		FailureThreshold:    -1,
-		SuccessThreshold:    -1,
-		Timeout:             -1,
-		MaxHalfOpenRequests: -1,
-	})
-	if cb.config.FailureThreshold != 5 {
-		t.Fatalf("expected default 5, got %d", cb.config.FailureThreshold)
-	}
-	if cb.config.SuccessThreshold != 2 {
-		t.Fatalf("expected default 2, got %d", cb.config.SuccessThreshold)
-	}
-	if cb.config.Timeout != 30*time.Second {
-		t.Fatalf("expected default 30s, got %v", cb.config.Timeout)
-	}
-	if cb.config.MaxHalfOpenRequests != 1 {
-		t.Fatalf("expected default 1, got %d", cb.config.MaxHalfOpenRequests)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cb := New(tt.input)
+			if cb.config.FailureThreshold != tt.expected.FailureThreshold {
+				t.Errorf("expected FailureThreshold %d, got %d", tt.expected.FailureThreshold, cb.config.FailureThreshold)
+			}
+			if cb.config.SuccessThreshold != tt.expected.SuccessThreshold {
+				t.Errorf("expected SuccessThreshold %d, got %d", tt.expected.SuccessThreshold, cb.config.SuccessThreshold)
+			}
+			if cb.config.Timeout != tt.expected.Timeout {
+				t.Errorf("expected Timeout %v, got %v", tt.expected.Timeout, cb.config.Timeout)
+			}
+			if cb.config.MaxHalfOpenRequests != tt.expected.MaxHalfOpenRequests {
+				t.Errorf("expected MaxHalfOpenRequests %d, got %d", tt.expected.MaxHalfOpenRequests, cb.config.MaxHalfOpenRequests)
+			}
+		})
 	}
 }
 

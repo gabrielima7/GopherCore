@@ -169,14 +169,19 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	var wg sync.WaitGroup
 
 	// Launch workers to process items concurrently.
+Loop:
 	for i, item := range items {
 		// Fast-path context cancellation check before spawning.
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			break Loop
 		}
 
-		// Acquire semaphore slot to enforce bounded concurrency limit.
-		sem <- struct{}{}
+		// Acquire semaphore slot to enforce bounded concurrency limit, responding to cancellation.
+		select {
+		case <-ctx.Done():
+			break Loop
+		case sem <- struct{}{}:
+		}
 		wg.Add(1)
 
 		go func(idx int, val T) {
@@ -207,6 +212,19 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 
 	wg.Wait()
 
+	// Prioritize specific worker errors (including recovered panics) over context cancellation.
+	for _, err := range errs {
+		if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+			return results, err
+		}
+	}
+
+	// If no specific worker error occurred, but the context was canceled, return the context error.
+	if ctx.Err() != nil {
+		return results, ctx.Err()
+	}
+
+	// Finally, return any worker errors that were context cancellations.
 	for _, err := range errs {
 		if err != nil {
 			return results, err
