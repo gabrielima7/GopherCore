@@ -1,3 +1,8 @@
+// Package httpkit provides an HTTP toolkit built on go-chi/chi with
+// common middleware, response helpers, and graceful shutdown capabilities.
+// Purpose: Simplifies creating robust HTTP servers.
+// Constraints: Interacts primarily with standard net/http interfaces.
+// Thread-safety: Functions are safe for concurrent use.
 package httpkit
 
 import (
@@ -13,10 +18,19 @@ import (
 // Thread-safety: Data structure, safe when not mutated concurrently.
 type ErrorResponse struct {
 	// Error provides a machine-readable string describing the general failure category.
+	// Purpose: Provides a programmatic identifier for the error type.
+	// Constraints: Usually tied to the HTTP status text.
+	// Thread-safety: Read-only string.
 	Error string `json:"error"`
 	// Code matches the HTTP status code returned in the response header.
+	// Purpose: Mirrors the HTTP status code in the JSON payload for easy client parsing.
+	// Constraints: Must be a valid HTTP status code.
+	// Thread-safety: Read-only integer.
 	Code int `json:"code"`
 	// Message offers an optional, human-readable description intended for developers or end-users.
+	// Purpose: Provides additional context about the failure.
+	// Constraints: Should not contain sensitive system information.
+	// Thread-safety: Read-only string.
 	Message string `json:"message,omitempty"`
 }
 

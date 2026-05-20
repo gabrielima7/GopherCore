@@ -36,12 +36,24 @@ var htmlPolicy = bluemonday.StrictPolicy()
 // generated human-readable message.
 type ValidationError struct {
 	// Field is the struct property name that failed validation.
+	// Purpose: Identifies which specific input parameter was invalid.
+	// Constraints: Maps to the struct field's defined name or JSON tag.
+	// Thread-safety: Read-only string.
 	Field string `json:"field"`
 	// Tag is the specific validation rule that triggered the failure.
+	// Purpose: Identifies the exact rule (e.g., 'required', 'email') that was violated.
+	// Constraints: Maps to go-playground/validator tag names.
+	// Thread-safety: Read-only string.
 	Tag string `json:"tag"`
 	// Value is the actual input value that was rejected, formatted as a string.
+	// Purpose: Shows the invalid input for debugging and logging.
+	// Constraints: Should be sanitized if logging sensitive PII.
+	// Thread-safety: Read-only string.
 	Value string `json:"value"`
 	// Message is a human-readable explanation of why the validation failed.
+	// Purpose: Provides a client-friendly error message.
+	// Constraints: Safe for external exposure via API responses.
+	// Thread-safety: Read-only string.
 	Message string `json:"message"`
 }
 

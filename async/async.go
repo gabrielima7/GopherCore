@@ -20,8 +20,14 @@ import (
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
 type PanicError struct {
 	// Value holds the raw panic interface{} caught during execution.
+	// Purpose: Holds the raw value recovered from the panic.
+	// Constraints: Can be of any type, typically an error or string.
+	// Thread-safety: Read-only struct field.
 	Value any
 	// Stack holds the runtime stack trace captured immediately at the panic site.
+	// Purpose: Provides debugging context for where the panic originated.
+	// Constraints: Automatically captured via runtime/debug.
+	// Thread-safety: Read-only string.
 	Stack string
 }
 
