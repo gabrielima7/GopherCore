@@ -36,7 +36,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 	h["Content-Type"] = []string{"application/json; charset=utf-8"}
 	w.WriteHeader(status)
 	if _, err := w.Write(body); err != nil {
-		slog.Error("failed to write response body", "error", err)
+		slog.Warn("failed to write response body", "error", err)
 	}
 }
 
