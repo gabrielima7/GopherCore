@@ -1,9 +1,9 @@
 // Package circuitbreaker implements the Circuit Breaker pattern to prevent
 // cascading failures. It wraps fallible operations and trips when too many
 // failures occur, allowing the system to recover gracefully.
-// Purpose: Intercepts and shields backend services from redundant strain during outages.
-// Constraints: Operates based on stateful probabilistic thresholds.
-// Thread-safety: Relies on deep atomic locks, entirely safe for shared usage across high load.
+// Purpose: Intercepts requests to backend services to prevent cascading failures during outages.
+// Constraints: Operates based on configurable success and failure thresholds.
+// Thread-safety: Relies on sync.Mutex, safe for concurrent use across goroutines.
 package circuitbreaker
 
 import (
@@ -112,11 +112,10 @@ func DefaultConfig() Config {
 	}
 }
 
-// Breaker encapsulates an intricate, fully mutex-guarded finite state machine built to forcefully sever network pathways during catastrophic remote outages, restoring flow only upon mathematical proof of recovery.
-// Purpose: It coordinates concurrent access to the circuit's state and statistics
-// to prevent cascading failure patterns in microservice architectures.
+// Breaker encapsulates a finite state machine that automatically opens when failure thresholds are exceeded, rejecting requests to allow the downstream service to recover.
+// Purpose: Prevents cascading failures by managing circuit state and statistics.
 // Constraints: Must be created using New() and never copied by value after initialization.
-// Thread-safety: Contains an internal mutex rendering all exported methods strictly thread-safe.
+// Thread-safety: Mutex-guarded and safe for concurrent use.
 type Breaker struct {
 	mu     sync.Mutex
 	config Config
@@ -128,11 +127,10 @@ type Breaker struct {
 	lastFailureTime  time.Time
 }
 
-// New bootstraps the overarching circuit protection machine, scrubbing any impossible configuration parameters down to safe defaults before physically locking the mechanism into a ready posture.
-// Purpose: Instantiates and preconfigures a new active Circuit Breaker structure.
-// Constraints: It will apply sensible default values for any configuration fields that are
-// left as zero or invalid (<= 0). The breaker starts in the StateClosed state.
-// Thread-safety: Initialization is inherently safe as no references have been shared yet.
+// New creates a new Breaker instance with the provided Config.
+// Purpose: Instantiates and preconfigures a new Circuit Breaker.
+// Constraints: Applies default values for any configuration fields that are zero or invalid (<= 0). The breaker starts in StateClosed.
+// Thread-safety: Safe to initialize.
 func New(cfg Config) *Breaker {
 	// Sanitize configuration arguments silently rather than panicking or failing.
 	// This defensive posture ensures the circuit breaker guarantees system resilience
@@ -163,14 +161,10 @@ func (b *Breaker) State() State {
 	return b.currentState()
 }
 
-// Execute acts as the impenetrable execution perimeter, brutally refusing traversal if the network is critically failing, while smoothly recording historical success telemetry when paths are clear.
-// Purpose: The primary execution wrapper that bounds requests based on health heuristics.
-// Constraints: If the circuit is Open, it immediately returns ErrCircuitOpen.
-// If the circuit is HalfOpen and the maximum probe limit is exceeded, it returns ErrTooManyRequests.
-// Otherwise, it runs fn, records the success or failure of the execution to
-// update internal statistics, and returns the error produced by fn.
-// Thread-safety: It is fully safe for concurrent use across multiple goroutines, executing
-// the fallback logic without holding locks during I/O, but mutating state securely inside mutexes.
+// Execute wraps the execution of the user-provided function fn.
+// Purpose: Rejects requests when the circuit is Open or too busy in HalfOpen, otherwise runs fn and tracks outcomes.
+// Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached.
+// Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.
 func (b *Breaker) Execute(fn func() error) error {
 	b.mu.Lock()
 
@@ -321,10 +315,10 @@ func (b *Breaker) transitionTo(newState State) {
 // Thread-safety: Pure function.
 func to(s State) State { return s }
 
-// Reset operates as an absolute override switch, utterly demolishing accumulated failure memories and forcefully stapling the circuit breaker back into a pristine, fully functional posture.
-// Purpose: Provide a manual override to instantly clear failure conditions.
-// Constraints: Fully ignores standard configuration thresholds when invoked.
-// Thread-safety: This safely locks the internal mutex to prevent race conditions during reset.
+// Reset restores the circuit breaker to its closed state, clearing all statistics.
+// Purpose: Manually clears any failure conditions.
+// Constraints: Disregards threshold counts when invoked.
+// Thread-safety: Mutex-locked and safe for concurrent use.
 func (b *Breaker) Reset() {
 	b.mu.Lock()
 	defer b.mu.Unlock()

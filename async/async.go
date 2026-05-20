@@ -234,8 +234,8 @@ Loop:
 	return results, nil
 }
 
-// Fan dramatically explodes the provided item slice outward into completely unbounded, simultaneous executions, intentionally flooding the scheduling engine for absolute maximum possible speed.
-// Purpose: Rapidly disperse work across infinite goroutines simultaneously.
+// Fan processes the provided item slice concurrently by launching a separate goroutine for each item, allowing unbounded parallel execution.
+// Purpose: Concurrently process work across multiple goroutines without concurrency limits.
 // Constraints: It respects context cancellation, aborting the launch loop early if the context is
 // canceled. It safely collects and returns all errors encountered, including recovered panics.
 // For bounded concurrency, prefer using Map.
