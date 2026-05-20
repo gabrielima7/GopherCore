@@ -1,6 +1,9 @@
 // Package async provides safe goroutine management utilities including
 // panic recovery, fan-out/fan-in patterns, and bounded concurrent mapping.
 // All functions accept context.Context for cancellation support.
+// Purpose: Enables zero-crash concurrent executions.
+// Constraints: Assumes that panics can be captured gracefully.
+// Thread-safety: Highly concurrent, safe for simultaneous invocations across unbounded goroutines.
 package async
 
 import (
@@ -16,7 +19,9 @@ import (
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
 type PanicError struct {
+	// Value holds the raw panic interface{} caught during execution.
 	Value any
+	// Stack holds the runtime stack trace captured immediately at the panic site.
 	Stack string
 }
 
@@ -164,14 +169,19 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	var wg sync.WaitGroup
 
 	// Launch workers to process items concurrently.
+Loop:
 	for i, item := range items {
 		// Fast-path context cancellation check before spawning.
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			break Loop
 		}
 
-		// Acquire semaphore slot to enforce bounded concurrency limit.
-		sem <- struct{}{}
+		// Acquire semaphore slot to enforce bounded concurrency limit, responding to cancellation.
+		select {
+		case <-ctx.Done():
+			break Loop
+		case sem <- struct{}{}:
+		}
 		wg.Add(1)
 
 		go func(idx int, val T) {
@@ -202,6 +212,19 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 
 	wg.Wait()
 
+	// Prioritize specific worker errors (including recovered panics) over context cancellation.
+	for _, err := range errs {
+		if err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+			return results, err
+		}
+	}
+
+	// If no specific worker error occurred, but the context was canceled, return the context error.
+	if ctx.Err() != nil {
+		return results, ctx.Err()
+	}
+
+	// Finally, return any worker errors that were context cancellations.
 	for _, err := range errs {
 		if err != nil {
 			return results, err
@@ -211,8 +234,8 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 	return results, nil
 }
 
-// Fan dramatically explodes the provided item slice outward into completely unbounded, simultaneous executions, intentionally flooding the scheduling engine for absolute maximum possible speed.
-// Purpose: Rapidly disperse work across infinite goroutines simultaneously.
+// Fan processes the provided item slice concurrently by launching a separate goroutine for each item, allowing unbounded parallel execution.
+// Purpose: Concurrently process work across multiple goroutines without concurrency limits.
 // Constraints: It respects context cancellation, aborting the launch loop early if the context is
 // canceled. It safely collects and returns all errors encountered, including recovered panics.
 // For bounded concurrency, prefer using Map.

@@ -1,9 +1,7 @@
-// Package httpkit provides an HTTP toolkit built on go-chi/chi with
-// pre-configured security middleware, rate limiting, CORS control,
-// and standardized JSON responses.
 package httpkit
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gabrielima7/GopherCore/jsonutil"
@@ -14,8 +12,11 @@ import (
 // Constraints: Assumes error message text is safely sanitized for external viewing.
 // Thread-safety: Data structure, safe when not mutated concurrently.
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    int    `json:"code"`
+	// Error provides a machine-readable string describing the general failure category.
+	Error string `json:"error"`
+	// Code matches the HTTP status code returned in the response header.
+	Code int `json:"code"`
+	// Message offers an optional, human-readable description intended for developers or end-users.
 	Message string `json:"message,omitempty"`
 }
 
@@ -34,7 +35,9 @@ func JSON(w http.ResponseWriter, status int, data any) {
 	h := w.Header()
 	h["Content-Type"] = []string{"application/json; charset=utf-8"}
 	w.WriteHeader(status)
-	_, _ = w.Write(body)
+	if _, err := w.Write(body); err != nil {
+		slog.Warn("failed to write response body", "error", err)
+	}
 }
 
 // Error fabricates a meticulously structured ErrorResponse dictionary mapped to the corresponding HTTP status code and instantly broadcasts it to the connecting client socket.

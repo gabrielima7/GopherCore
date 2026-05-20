@@ -1,5 +1,3 @@
-// Package dbkit provides thread-safe database connection management, robust connection pooling defaults,
-// and safe schema migration orchestration built upon sqlx and golang-migrate/migrate.
 package dbkit
 
 import (
@@ -94,8 +92,10 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 // Constraints: A dirty flag typically blocks further migrations until manually resolved.
 // Thread-safety: Struct data.
 type MigrationVersion struct {
+	// Version is the current numeric version of the database schema.
 	Version uint
-	Dirty   bool
+	// Dirty indicates whether the last migration attempt failed and left the schema in a potentially inconsistent state.
+	Dirty bool
 }
 
 // GetMigrationVersion queries the internal synchronization tables inside the target database to extract the currently recognized schema generation timestamp alongside its cleanliness flag.

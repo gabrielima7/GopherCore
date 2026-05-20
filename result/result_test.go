@@ -7,48 +7,76 @@ import (
 	"testing"
 )
 
-func TestOk(t *testing.T) {
-	r := Ok(42)
-	if !r.IsOk() {
-		t.Fatal("expected Ok")
-	}
-	if r.IsErr() {
-		t.Fatal("expected not Err")
-	}
-	val, err := r.Unwrap()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if val != 42 {
-		t.Fatalf("expected 42, got %d", val)
-	}
-}
+func TestResultConstructors_TableDriven(t *testing.T) {
+	errFail := errors.New("something failed")
 
-func TestErr(t *testing.T) {
-	e := errors.New("something failed")
-	r := Err[int](e)
-	if r.IsOk() {
-		t.Fatal("expected Err")
+	tests := []struct {
+		name         string
+		constructor  func() Result[any]
+		expectOk     bool
+		expectValue  any
+		expectErrStr string
+	}{
+		{
+			name: "Ok Constructor",
+			constructor: func() Result[any] {
+				return Ok[any](42)
+			},
+			expectOk:    true,
+			expectValue: 42,
+		},
+		{
+			name: "Err Constructor",
+			constructor: func() Result[any] {
+				return Err[any](errFail)
+			},
+			expectOk:     false,
+			expectErrStr: "something failed",
+		},
+		{
+			name: "Errf Constructor",
+			constructor: func() Result[any] {
+				return Errf[any]("failed with code %d", 404)
+			},
+			expectOk:     false,
+			expectErrStr: "failed with code 404",
+		},
 	}
-	if !r.IsErr() {
-		t.Fatal("expected IsErr to be true")
-	}
-	_, err := r.Unwrap()
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if err.Error() != "something failed" {
-		t.Fatalf("expected 'something failed', got %q", err.Error())
-	}
-}
 
-func TestErrf(t *testing.T) {
-	r := Errf[string]("failed with code %d", 404)
-	if r.IsOk() {
-		t.Fatal("expected Err")
-	}
-	if r.Error().Error() != "failed with code 404" {
-		t.Fatalf("unexpected error message: %v", r.Error())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := tt.constructor()
+
+			if r.IsOk() != tt.expectOk {
+				t.Fatalf("expected IsOk %v, got %v", tt.expectOk, r.IsOk())
+			}
+			if r.IsErr() == tt.expectOk {
+				t.Fatalf("expected IsErr %v, got %v", !tt.expectOk, r.IsErr())
+			}
+
+			val, err := r.Unwrap()
+			if tt.expectOk {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if val != tt.expectValue {
+					t.Fatalf("expected value %v, got %v", tt.expectValue, val)
+				}
+				if r.Error() != nil {
+					t.Fatalf("expected Error() to return nil, got %v", r.Error())
+				}
+			} else {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if err.Error() != tt.expectErrStr {
+					t.Fatalf("expected error string %q, got %q", tt.expectErrStr, err.Error())
+				}
+				if r.Error() == nil || r.Error().Error() != tt.expectErrStr {
+					t.Fatalf("expected Error() string %q, got %v", tt.expectErrStr, r.Error())
+				}
+			}
+		})
 	}
 }
 
