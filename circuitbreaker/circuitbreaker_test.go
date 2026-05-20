@@ -146,12 +146,12 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 func TestReset_TableDriven(t *testing.T) {
 	tests := []struct {
 		name          string
-		setup         func(*Breaker)
+		setup         func(*testing.T, *Breaker)
 		expectedState State
 	}{
 		{
 			name: "Reset from Open State",
-			setup: func(cb *Breaker) {
+			setup: func(t *testing.T, cb *Breaker) {
 				for i := 0; i < 3; i++ {
 					_ = cb.Execute(func() error { return errTest })
 				}
@@ -163,7 +163,7 @@ func TestReset_TableDriven(t *testing.T) {
 		},
 		{
 			name: "Reset from HalfOpen State",
-			setup: func(cb *Breaker) {
+			setup: func(t *testing.T, cb *Breaker) {
 				for i := 0; i < 3; i++ {
 					_ = cb.Execute(func() error { return errTest })
 				}
@@ -178,7 +178,7 @@ func TestReset_TableDriven(t *testing.T) {
 		},
 		{
 			name: "Reset from Closed State",
-			setup: func(cb *Breaker) {
+			setup: func(t *testing.T, cb *Breaker) {
 				if cb.State() != StateClosed {
 					t.Fatalf("expected Closed state before reset, got %v", cb.State())
 				}
@@ -190,7 +190,7 @@ func TestReset_TableDriven(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cb := newTestBreaker()
-			tt.setup(cb)
+			tt.setup(t, cb)
 			cb.Reset()
 			if cb.State() != tt.expectedState {
 				t.Errorf("expected %v after Reset, got %v", tt.expectedState, cb.State())
