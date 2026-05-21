@@ -628,4 +628,3 @@ func TestMapWorkerReturnsContextCanceledWithActiveContext(t *testing.T) {
 		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
 	}
 }
-

@@ -18,8 +18,14 @@ import (
 // Thread-safety: Mutative during setup, read-only afterwards.
 type Config struct {
 	// Level determines the minimum severity threshold for emitting log records.
+	// Purpose: Sets the noise threshold (e.g., Info vs Debug).
+	// Constraints: Must be a valid slog.Level.
+	// Thread-safety: Read-only during execution.
 	Level slog.Level
 	// Writer explicitly overrides the default logging output destination (os.Stdout) for capturing logs elsewhere.
+	// Purpose: Directs log bytes to a specified sink.
+	// Constraints: Must implement io.Writer and ideally handle concurrent writes safely.
+	// Thread-safety: Read-only interface pointer.
 	Writer io.Writer
 }
 

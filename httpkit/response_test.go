@@ -231,4 +231,3 @@ func TestJSONWriteError(t *testing.T) {
 	w := &errorResponseWriter{header: make(http.Header)}
 	JSON(w, http.StatusOK, map[string]string{"foo": "bar"})
 }
-
