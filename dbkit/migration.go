@@ -1,3 +1,7 @@
+// Package dbkit provides database operations, including schema migration wrappers.
+// Purpose: Automates safe database schema migrations.
+// Constraints: Relies heavily on golang-migrate/migrate.
+// Thread-safety: Functions are safe for concurrent use.
 package dbkit
 
 import (
@@ -16,8 +20,14 @@ import (
 // Thread-safety: Read-only after instantiation.
 type MigrationConfig struct {
 	// SourceURL is the source URL for migration files (e.g., "file://migrations").
+	// Purpose: Identifies where the migration files are located.
+	// Constraints: Must be a valid URL scheme supported by golang-migrate.
+	// Thread-safety: Read-only string.
 	SourceURL string
 	// DatabaseName is the database driver name for migrate (e.g., "postgres").
+	// Purpose: Tells the migrator which SQL dialect to use.
+	// Constraints: Must match the registered database driver name.
+	// Thread-safety: Read-only string.
 	DatabaseName string
 }
 
@@ -93,8 +103,14 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 // Thread-safety: Struct data.
 type MigrationVersion struct {
 	// Version is the current numeric version of the database schema.
+	// Purpose: Represents the currently applied migration step.
+	// Constraints: Usually an incrementally increasing integer.
+	// Thread-safety: Read-only primitive.
 	Version uint
 	// Dirty indicates whether the last migration attempt failed and left the schema in a potentially inconsistent state.
+	// Purpose: Flags if the database requires manual intervention to fix a botched migration.
+	// Constraints: If true, automated migrations will typically halt.
+	// Thread-safety: Read-only boolean.
 	Dirty bool
 }
 

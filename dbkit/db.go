@@ -19,16 +19,34 @@ import (
 // Thread-safety: Safely read-only post instantiation.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
+	// Purpose: Specifies which underlying driver sqlx should initialize.
+	// Constraints: Must be a registered database driver name.
+	// Thread-safety: Read-only string.
 	Driver string
 	// DSN is the data source name / connection string.
+	// Purpose: Contains connection credentials and routing information.
+	// Constraints: Format strictly depends on the specified Driver.
+	// Thread-safety: Read-only string.
 	DSN string
 	// MaxOpenConns is the maximum number of open connections.
+	// Purpose: Throttles the maximum physical connections to the database.
+	// Constraints: Must be >= 0.
+	// Thread-safety: Read-only integer.
 	MaxOpenConns int
 	// MaxIdleConns is the maximum number of idle connections.
+	// Purpose: Caps the number of inactive connections kept alive in the pool.
+	// Constraints: Must be >= 0.
+	// Thread-safety: Read-only integer.
 	MaxIdleConns int
 	// ConnMaxLifetime is the maximum duration a connection can be reused.
+	// Purpose: Forces recycling of old connections to prevent stale socket issues.
+	// Constraints: Must be >= 0.
+	// Thread-safety: Read-only duration.
 	ConnMaxLifetime time.Duration
 	// ConnMaxIdleTime is the maximum duration a connection can be idle.
+	// Purpose: Trims connections that have been inactive for too long.
+	// Constraints: Must be >= 0.
+	// Thread-safety: Read-only duration.
 	ConnMaxIdleTime time.Duration
 }
 
