@@ -34,8 +34,12 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "chaos_test.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
 	defer db.Close()
-	_, _ = db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
-	_, _ = db.Exec("INSERT INTO users (name) VALUES (?)", "alice")
+	if _, err := db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"); err != nil {
+		t.Fatalf("failed to create users table: %v", err)
+	}
+	if _, err := db.Exec("INSERT INTO users (name) VALUES (?)", "alice"); err != nil {
+		t.Fatalf("failed to insert test user: %v", err)
+	}
 
 	// Initialize Server Router
 	router := httpkit.NewRouter(
@@ -44,7 +48,8 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 	)
 
 	router.Post("/process", func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
+		// Limit the body reader to 1MB to prevent memory exhaustion / DoS
+		body, err := io.ReadAll(io.LimitReader(r.Body, 1024*1024))
 		if err != nil {
 			httpkit.Error(w, http.StatusBadRequest, "failed to read body")
 			return
