@@ -26,7 +26,7 @@ import (
 // Thread-safety: Methods provided by the validator are inherently thread-safe.
 var validate = validator.New()
 
-// Load dynamically introspects the provided target struct pointer, systematically querying the OS environment to inject matching variables, followed by executing strict struct tag validation rules.
+// Load analyzes the provided target struct pointer, systematically querying the OS environment to inject matching variables, followed by executing strict struct tag validation rules.
 // Purpose: Automatically loads and validates configuration data directly from the environment.
 // Constraints: The cfg parameter MUST be a non-nil pointer to a struct. It returns an error if
 // reflection checks fail, if parsing/casting a value fails, or if validation rules are violated.

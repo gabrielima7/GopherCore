@@ -76,7 +76,7 @@ func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
 }
 
-// Created dispatches a specialized HTTP 201 status code back to the client, semantically indicating that a requested resource was structurally synthesized and stored on the server.
+// Created sends a specialized HTTP 201 status code back to the client, semantically indicating that a requested resource was structurally synthesized and stored on the server.
 // Purpose: Shorthand for returning successful 201 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.

@@ -19,7 +19,7 @@ type Result[T any] struct {
 	ok    bool
 }
 
-// Ok unconditionally generates a structurally valid success container perfectly enveloping the target value payload, signaling that the originating computation succeeded.
+// Ok unconditionally creates a structurally valid success container perfectly enveloping the target value payload, signaling that the originating computation succeeded.
 // Purpose: Wraps a raw value into a success state.
 // Constraints: The internal error state is implicitly nil.
 // Thread-safety: Pure functional constructor.
@@ -105,7 +105,7 @@ func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 	return fn(r.err)
 }
 
-// Error implements the fundamental Go interface requirement for error types, safely isolating and projecting solely the failure message while totally ignoring any potential successful payload.
+// Error satisfies the fundamental Go interface requirement for error types, safely isolating and projecting solely the failure message while totally ignoring any potential successful payload.
 // Purpose: Specifically extracts just the error, useful for standard error aggregation.
 // Constraints: Returns nil if no error is present.
 // Thread-safety: Read-only getter.
