@@ -54,12 +54,13 @@ func NewDecoder(r io.Reader) *gojson.Decoder {
 	return gojson.NewDecoder(r)
 }
 
-// Valid performs an ultra-low overhead syntactical sweep over the provided bytes to categorically verify structural JSON compliance without invoking memory-heavy allocations.
+// Valid conducts an ultra-low overhead syntactical sweep over the provided bytes to categorically verify structural JSON compliance without invoking memory-heavy allocations.
 // Purpose: Fast check to verify JSON payload validity.
 // Constraints: Executes syntactical validation without allocating the full
 // structures necessary for a complete Unmarshal.
 // Thread-safety: Pure and completely thread-safe.
 func Valid(data []byte) bool {
+	// Internal Logic Deep-Dive: We explicitly defer to the underlying goccy engine here. By calling `gojson.Valid(data)` instead of attempting a full Unmarshal into `any`, the runtime completely bypasses reflection allocations and heap escapes, keeping memory profiles flat during malicious high-volume payload attacks.
 	// Defers strictly to goccy's validation engine to skip reflection overhead
 	// entirely, allowing extremely cheap syntactical payload verification.
 	return gojson.Valid(data)

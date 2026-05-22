@@ -82,6 +82,7 @@ type RouterConfig struct {
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
 func DefaultRouterConfig() RouterConfig {
+	// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. In Go, the `http.Server` explicitly defaults to infinite wait times if left unconfigured, which is a dangerous anti-pattern in production environments.
 	// These default parameters are strictly tuned for production defensive posture.
 	// We mandate conservative ReadHeaderTimeout and WriteTimeout values specifically
 	// to sever stalling connections, neutralizing Slowloris and other resource-exhaustion vectors.
