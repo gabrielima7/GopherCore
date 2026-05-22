@@ -1,4 +1,4 @@
-// Package circuitbreaker implements the Circuit Breaker pattern to prevent
+// Package circuitbreaker provides the Circuit Breaker pattern to prevent
 // cascading failures. It wraps fallible operations and trips when too many
 // failures occur, allowing the system to recover gracefully.
 // Purpose: Intercepts requests to backend services to prevent cascading failures during outages.
@@ -24,7 +24,7 @@ var ErrCircuitOpen = errors.New("circuitbreaker: circuit is open")
 // Thread-safety: Pure error sentinel, safe for concurrent use.
 var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-open state")
 
-// State mathematically tracks the logical operational phase of the breaker machine, directly controlling whether network traffic flows cleanly or is aggressively blackholed.
+// State calculates the logical operational phase of the breaker machine, directly controlling whether network traffic flows cleanly or is aggressively blackholed.
 // Purpose: Used to determine if requests should be allowed, rejected, or probed.
 // Constraints: Should only be one of the defined constants.
 // Thread-safety: Pure enum.
@@ -165,7 +165,7 @@ func New(cfg Config) *Breaker {
 	return &Breaker{config: cfg, state: StateClosed}
 }
 
-// State strictly evaluates the internal temporal tracking mechanics beneath an active mutex lock, exposing the exact calculated operational status of the gateway in real time.
+// State determines the internal temporal tracking mechanics beneath an active mutex lock, exposing the exact calculated operational status of the gateway in real time.
 // Purpose: Allows synchronous querying of the active circuit phase.
 // Constraints: It handles potential state transitions (e.g., from Open to HalfOpen) if the timeout
 // has expired before returning the state.
@@ -176,7 +176,7 @@ func (b *Breaker) State() State {
 	return b.currentState()
 }
 
-// Execute wraps the execution of the user-provided function fn.
+// Execute protects the execution of the user-provided function fn.
 // Purpose: Rejects requests when the circuit is Open or too busy in HalfOpen, otherwise runs fn and tracks outcomes.
 // Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached.
 // Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.

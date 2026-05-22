@@ -39,7 +39,7 @@ func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
 
-// Go spawns an isolated execution thread shielded by an aggressive deferred trap mechanism, fully neutralizing any sudden algorithmic crashes before they can detonate the core application framework.
+// Go creates an isolated execution goroutine shielded by an aggressive deferred trap mechanism, fully neutralizing any sudden algorithmic crashes before they can detonate the core application framework.
 // Purpose: Executes a function concurrently while guaranteeing that internal panics do not crash the application.
 // Constraints: If the provided function fn panics during execution, the panic is gracefully
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
@@ -65,7 +65,7 @@ func Go(fn func(), onPanic ...func(err error)) {
 	}()
 }
 
-// GoErr dispatches an independent network of work while simultaneously spinning up an asynchronous communications channel to seamlessly report operational failure states back to the orchestrator.
+// GoErr sends an independent network of work while simultaneously spinning up an asynchronous communications channel to seamlessly report operational failure states back to the orchestrator.
 // Purpose: To launch an async process and eventually receive its error (or nil) without blocking.
 // Constraints: The result of fn is sent to the returned channel, which is buffered to prevent
 // goroutine leaks if the caller does not read from it immediately.
@@ -87,7 +87,7 @@ func GoErr(fn func() error) <-chan error {
 	return ch
 }
 
-// Group structurally orchestrates a distributed fleet of worker threads, systematically accumulating individual error states into a single unified array while maintaining strict panic isolation per node.
+// Group controls a collection of concurrent goroutines, systematically accumulating individual error states into a single unified array while maintaining strict panic isolation per goroutine.
 // Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
 // built-in panic recovery for every launched goroutine.
 // Constraints: Must be instantiated using NewGroup to function correctly.
@@ -99,7 +99,7 @@ type Group struct {
 	errs []error
 }
 
-// NewGroup instantiates a pristine worker management harness equipped with all necessary blocking primitives to coordinate parallel operations immediately upon creation.
+// NewGroup builds a pristine goroutine management harness equipped with all necessary blocking primitives to coordinate concurrent operations immediately upon creation.
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.
@@ -178,6 +178,7 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 Loop:
 	for i, item := range items {
 		// Fast-path context cancellation check before spawning.
+		// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load.
 		if ctx.Err() != nil {
 			break Loop
 		}

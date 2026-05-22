@@ -219,7 +219,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 	return errors.Join(ErrMaxAttemptsReached, lastErr)
 }
 
-// DoWithValue wraps an opaque code segment demanding a concrete return payload in a highly fault-tolerant protective layer, actively resolving intermittent disruptions until retrieving valid data safely.
+// DoWithValue protects an opaque code segment demanding a concrete return payload in a highly fault-tolerant protective layer, actively resolving intermittent disruptions until retrieving valid data safely.
 // Purpose: Safely wrap fallible pure computations or fetches in a resilient loop.
 // Constraints: It repeatedly executes fn until it succeeds and returns the result,
 // or fails after exhausting all attempts.

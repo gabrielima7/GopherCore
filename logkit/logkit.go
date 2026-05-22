@@ -55,7 +55,7 @@ func WithWriter(w io.Writer) Option {
 	}
 }
 
-// NewLogger orchestrates the complete assembly and delivery of an entirely self-contained JSON-formatted observability engine customized precisely to the parameters supplied.
+// NewLogger constructs the complete assembly and delivery of an entirely self-contained JSON-formatted observability engine customized precisely to the parameters supplied.
 // Purpose: Instantiates a new independent slog logger.
 // Constraints: It defaults to writing to os.Stdout at the Info level.
 // Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
