@@ -123,6 +123,61 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestConfigOptions_TableDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     []Option
+		validate func(*testing.T, Config)
+	}{
+		{
+			name: "WithMaxOpenConns",
+			opts: []Option{WithMaxOpenConns(50)},
+			validate: func(t *testing.T, cfg Config) {
+				if cfg.MaxOpenConns != 50 {
+					t.Errorf("expected 50, got %d", cfg.MaxOpenConns)
+				}
+			},
+		},
+		{
+			name: "WithMaxIdleConns",
+			opts: []Option{WithMaxIdleConns(10)},
+			validate: func(t *testing.T, cfg Config) {
+				if cfg.MaxIdleConns != 10 {
+					t.Errorf("expected 10, got %d", cfg.MaxIdleConns)
+				}
+			},
+		},
+		{
+			name: "WithConnMaxLifetime",
+			opts: []Option{WithConnMaxLifetime(10 * time.Minute)},
+			validate: func(t *testing.T, cfg Config) {
+				if cfg.ConnMaxLifetime != 10*time.Minute {
+					t.Errorf("expected 10m, got %v", cfg.ConnMaxLifetime)
+				}
+			},
+		},
+		{
+			name: "WithConnMaxIdleTime",
+			opts: []Option{WithConnMaxIdleTime(5 * time.Minute)},
+			validate: func(t *testing.T, cfg Config) {
+				if cfg.ConnMaxIdleTime != 5*time.Minute {
+					t.Errorf("expected 5m, got %v", cfg.ConnMaxIdleTime)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DefaultConfig("sqlite3", "test.db")
+			for _, opt := range tt.opts {
+				opt(&cfg)
+			}
+			tt.validate(t, cfg)
+		})
+	}
+}
+
 func TestMustConnectSuccess(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "must_connect_test.db")
 	ctx := context.Background()

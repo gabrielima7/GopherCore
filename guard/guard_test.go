@@ -258,102 +258,119 @@ func TestStripHTML(t *testing.T) {
 	}
 }
 
-func TestFormatValidationErrorAllTags(t *testing.T) {
-	// Test all tag formats via actual validation failures.
-
-	// min tag — without required, so min is the failing tag.
+func TestFormatValidationErrorAllTags_TableDriven(t *testing.T) {
+	// Define exactly one failing tag condition per struct to cleanly test `formatValidationError`.
+	type reqInput struct {
+		Val string `validate:"required"`
+	}
+	type emailInput struct {
+		Val string `validate:"email"`
+	}
 	type minInput struct {
-		Value string `validate:"min=5"`
+		Val string `validate:"min=5"`
 	}
-	err := Validate(minInput{Value: "ab"})
-	if err == nil {
-		t.Fatal("expected error for min violation")
-	}
-	var ve ValidationErrors
-	if errors.As(err, &ve) {
-		found := false
-		for _, e := range ve {
-			if e.Tag == "min" {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatal("expected min validation error")
-		}
-	}
-
-	type urlInput struct {
-		URL string `validate:"required,url"`
-	}
-	err = Validate(urlInput{URL: "not a url"})
-	if err == nil {
-		t.Fatal("expected error for invalid URL")
-	}
-	if errors.As(err, &ve) {
-		found := false
-		for _, e := range ve {
-			if e.Tag == "url" {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatal("expected url validation error")
-		}
-	}
-
-	type uuidInput struct {
-		ID string `validate:"required,uuid"`
-	}
-	err = Validate(uuidInput{ID: "not-a-uuid"})
-	if err == nil {
-		t.Fatal("expected error for invalid UUID")
-	}
-	if errors.As(err, &ve) {
-		found := false
-		for _, e := range ve {
-			if e.Tag == "uuid" {
-				found = true
-			}
-		}
-		if !found {
-			t.Fatal("expected uuid validation error")
-		}
-	}
-
 	type maxInput struct {
-		Value string `validate:"max=3"`
+		Val string `validate:"max=3"`
 	}
-	err = Validate(maxInput{Value: "toolong"})
-	if err == nil {
-		t.Fatal("expected error for max length exceeded")
+	type gteInput struct {
+		Val int `validate:"gte=10"`
 	}
-
 	type lteInput struct {
-		Value int `validate:"lte=10"`
+		Val int `validate:"lte=10"`
 	}
-	err = Validate(lteInput{Value: 20})
-	if err == nil {
-		t.Fatal("expected error for lte violation")
+	type urlInput struct {
+		Val string `validate:"url"`
+	}
+	type uuidInput struct {
+		Val string `validate:"uuid"`
+	}
+	type defaultInput struct {
+		Val string `validate:"alpha"`
 	}
 
-	// Default tag (one not explicitly listed in the switch).
-	type alphaInput struct {
-		Value string `validate:"alpha"`
+	tests := []struct {
+		name          string
+		input         any
+		expectedTag   string
+		expectedError string
+	}{
+		{
+			name:          "required",
+			input:         reqInput{},
+			expectedTag:   "required",
+			expectedError: "field 'Val' is required",
+		},
+		{
+			name:          "email",
+			input:         emailInput{Val: "not-email"},
+			expectedTag:   "email",
+			expectedError: "field 'Val' must be a valid email address",
+		},
+		{
+			name:          "min",
+			input:         minInput{Val: "ab"},
+			expectedTag:   "min",
+			expectedError: "field 'Val' must be at least 5",
+		},
+		{
+			name:          "max",
+			input:         maxInput{Val: "abcd"},
+			expectedTag:   "max",
+			expectedError: "field 'Val' must be at most 3",
+		},
+		{
+			name:          "gte",
+			input:         gteInput{Val: 5},
+			expectedTag:   "gte",
+			expectedError: "field 'Val' must be greater than or equal to 10",
+		},
+		{
+			name:          "lte",
+			input:         lteInput{Val: 15},
+			expectedTag:   "lte",
+			expectedError: "field 'Val' must be less than or equal to 10",
+		},
+		{
+			name:          "url",
+			input:         urlInput{Val: "not-a-url"},
+			expectedTag:   "url",
+			expectedError: "field 'Val' must be a valid URL",
+		},
+		{
+			name:          "uuid",
+			input:         uuidInput{Val: "not-a-uuid"},
+			expectedTag:   "uuid",
+			expectedError: "field 'Val' must be a valid UUID",
+		},
+		{
+			name:          "default handler (alpha)",
+			input:         defaultInput{Val: "123"},
+			expectedTag:   "alpha",
+			expectedError: "field 'Val' failed validation on tag 'alpha'",
+		},
 	}
-	err = Validate(alphaInput{Value: "123"})
-	if err == nil {
-		t.Fatal("expected error for alpha violation")
-	}
-	if errors.As(err, &ve) {
-		found := false
-		for _, e := range ve {
-			if e.Tag == "alpha" {
-				found = true
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(tt.input)
+			if err == nil {
+				t.Fatalf("expected error for %s violation", tt.name)
 			}
-		}
-		if !found {
-			t.Fatal("expected alpha validation error (default handler)")
-		}
+			var ve ValidationErrors
+			if !errors.As(err, &ve) {
+				t.Fatalf("expected ValidationErrors, got %T", err)
+			}
+			if len(ve) != 1 {
+				t.Fatalf("expected 1 error, got %d", len(ve))
+			}
+			e := ve[0]
+			if e.Tag != tt.expectedTag {
+				t.Errorf("expected tag %q, got %q", tt.expectedTag, e.Tag)
+			}
+			if e.Message != tt.expectedError {
+				t.Errorf("expected message %q, got %q", tt.expectedError, e.Message)
+			}
+		})
 	}
 }
 
