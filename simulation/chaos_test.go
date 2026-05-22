@@ -33,7 +33,11 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 	// Initialize dbkit with SQLite
 	dbPath := filepath.Join(t.TempDir(), "chaos_test.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close database: %v", err)
+		}
+	}()
 	if _, err := db.Exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"); err != nil {
 		t.Fatalf("failed to create users table: %v", err)
 	}
@@ -125,9 +129,8 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 			// Integrate Retry, CircuitBreaker, Result, and HTTP
 			res := result.Of(retry.DoWithValue(ctx, func(ctx context.Context) (string, error) {
 				var finalVal string
-				err := cb.Execute(func() error {
+				err := cb.Execute(func() (err error) {
 					var req *http.Request
-					var err error
 					if isPost {
 						req, err = http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(payload))
 					} else {
@@ -143,7 +146,12 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					defer resp.Body.Close()
+					defer func() {
+						closeErr := resp.Body.Close()
+						if closeErr != nil && err == nil {
+							err = closeErr
+						}
+					}()
 
 					if resp.StatusCode == http.StatusInternalServerError {
 						return errors.New("bad status")
