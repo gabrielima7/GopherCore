@@ -206,6 +206,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 
 	// Core middleware stack.
 	r.Use(middleware.RequestID)
+	//nolint:staticcheck // SA1019: middleware.RealIP is deprecated in chi v5.3.0 but retained for backward compatibility
 	r.Use(middleware.RealIP)
 	// Gracefully handles panics inside route handlers, converting them to 500 Internal Server Errors
 	// to prevent the entire node process from crashing.

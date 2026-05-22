@@ -15,6 +15,7 @@ This document provides empirical and mathematical validation for the systemic re
 Rigorous simulation was conducted via the `simulation/chaos_test.go` pipeline under a strict `go test -race` profile:
 - 1,000+ heavily synchronized Goroutines invoked `httpkit` servers running `jsonutil` processing within `circuitbreaker` closures, enveloped inside a `retry` backoff sequence.
 - Artificial context expirations were actively injected to simulate node disconnections.
-- **Results**: No structural race conditions, no unhandled panics, and safe accumulation of disconnected states via the `result` generic package.
+- **Security Fuzzing Vectors**: Highly concurrent actors injected parameterized SQL injection payloads (`'; DROP TABLE users; --`) against a temporary SQLite database using `dbkit` to verify query-parameter safety, and launched deeply-nested malicious JSON payloads to verify that `jsonutil` gracefully rejects unmarshal requests without service panic or crash.
+- **Results**: No structural race conditions, no unhandled panics, zero SQL injection vulnerabilities, and safe accumulation of disconnected states via the `result` generic package.
 
 By bounding memory allocations and applying deterministic state machines natively across the framework, the project empirically and mathematically supports real-world, high-traffic scenarios without memory leakage or state desynchronization.
