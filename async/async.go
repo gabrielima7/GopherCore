@@ -39,7 +39,7 @@ func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
 
-// Go creates an isolated execution thread shielded by an aggressive deferred trap mechanism, fully neutralizing any sudden algorithmic crashes before they can detonate the core application framework.
+// Go creates an isolated execution goroutine shielded by an aggressive deferred trap mechanism, fully neutralizing any sudden algorithmic crashes before they can detonate the core application framework.
 // Purpose: Executes a function concurrently while guaranteeing that internal panics do not crash the application.
 // Constraints: If the provided function fn panics during execution, the panic is gracefully
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
@@ -87,7 +87,7 @@ func GoErr(fn func() error) <-chan error {
 	return ch
 }
 
-// Group controls a distributed fleet of worker threads, systematically accumulating individual error states into a single unified array while maintaining strict panic isolation per node.
+// Group controls a collection of concurrent goroutines, systematically accumulating individual error states into a single unified array while maintaining strict panic isolation per goroutine.
 // Purpose: It is structurally similar to golang.org/x/sync/errgroup but natively includes
 // built-in panic recovery for every launched goroutine.
 // Constraints: Must be instantiated using NewGroup to function correctly.
@@ -99,7 +99,7 @@ type Group struct {
 	errs []error
 }
 
-// NewGroup builds a pristine worker management harness equipped with all necessary blocking primitives to coordinate parallel operations immediately upon creation.
+// NewGroup builds a pristine goroutine management harness equipped with all necessary blocking primitives to coordinate concurrent operations immediately upon creation.
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.

@@ -105,7 +105,7 @@ func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 	return fn(r.err)
 }
 
-// Error satisfies the fundamental Go interface requirement for error types, safely isolating and projecting solely the failure message while totally ignoring any potential successful payload.
+// Error extracts the encapsulated error, safely isolating and projecting solely the failure message while totally ignoring any potential successful payload.
 // Purpose: Specifically extracts just the error, useful for standard error aggregation.
 // Constraints: Returns nil if no error is present.
 // Thread-safety: Read-only getter.
