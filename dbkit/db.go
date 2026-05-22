@@ -50,7 +50,7 @@ type Config struct {
 	ConnMaxIdleTime time.Duration
 }
 
-// DefaultConfig generates a highly resilient network baseline, pre-populating safe connection thresholds that protect against arbitrary socket exhaustion in production.
+// DefaultConfig constructs a highly resilient network baseline, pre-populating safe connection thresholds that protect against arbitrary socket exhaustion in production.
 // Purpose: Generates a baseline stable database connection configuration.
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
@@ -152,7 +152,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 	return db, nil
 }
 
-// MustConnect aggressively executes standard connection bootstrapping, deliberately collapsing the entire runtime environment immediately upon experiencing any network or authentication friction.
+// MustConnect enforces standard connection bootstrapping, deliberately collapsing the entire runtime environment immediately upon experiencing any network or authentication friction.
 // Purpose: Forces an immediate fatal panic if a connection fails, simplifying bootstrapping logic.
 // Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
@@ -161,6 +161,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 	// Execute standard connection bootstrapping, intentionally panicking on failure.
 	// This is strictly designed for the application bootstrap phase where running
 	// without a database connection leads to an unrecoverable zombie state.
+	// Internal Logic Deep-Dive: Wrapping the Connect method directly minimizes code duplication. If the lower-level Connect fails due to malformed DSNs or offline engines, panic is triggered to halt orchestrator loops (e.g., Kubernetes) rather than risking a zombie process running without a stateful backend.
 	db, err := Connect(ctx, driver, dsn, opts...)
 	if err != nil {
 		panic("dbkit: " + err.Error())
@@ -168,7 +169,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 	return db
 }
 
-// HealthCheck dispatches a rapid, lightweight verification packet directly to the underlying SQL driver engine to explicitly re-validate the current network socket stability state.
+// HealthCheck sends a rapid, lightweight verification packet directly to the underlying SQL driver engine to explicitly re-validate the current network socket stability state.
 // Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.

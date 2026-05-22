@@ -31,7 +31,7 @@ type MigrationConfig struct {
 	DatabaseName string
 }
 
-// RunMigrations orchestrates a forward-moving schema reconciliation, scanning the specified source directory for pending DDL patches and applying them iteratively to the active database connection.
+// RunMigrations commands a forward-moving schema reconciliation, scanning the specified source directory for pending DDL patches and applying them iteratively to the active database connection.
 // Purpose: Automates schema upgrades against the connected database.
 // Constraints: Note that schema migrations often perform DDL operations that cannot be fully encapsulated in
 // a transaction depending on the underlying database engine. Ensure backups are available.
