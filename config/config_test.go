@@ -264,39 +264,49 @@ func TestLoad_SetFieldErrors(t *testing.T) {
 }
 
 func TestLoad_NestedErrors(t *testing.T) {
-	t.Run("Nested Struct Error", func(t *testing.T) {
-		type Inner struct {
-			Val int `env:"ERR_NESTED"`
-		}
-		type Outer struct {
-			In Inner
-		}
+	type Inner struct {
+		Val int `env:"ERR_NESTED"`
+	}
+	type OuterStruct struct {
+		In Inner
+	}
 
-		t.Setenv("ERR_NESTED", "invalid")
+	type InnerPtr struct {
+		Val int `env:"ERR_NESTED_PTR"`
+	}
+	type OuterPtr struct {
+		In *InnerPtr
+	}
 
-		var cfg Outer
-		err := config.Load(&cfg)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-	})
+	tests := []struct {
+		name    string
+		envKey  string
+		envVal  string
+		cfgType any
+	}{
+		{
+			name:    "Nested Struct Error",
+			envKey:  "ERR_NESTED",
+			envVal:  "invalid",
+			cfgType: &OuterStruct{},
+		},
+		{
+			name:    "Nested Struct Pointer Error",
+			envKey:  "ERR_NESTED_PTR",
+			envVal:  "invalid",
+			cfgType: &OuterPtr{},
+		},
+	}
 
-	t.Run("Nested Struct Pointer Error", func(t *testing.T) {
-		type Inner struct {
-			Val int `env:"ERR_NESTED_PTR"`
-		}
-		type Outer struct {
-			In *Inner
-		}
-
-		t.Setenv("ERR_NESTED_PTR", "invalid")
-
-		var cfg Outer
-		err := config.Load(&cfg)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(tt.envKey, tt.envVal)
+			err := config.Load(tt.cfgType)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+		})
+	}
 }
 
 func TestLoad_Coverage(t *testing.T) {

@@ -67,7 +67,9 @@ func NewLogger(opts ...Option) *slog.Logger {
 	}
 
 	for _, opt := range opts {
-		opt(&config)
+		if opt != nil {
+			opt(&config)
+		}
 	}
 
 	handler := slog.NewJSONHandler(config.Writer, &slog.HandlerOptions{
