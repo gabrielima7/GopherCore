@@ -2,6 +2,48 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.3.4] - Concurrency Safeguards, Security Chaos Testing, and Table-Driven Test Rigor
+
+This release introduces critical concurrency safeguards to prevent Goroutine leaks, expands chaos simulation testing with security fuzzing profiles (SQL injection and malicious payload rejection), enforces Table-Driven Testing (TDT) patterns across all test suites to meet memory and architectural constraints, and executes exhaustive project-wide living documentation synchronizations.
+
+### 🚀 Additions (Features & Enhancements)
+- **Security Chaos Testing:** Expanded the concurrency chaos simulation in [chaos_test.go](file:///media/zorin/HD1/projetos/GopherCore/simulation/chaos_test.go) to include security fuzzing. Implemented a temporary SQLite database using `dbkit` and parameterized queries to test SQL injection resistance (`'; DROP TABLE users; --`). Introduced deeply-nested malicious JSON payloads to ensure `jsonutil` gracefully rejects malformed inputs without panicking. (PR #93)
+- **100% Real Test Coverage:** Achieved 100% real test coverage on the `async` and `httpkit` packages by adding unit tests for custom context cancellation and JSON write errors. (Commit c33b463)
+- **Package GoDoc:** Added package-level documentation via `doc.go` for the `grpckit` package, complying with conventions. (PR #86)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Concurrency Safeguards:** Fixed a critical goroutine leak in `async.Map` by refactoring the early-exit loop to wait for active workers, and resolved semaphore deadlocks. (PR #91)
+- **Error Propagation & Logging:** Refactored `httpkit/response.go` to log write errors using `slog` instead of silently suppressing them. (PR #91)
+- **Table-Driven Test (TDT) Rigor:**
+    - Refactored `circuitbreaker` and `result` packages to use Table-Driven Tests (TDT) patterns for cleaner, more maintainable coverage. (PR #88)
+    - Refactored `logkit` and `config` package tests to use TDT, complying with internal memory rules and architectural guidelines. (PR #95)
+    - Expanded branch and edge-case unit test coverage using TDT patterns across core packages. (PR #96)
+- **Living Documentation Audit:** Added missing GoDoc tags (`Purpose`, `Constraints`, `Thread-safety`) to struct fields across multiple packages (`async`, `circuitbreaker`, `dbkit`, `guard`, `httpkit`, `logkit`, `retry`). Fixed duplicate comments and incorrect package-level strings. (PR #87, PR #92, PR #98)
+- **Resilience & QA Fixes:**
+    - Handled context deadline exceeded in fuzz tests under high CPU contention to stabilize the CI pipeline. (Commit 10092b6)
+    - Fixed unhandled Close errors in chaos tests. (PR #97)
+    - Fixed deprecated `syft` subcommand usage and name/version warnings in the `Makefile`. (Commit 89a1643)
+- **Dependency Upgrades:**
+    - Updated standard library dependency `golang.org/x/crypto` to `v0.52.0` to resolve vulnerabilities. (Commit d079010)
+    - Updated `github.com/jackc/pgx/v5` from `v5.5.4` to `v5.9.2` and `github.com/jackc/pgx/v4` from `v4.18.2` to `v4.18.3`. (PR #94)
+    - Upgraded `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc` to the latest version. (PR #90)
+
+### 📦 Pull Requests
+- **PR #98:** docs: exhaustive project-wide living documentation audit.
+- **PR #97:** fix: catch unhandled Close errors in chaos test.
+- **PR #96:** test: Improve branch and edge-case unit test coverage using TDT.
+- **PR #95:** Fix architectural constraint violations in logkit and config tests.
+- **PR #94:** build(deps): update jackc/pgx/v5 and jackc/pgx/v4 dependencies.
+- **PR #93:** test: enhance chaos tests with SQL injection and malicious JSON payloads.
+- **PR #92:** docs: exhaustive documentation synchronization.
+- **PR #91:** Fix goroutine leak in async.Map and handle ignored Write error in httpkit.
+- **PR #90:** chore: update go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc to latest.
+- **PR #88:** test: implement Table-Driven Tests for circuitbreaker and result packages.
+- **PR #87:** docs: perform exhaustive project-wide documentation update.
+- **PR #86:** docs: fix grpckit missing package godoc.
+
+---
+
 ## [v0.3.3] - Chaos Simulation, Finite State Machine Rigor, and Living Documentation Assurance
 
 This release introduces comprehensive concurrency chaos simulation capabilities, enforces strict mathematical validation of concurrent synchronization models, refactors core test suites to robust Table-Driven Patterns (TDT) for `circuitbreaker` and `result` packages, resolves a critical half-open request leak in Circuit Breaker state transitions, and achieves 100% compliance with the repository's strict "Living Documentation" philosophy.
