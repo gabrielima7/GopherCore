@@ -23,6 +23,11 @@ import (
 //   - Content-Security-Policy: Restricts resource loading to 'self'.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Immediately sever the connection if the client has disconnected or timed out.
+		if r.Context().Err() != nil {
+			w.WriteHeader(499) // 499 Client Closed Request
+			return
+		}
 		// Assigning directly to the Header map bypasses the default key canonicalization
 		// overhead of Set(), reducing CPU allocation micro-overheads per request.
 		h := w.Header()
@@ -46,6 +51,11 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Immediately sever the connection if the client has disconnected or timed out.
+			if r.Context().Err() != nil {
+				w.WriteHeader(499)
+				return
+			}
 			// Fast-path token bucket evaluation. By dropping traffic instantaneously and
 			// providing a static Retry-After header, we mitigate CPU exhaustion attacks
 			// securely without executing downstream routing or serialization logic.
@@ -83,6 +93,11 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Immediately sever the connection if the client has disconnected or timed out.
+			if r.Context().Err() != nil {
+				w.WriteHeader(499)
+				return
+			}
 			origin := r.Header.Get("Origin")
 
 			if origin != "" && (allowAll || originsSet[origin]) {

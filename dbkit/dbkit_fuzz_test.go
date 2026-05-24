@@ -14,6 +14,12 @@ func FuzzConnect(f *testing.F) {
 	f.Add("", "user=foo")
 
 	f.Fuzz(func(t *testing.T, driver, dsn string) {
+		// SQLite treats DSNs as local file paths. Fuzzing connections with arbitrary strings
+		// will cause random garbage file creation in the workspace, potential path traversal
+		// issues, or unexpected Cgo/driver crashes outside the scope of GopherCore's connection logic.
+		if driver == "sqlite3" || driver == "sqlite" {
+			return
+		}
 		defer func() {
 			if r := recover(); r != nil {
 				t.Fatalf("Connect panicked: driver=%q dsn=%q panic=%v", driver, dsn, r)
