@@ -41,6 +41,11 @@ func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp any, err error) {
+		// Immediately sever the connection if the client has disconnected or timed out.
+		if err := ctx.Err(); err != nil {
+			return nil, status.FromContextError(err).Err()
+		}
+
 		// We defer a recovery function to catch any panics from downstream handlers.
 		// This guarantees that the gRPC server process stays alive even if an individual
 		// request encounters a critical bug, converting the panic into an Internal server error.
@@ -79,6 +84,11 @@ func RecoveryStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) (err error) {
+		// Immediately sever the connection if the client has disconnected or timed out.
+		if err := ss.Context().Err(); err != nil {
+			return status.FromContextError(err).Err()
+		}
+
 		// Similar to the unary interceptor, this deferred function catches and isolates
 		// panics within streaming RPCs. It ensures streaming handlers can fail safely
 		// without compromising the stability of other concurrent streams on the server.
