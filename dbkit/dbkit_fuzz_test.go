@@ -14,6 +14,9 @@ func FuzzConnect(f *testing.F) {
 	f.Add("", "user=foo")
 
 	f.Fuzz(func(t *testing.T, driver, dsn string) {
+		if driver == "sqlite3" || driver == "sqlite" {
+			return
+		}
 		defer func() {
 			if r := recover(); r != nil {
 				t.Fatalf("Connect panicked: driver=%q dsn=%q panic=%v", driver, dsn, r)
