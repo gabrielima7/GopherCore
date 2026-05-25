@@ -1,6 +1,7 @@
 package httpkit
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -403,6 +404,48 @@ func TestMiddleware_TableDriven(t *testing.T) {
 		}
 		if rr2.Header().Get("Retry-After") != "1" {
 			t.Errorf("expected Retry-After: 1, got %q", rr2.Header().Get("Retry-After"))
+		}
+	})
+
+	t.Run("ContextCancellation", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // pre-cancel context
+
+		tests := []struct {
+			name       string
+			middleware func(http.Handler) http.Handler
+		}{
+			{
+				name:       "SecurityHeadersMiddleware",
+				middleware: SecurityHeadersMiddleware,
+			},
+			{
+				name: "RateLimitMiddleware",
+				middleware: func(next http.Handler) http.Handler {
+					return RateLimitMiddleware(rate.NewLimiter(10, 10))(next)
+				},
+			},
+			{
+				name: "CORSMiddleware",
+				middleware: func(next http.Handler) http.Handler {
+					return CORSMiddleware([]string{"*"}, []string{"GET"}, []string{})(next)
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				handler := tt.middleware(dummyHandler)
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req = req.WithContext(ctx)
+				rr := httptest.NewRecorder()
+
+				handler.ServeHTTP(rr, req)
+
+				if rr.Code != 499 {
+					t.Errorf("expected status 499 for cancelled context, got %d", rr.Code)
+				}
+			})
 		}
 	})
 }

@@ -363,6 +363,41 @@ func TestRecoveryUnaryInterceptor_HandlerPanic(t *testing.T) {
 	}
 }
 
+func TestInterceptors_ContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // pre-cancel context
+
+	logger := silentLogger()
+
+	t.Run("RecoveryUnaryInterceptor", func(t *testing.T) {
+		interceptor := RecoveryUnaryInterceptor(logger)
+		info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Method"}
+		handler := func(ctx context.Context, req any) (any, error) {
+			return struct{}{}, nil
+		}
+
+		_, err := interceptor(ctx, nil, info, handler)
+		if err == nil || status.Code(err) != codes.Canceled {
+			t.Fatalf("expected context canceled error, got: %v", err)
+		}
+	})
+
+	t.Run("RecoveryStreamInterceptor", func(t *testing.T) {
+		interceptor := RecoveryStreamInterceptor(logger)
+		info := &grpc.StreamServerInfo{FullMethod: "/test.Service/Stream"}
+		handler := func(srv any, stream grpc.ServerStream) error {
+			return nil
+		}
+
+		stream := &fakeServerStream{ctx: ctx}
+
+		err := interceptor(nil, stream, info, handler)
+		if err == nil || status.Code(err) != codes.Canceled {
+			t.Fatalf("expected context canceled error, got: %v", err)
+		}
+	})
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Unit: interceptors in isolation
 // ─────────────────────────────────────────────────────────────────────────────
