@@ -106,6 +106,7 @@ func Validate(s any) error {
 
 	// Pre-allocate the exact slice capacity since the number of failed constraints is strictly known.
 	// This minimizes heap allocations and reduces GC pressure on heavy validation requests.
+	// Internal Logic Deep-Dive: We use `make(ValidationErrors, 0, len(validationErrors))` to initialize the slice with an exact capacity matching the number of underlying validation faults. During a volumetric payload attack or heavily nested JSON validation failure, dynamically appending to a zero-capacity slice would cause repeated memory allocations and heap fragmentation, grinding the garbage collector to a halt.
 	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{

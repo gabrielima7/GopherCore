@@ -83,6 +83,7 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 	}()
 
 	// A value of 0 or below signals a total teardown, dropping all schema versions dynamically.
+	// Internal Logic Deep-Dive: When `steps <= 0` is supplied, we intercept the command and execute `m.Down()` directly. This cleanly strips the entire schema back to bare metal in one go, avoiding loop iterations over undefined step intervals.
 	if steps <= 0 {
 		if downErr := m.Down(); downErr != nil && !errors.Is(downErr, migrate.ErrNoChange) {
 			return downErr
@@ -138,6 +139,7 @@ func GetMigrationVersion(driverName string, driver database.Driver, sourceURL st
 	if verErr != nil {
 		// migrate.ErrNilVersion indicates no migrations have been applied yet.
 		// We safely absorb this specific error and report version 0.
+		// Internal Logic Deep-Dive: We explicitly catch and swallow `migrate.ErrNilVersion`. The library throws an error if a database has zero migrations applied, but from a system architecture perspective, a clean slate is a valid baseline state (version 0), not a fatal crash condition.
 		if errors.Is(verErr, migrate.ErrNilVersion) {
 			return MigrationVersion{Version: 0, Dirty: false}, nil
 		}

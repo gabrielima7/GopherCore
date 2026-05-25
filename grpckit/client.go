@@ -200,6 +200,7 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	}
 
 	// Append any raw dial options last so they can override derived options.
+	// Internal Logic Deep-Dive: We deliberately append `cfg.rawDialOpts` at the very end of the `dialOpts` slice. Because gRPC evaluates dial options sequentially, appending raw options last provides a powerful escape hatch, enabling consumers to forcibly override our managed interceptor chains or TLS posture for highly specialized environments.
 	dialOpts = append(dialOpts, cfg.rawDialOpts...)
 
 	// Establish a bounded dial context derived from the configured timeout.
