@@ -206,6 +206,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 			delay := calculateDelay(cfg, attempt)
 			// Sleep block multiplexed with the context listener. Ensures that if the context
 			// expires during a long exponential backoff sleep, we awake and return instantly.
+			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with `time.After(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and exits without needlessly tying up thread resources for the remaining 9 seconds.
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -254,6 +255,7 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 		if attempt < cfg.MaxAttempts-1 {
 			delay := calculateDelay(cfg, attempt)
 			// Yield the goroutine to the runtime scheduler securely while monitoring context.
+			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with `time.After(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and exits without needlessly tying up thread resources for the remaining 9 seconds.
 			select {
 			case <-ctx.Done():
 				return zero, ctx.Err()

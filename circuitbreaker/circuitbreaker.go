@@ -207,6 +207,7 @@ func (b *Breaker) Execute(fn func() error) error {
 
 	// Deliberately drop the mutex before calling the external system. Holding it here
 	// would serialize all execution throughput, turning the breaker into an extreme bottleneck.
+	// Internal Logic Deep-Dive: We drop the `b.mu.Unlock()` lock here explicitly before executing `fn()`. If we held the lock while waiting for the downstream network call to finish, every single parallel HTTP request passing through this circuit breaker would execute sequentially, catastrophically destroying system concurrency and throughput.
 	b.mu.Unlock()
 
 	var err error

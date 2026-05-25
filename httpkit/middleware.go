@@ -78,6 +78,7 @@ func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler 
 // and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	// Pre-compute O(1) origin lookup map to keep handler execution extremely fast during heavy loads.
+	// Internal Logic Deep-Dive: We compute `originsSet`, `methodsStr`, and `headersStr` exactly once during middleware initialization closure. If we ran `strings.Join` or iterated over the `allowedOrigins` slice dynamically per-request inside the handler, the CPU overhead would spike catastrophically under heavy HTTP traffic.
 	originsSet := make(map[string]bool, len(allowedOrigins))
 	allowAll := false
 	for _, o := range allowedOrigins {

@@ -144,6 +144,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 	// Enforce strict connection bounds to prevent connection starvation and database thrashing.
 	// Bounding MaxOpenConns protects the downstream database from being overwhelmed, while
 	// MaxIdleConns / MaxIdleTime ensures we aren't leaking stale sockets in memory.
+	// Internal Logic Deep-Dive: We apply the connection pooling bounds `db.SetMaxOpenConns` explicitly *after* `sqlx.ConnectContext` validates the DSN. If we didn't throttle these connections centrally, a massive surge of concurrent queries during an outage could easily hit PostgreSQL's `max_connections` limit, dropping the database completely offline.
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
