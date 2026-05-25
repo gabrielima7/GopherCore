@@ -373,7 +373,7 @@ func TestInterceptors_ContextCancellation(t *testing.T) {
 		interceptor := RecoveryUnaryInterceptor(logger)
 		info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Method"}
 		handler := func(ctx context.Context, req any) (any, error) {
-			return nil, nil
+			return struct{}{}, nil
 		}
 
 		_, err := interceptor(ctx, nil, info, handler)
