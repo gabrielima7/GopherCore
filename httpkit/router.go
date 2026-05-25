@@ -210,6 +210,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r.Use(middleware.RealIP)
 	// Gracefully handles panics inside route handlers, converting them to 500 Internal Server Errors
 	// to prevent the entire node process from crashing.
+	// Internal Logic Deep-Dive: We unconditionally load `middleware.Recoverer` *before* injecting any user-defined middlewares like `middleware.Logger`. This exact ordering ensures that if the logging system itself experiences a panic (e.g. nil pointer during attribute generation), the recoverer still catches it, saving the process.
 	r.Use(middleware.Recoverer)
 
 	if cfg.EnableLogger {
@@ -278,6 +279,7 @@ func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 
 	// Block the main thread. We wake up if the server crashes unexpectedly, or if
 	// the OS asks the process to exit.
+	// Internal Logic Deep-Dive: The `select` block provides bidirectional responsiveness. If `srv.ListenAndServe()` fails instantly on boot (e.g., port 80 is already in use by another app), the `serverErr` channel fires and the application exits immediately. Conversely, if `<-quit` fires, we transition gracefully to a shutdown deadline, ensuring we don't indefinitely block on dead sockets.
 	select {
 	case err := <-serverErr:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

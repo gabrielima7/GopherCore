@@ -277,6 +277,7 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 				}
 			}()
 			// Execute the worker logic and capture returned errors.
+			// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough.
 			if err := fn(ctx, val); err != nil {
 				mu.Lock()
 				errs = append(errs, err)
