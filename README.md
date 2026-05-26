@@ -36,6 +36,7 @@ Gopher Core is a collection of production-ready Go packages designed to accelera
 | [`dbkit`](#database-toolkit) | Database connections via sqlx + migration management |
 | [`async`](#async-helpers) | Safe goroutine management with panic recovery |
 | [`logkit`](#structured-logs) | Structured logging in JSON format via `log/slog` |
+| [`cachekit`](#cache-layer) | Unified cache interface with Redis and in-memory implementations |
 
 ---
 
@@ -303,6 +304,30 @@ slog.Info("user logged in", "user_id", 123, "ip", "192.168.1.1")
 // Or create a local logger
 logger := logkit.NewLogger(logkit.WithLevel(slog.LevelDebug))
 logger.Debug("debugging request")
+```
+
+### Cache Layer
+
+Unified cache interface with implementations for Redis and fast in-memory caching.
+
+```go
+import "github.com/gabrielima7/GopherCore/cachekit"
+
+// Redis Cache
+client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+redisCache := cachekit.NewRedisCache(client)
+
+err := redisCache.Set(ctx, "session:123", []byte("data"), 10*time.Minute)
+val, err := redisCache.Get(ctx, "session:123")
+if errors.Is(err, cachekit.ErrCacheMiss) {
+    // Handle miss
+}
+
+// Thread-safe In-Memory Cache with active background cleanup every 5 minutes
+memCache := cachekit.NewInMemoryCache(5 * time.Minute)
+defer memCache.Close()
+
+err = memCache.Set(ctx, "local:cfg", []byte("config"), 1*time.Hour)
 ```
 
 ### Async Helpers

@@ -69,7 +69,7 @@ test:
 ## fuzz: Run fuzz tests for 30s per package
 fuzz:
 	@echo "==> Running fuzz tests..."
-	@for pkg in async config dbkit grpckit httpkit logkit result retry circuitbreaker guard jsonutil; do \
+	@for pkg in async config dbkit grpckit httpkit logkit result retry circuitbreaker guard jsonutil cachekit; do \
 		echo "  -> Fuzzing $$pkg..."; \
 		output=$$(go test -fuzz=. -fuzztime=30s ./$$pkg/ 2>&1); \
 		status=$$?; \
