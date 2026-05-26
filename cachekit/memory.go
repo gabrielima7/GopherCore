@@ -9,7 +9,7 @@ import (
 // cacheItem represents a single item in the in-memory cache.
 type cacheItem struct {
 	value      []byte
-	expiration int64 // unix nano
+	expiration time.Time
 }
 
 // InMemoryCache is a local, thread-safe, in-memory Cache implementation.
@@ -17,11 +17,10 @@ type cacheItem struct {
 // Constraints: Memory-bound. Does not automatically evict items based on memory pressure.
 // Thread-safety: Safe for concurrent use, synchronized via sync.RWMutex.
 type InMemoryCache struct {
-	mu    sync.RWMutex
-	items map[string]cacheItem
-
-	// stopCh is used to signal the cleanup goroutine to stop
-	stopCh chan struct{}
+	mu        sync.RWMutex
+	items     map[string]cacheItem
+	stopCh    chan struct{}
+	closeOnce sync.Once
 }
 
 // NewInMemoryCache creates a new InMemoryCache instance and starts a background cleanup routine.
@@ -59,12 +58,12 @@ func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
 
 // evictExpired removes all expired items.
 func (c *InMemoryCache) evictExpired() {
-	now := time.Now().UnixNano()
+	now := time.Now()
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for k, v := range c.items {
-		if v.expiration > 0 && now > v.expiration {
+		if !v.expiration.IsZero() && now.After(v.expiration) {
 			delete(c.items, k)
 		}
 	}
@@ -75,12 +74,9 @@ func (c *InMemoryCache) evictExpired() {
 // Constraints: Must be called to prevent goroutine leaks.
 // Thread-safety: Safe to call concurrently.
 func (c *InMemoryCache) Close() error {
-	select {
-	case <-c.stopCh:
-		// already closed
-	default:
+	c.closeOnce.Do(func() {
 		close(c.stopCh)
-	}
+	})
 	return nil
 }
 
@@ -93,9 +89,9 @@ func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expir
 		return ctx.Err()
 	}
 
-	var exp int64
+	var exp time.Time
 	if expiration > 0 {
-		exp = time.Now().Add(expiration).UnixNano()
+		exp = time.Now().Add(expiration)
 	}
 
 	// Copy the value to ensure caller cannot modify it after setting
@@ -130,12 +126,12 @@ func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 		return nil, ErrCacheMiss
 	}
 
-	if item.expiration > 0 && time.Now().UnixNano() > item.expiration {
+	if !item.expiration.IsZero() && time.Now().After(item.expiration) {
 		// Item has expired, lazily delete it
 		c.mu.Lock()
 		// Double-check inside the lock to prevent deleting a newly updated value
 		// due to a race condition between RUnlock and Lock
-		if currentItem, exists := c.items[key]; exists && currentItem.expiration == item.expiration {
+		if currentItem, exists := c.items[key]; exists && currentItem.expiration.Equal(item.expiration) {
 			delete(c.items, key)
 		}
 		c.mu.Unlock()
