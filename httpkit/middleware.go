@@ -55,11 +55,21 @@ type RateLimiter interface {
 }
 
 func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
+	if limiter == nil {
+		return func(next http.Handler) http.Handler {
+			return next
+		}
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Immediately sever the connection if the client has disconnected or timed out.
 			if r.Context().Err() != nil {
 				w.WriteHeader(499)
+				return
+			}
+			// Bypass rate limiting for telemetry metrics endpoint to prevent monitoring blackouts.
+			if r.URL.Path == "/metrics" {
+				next.ServeHTTP(w, r)
 				return
 			}
 			// Fast-path token bucket evaluation. By dropping traffic instantaneously and

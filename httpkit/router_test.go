@@ -323,16 +323,60 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 	}
 }
 
-type mockRateLimiter struct{}
+type mockRateLimiter struct {
+	allowVal bool
+}
 
 func (m *mockRateLimiter) Allow() bool {
-	return true
+	return m.allowVal
 }
 
 func TestWithCustomRateLimiter(t *testing.T) {
-	mockLimiter := &mockRateLimiter{}
+	mockLimiter := &mockRateLimiter{allowVal: true}
 	r := NewRouter(WithCustomRateLimiter(mockLimiter))
 	if r == nil {
 		t.Fatal("expected router to not be nil")
+	}
+
+	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// 1. Should succeed when Allow() is true
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	// 2. Should block when Allow() is false
+	mockLimiter.allowVal = false
+	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429, got %d", rr.Code)
+	}
+
+	// 3. Should bypass rate limiting for metrics even when Allow() is false
+	req = httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code == http.StatusTooManyRequests {
+		t.Fatalf("expected metrics request to bypass rate limiter, but got 429")
+	}
+}
+
+func TestRateLimitMiddleware_NilLimiter(t *testing.T) {
+	// Should not panic, should just pass through
+	handler := RateLimitMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 }
