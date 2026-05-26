@@ -87,7 +87,6 @@ func NewLogger(opts ...Option) *slog.Logger {
 // dynamically manages its own internal atomic pointer assignments.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
-	// slog.SetDefault safely updates the internal pointer, meaning active goroutines
-	// logging concurrently during this call will seamlessly transition to the new instance.
+	// Internal Logic Deep-Dive: slog.SetDefault safely updates the internal pointer atomically. This means active goroutines logging concurrently during this exact application-wide initialization call will seamlessly transition to the new JSON-formatted logger without experiencing a race condition or requiring an external global mutex lock.
 	slog.SetDefault(logger)
 }
