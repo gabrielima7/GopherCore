@@ -17,6 +17,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	"golang.org/x/time/rate"
 )
 
@@ -75,6 +77,12 @@ type RouterConfig struct {
 	// Constraints: Boolean flag.
 	// Thread-safety: Read-only boolean.
 	EnableLogger bool
+	// MetricsPath specifies the HTTP path where Prometheus metrics are exposed.
+	// If empty, metrics are not registered on the router.
+	// Purpose: Configures the metrics path dynamically.
+	// Constraints: Read-only string.
+	// Thread-safety: Read-only string.
+	MetricsPath string
 }
 
 // DefaultRouterConfig allocates a predefined, highly opinionated configuration structure optimized to aggressively clamp down on network abuse without requiring manual developer tuning.
@@ -96,6 +104,7 @@ func DefaultRouterConfig() RouterConfig {
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       120 * time.Second,
 		EnableLogger:      true,
+		MetricsPath:       "/metrics",
 	}
 }
 
@@ -176,6 +185,17 @@ func WithLogger(enabled bool) RouterOption {
 	}
 }
 
+// WithMetricsPath configures the HTTP path where Prometheus metrics are exposed.
+// An empty path disables metrics registration.
+// Purpose: Allows custom metrics paths (e.g. for security through obscurity or admin ports).
+// Constraints: Path should start with a slash if not empty.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithMetricsPath(path string) RouterOption {
+	return func(c *RouterConfig) {
+		c.MetricsPath = path
+	}
+}
+
 // parseOptions is an internal helper that initializes the DefaultRouterConfig
 // and then safely applies all provided functional options.
 // Purpose: Aggregates modular setup logic.
@@ -205,6 +225,16 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Core middleware stack.
+	if cfg.MetricsPath != "" {
+		r.Use(otelchi.Middleware("httpkit",
+			otelchi.WithChiRoutes(r),
+			otelchi.WithFilter(func(req *http.Request) bool {
+				return req.URL.Path != cfg.MetricsPath
+			}),
+		))
+	} else {
+		r.Use(otelchi.Middleware("httpkit", otelchi.WithChiRoutes(r)))
+	}
 	r.Use(middleware.RequestID)
 	//nolint:staticcheck // SA1019: middleware.RealIP is deprecated in chi v5.3.0 but retained for backward compatibility
 	r.Use(middleware.RealIP)
@@ -233,6 +263,11 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	// CORS conditionally injected if origins are specified.
 	if len(cfg.AllowedOrigins) > 0 {
 		r.Use(CORSMiddleware(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders))
+	}
+
+	// Expose Prometheus metrics endpoint.
+	if cfg.MetricsPath != "" {
+		r.Handle(cfg.MetricsPath, promhttp.Handler())
 	}
 
 	return r

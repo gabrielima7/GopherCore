@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -182,7 +183,9 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	cfg := parseClientOptions(opts...)
 
-	dialOpts := []grpc.DialOption{}
+	dialOpts := []grpc.DialOption{
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	}
 
 	// Attach transport credentials.
 	if cfg.tlsConfig != nil {
