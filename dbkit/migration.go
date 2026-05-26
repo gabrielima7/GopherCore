@@ -1,7 +1,3 @@
-// Package dbkit provides database operations, including schema migration wrappers.
-// Purpose: Automates safe database schema migrations.
-// Constraints: Relies heavily on golang-migrate/migrate.
-// Thread-safety: Functions are safe for concurrent use.
 package dbkit
 
 import (

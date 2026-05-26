@@ -17,6 +17,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	"golang.org/x/time/rate"
 )
 
@@ -25,6 +27,11 @@ import (
 // Constraints: Must be populated appropriately for the specific environment.
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
 type RouterConfig struct {
+	// RateLimiter allows injection of a custom or distributed rate limiter interface.
+	// Purpose: Provide custom rate limiter, e.g. for horizontal scaling.
+	// Constraints: Takes precedence over RateLimit/RateBurst if set.
+	// Thread-safety: Read-only interface.
+	RateLimiter RateLimiter
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	// Purpose: Configures CORS Access-Control-Allow-Origin dynamically.
 	// Constraints: Can be empty to bypass CORS entirely.
@@ -75,6 +82,12 @@ type RouterConfig struct {
 	// Constraints: Boolean flag.
 	// Thread-safety: Read-only boolean.
 	EnableLogger bool
+	// MetricsPath specifies the HTTP path where Prometheus metrics are exposed.
+	// If empty, metrics are not registered on the router.
+	// Purpose: Configures the metrics path dynamically.
+	// Constraints: Read-only string.
+	// Thread-safety: Read-only string.
+	MetricsPath string
 }
 
 // DefaultRouterConfig allocates a predefined, highly opinionated configuration structure optimized to aggressively clamp down on network abuse without requiring manual developer tuning.
@@ -96,6 +109,7 @@ func DefaultRouterConfig() RouterConfig {
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       120 * time.Second,
 		EnableLogger:      true,
+		MetricsPath:       "/metrics",
 	}
 }
 
@@ -119,6 +133,16 @@ func WithCORS(origins ...string) RouterOption {
 // Purpose: Defends against volumetric traffic attacks.
 // Constraints: A zero value bypasses rate limiting entirely.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// WithCustomRateLimiter overrides the default memory limiter with a custom distributed rate limiting implementation.
+// Purpose: Enables global, distributed rate limits across horizontal replicas (e.g. Redis).
+// Constraints: Overrides standard RPS/Burst settings if used.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithCustomRateLimiter(limiter RateLimiter) RouterOption {
+	return func(c *RouterConfig) {
+		c.RateLimiter = limiter
+	}
+}
+
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
@@ -176,6 +200,17 @@ func WithLogger(enabled bool) RouterOption {
 	}
 }
 
+// WithMetricsPath configures the HTTP path where Prometheus metrics are exposed.
+// An empty path disables metrics registration.
+// Purpose: Allows custom metrics paths (e.g. for security through obscurity or admin ports).
+// Constraints: Path should start with a slash if not empty.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithMetricsPath(path string) RouterOption {
+	return func(c *RouterConfig) {
+		c.MetricsPath = path
+	}
+}
+
 // parseOptions is an internal helper that initializes the DefaultRouterConfig
 // and then safely applies all provided functional options.
 // Purpose: Aggregates modular setup logic.
@@ -205,6 +240,16 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Core middleware stack.
+	if cfg.MetricsPath != "" {
+		r.Use(otelchi.Middleware("httpkit",
+			otelchi.WithChiRoutes(r),
+			otelchi.WithFilter(func(req *http.Request) bool {
+				return req.URL.Path != cfg.MetricsPath
+			}),
+		))
+	} else {
+		r.Use(otelchi.Middleware("httpkit", otelchi.WithChiRoutes(r)))
+	}
 	r.Use(middleware.RequestID)
 	//nolint:staticcheck // SA1019: middleware.RealIP is deprecated in chi v5.3.0 but retained for backward compatibility
 	r.Use(middleware.RealIP)
@@ -221,7 +266,9 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r.Use(SecurityHeadersMiddleware)
 
 	// Rate limiting based on the x/time/rate token bucket algorithm.
-	if cfg.RateLimit > 0 {
+	if cfg.RateLimiter != nil {
+		r.Use(RateLimitMiddleware(cfg.RateLimiter))
+	} else if cfg.RateLimit > 0 {
 		burst := cfg.RateBurst
 		if burst <= 0 {
 			burst = int(cfg.RateLimit)
@@ -233,6 +280,11 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	// CORS conditionally injected if origins are specified.
 	if len(cfg.AllowedOrigins) > 0 {
 		r.Use(CORSMiddleware(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders))
+	}
+
+	// Expose Prometheus metrics endpoint.
+	if cfg.MetricsPath != "" {
+		r.Handle(cfg.MetricsPath, promhttp.Handler())
 	}
 
 	return r
