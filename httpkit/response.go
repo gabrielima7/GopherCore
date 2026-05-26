@@ -1,8 +1,3 @@
-// Package httpkit provides an HTTP toolkit built on go-chi/chi with
-// common middleware, response helpers, and graceful shutdown capabilities.
-// Purpose: Simplifies creating robust HTTP servers.
-// Constraints: Interacts primarily with standard net/http interfaces.
-// Thread-safety: Functions are safe for concurrent use.
 package httpkit
 
 import (
