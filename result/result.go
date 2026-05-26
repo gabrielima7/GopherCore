@@ -48,9 +48,7 @@ func Errf[T any](format string, args ...any) Result[T] {
 // Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
 // Thread-safety: Pure functional constructor.
 func Of[T any](value T, err error) Result[T] {
-	// Bridge the gap from typical Go library calls that might fail. By checking
-	// the err unconditionally here, we safely absorb panic-free operations into
-	// the monadic pipeline flow.
+	// Internal Logic Deep-Dive: By checking the error unconditionally here, we safely absorb panic-free operations into the monadic pipeline flow, effectively converting classic Go dual-return-value idioms into a unified state representation that cleanly isolates execution failures from subsequent functional mapping sequences.
 	if err != nil {
 		return Err[T](err)
 	}
