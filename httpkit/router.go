@@ -17,6 +17,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	"golang.org/x/time/rate"
 )
 
@@ -205,6 +207,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Core middleware stack.
+	r.Use(otelchi.Middleware("httpkit", otelchi.WithChiRoutes(r)))
 	r.Use(middleware.RequestID)
 	//nolint:staticcheck // SA1019: middleware.RealIP is deprecated in chi v5.3.0 but retained for backward compatibility
 	r.Use(middleware.RealIP)
@@ -234,6 +237,9 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	if len(cfg.AllowedOrigins) > 0 {
 		r.Use(CORSMiddleware(cfg.AllowedOrigins, cfg.AllowedMethods, cfg.AllowedHeaders))
 	}
+
+	// Expose Prometheus metrics endpoint.
+	r.Handle("/metrics", promhttp.Handler())
 
 	return r
 }
