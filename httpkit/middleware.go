@@ -3,8 +3,6 @@ package httpkit
 import (
 	"net/http"
 	"strings"
-
-	"golang.org/x/time/rate"
 )
 
 // SecurityHeadersMiddleware forcibly modifies the outgoing HTTP response stream by embedding a hardened matrix of web security directives designed to repel framing, sniffing, and cross-site scripting attacks.
@@ -48,7 +46,15 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
 // Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
 // concurrent execution across thousands of requests.
-func RateLimitMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
+// RateLimiter defines the interface for an external or internal rate limiting algorithm.
+// Purpose: Allows substitution of the standard rate limiter with distributed alternatives (e.g., Redis).
+// Constraints: Implementations must be thread-safe.
+// Thread-safety: Implementations are expected to manage concurrent state natively.
+type RateLimiter interface {
+	Allow() bool
+}
+
+func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Immediately sever the connection if the client has disconnected or timed out.
