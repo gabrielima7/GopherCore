@@ -332,10 +332,35 @@ err = memCache.Set(ctx, "local:cfg", []byte("config"), 1*time.Hour)
 
 ### Async Helpers
 
-Safe goroutine management with panic recovery.
+Safe goroutine management with panic recovery and persistent background jobs.
 
 ```go
 import "github.com/gabrielima7/GopherCore/async"
+import "github.com/hibiken/asynq"
+
+// --- Background Jobs (Redis-backed) ---
+
+// 1. Start a Worker Node
+redisOpt := asynq.RedisClientOpt{Addr: "localhost:6379"}
+srv := async.NewQueueServer(redisOpt, asynq.Config{Concurrency: 10})
+
+srv.HandleFunc("email:send", func(ctx context.Context, t *asynq.Task) error {
+    // Process task... If this panics, the recovery middleware converts
+    // it to a safe error, failing the job without crashing the worker.
+    return nil
+})
+go srv.Start()
+defer srv.Stop()
+
+// 2. Enqueue Tasks from anywhere
+client := async.NewQueueClient(redisOpt)
+defer client.Close()
+
+task := asynq.NewTask("email:send", []byte(`{"to": "user@example.com"}`))
+client.Enqueue(task, asynq.MaxRetry(3))
+
+
+// --- Immediate In-Memory Goroutines ---
 
 // Safe goroutine with panic recovery
 async.Go(func() {
