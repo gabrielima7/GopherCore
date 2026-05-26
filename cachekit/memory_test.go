@@ -193,6 +193,21 @@ func TestInMemoryCache(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "CloseConcurrent",
+			run: func(t *testing.T) {
+				cache := cachekit.NewInMemoryCache(10 * time.Millisecond)
+				var wg sync.WaitGroup
+				for i := 0; i < 10; i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						_ = cache.Close()
+					}()
+				}
+				wg.Wait()
+			},
+		},
 	}
 
 	for _, tt := range tests {
