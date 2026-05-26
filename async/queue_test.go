@@ -130,18 +130,43 @@ func TestQueueClientEnqueueContext(t *testing.T) {
 	}
 }
 
-func TestQueueClientClosePanicRecovery(t *testing.T) {
-	// Artificially simulate panic on Close by injecting a nil client if possible.
-	// Since QueueClient exposes `client *asynq.Client`, we can just mock it out.
-	c := &QueueClient{client: nil}
-
+func TestQueueClientCloseUninitialized(t *testing.T) {
+	var c *QueueClient
 	err := c.Close()
-	if err == nil {
-		t.Fatal("expected error due to panic recovery on nil client Close()")
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
 	}
 
-	var pe *PanicError
-	if !errors.As(err, &pe) {
-		t.Fatalf("expected PanicError, got %v", err)
+	c = &QueueClient{client: nil}
+	err = c.Close()
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
 	}
+}
+
+func TestQueueServerRegisterAfterStart(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
+	srv := NewQueueServer(redisOpt, asynq.Config{})
+	
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("failed to start server: %v", err)
+	}
+	defer srv.Stop()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when registering handler after server start, got none")
+		}
+	}()
+
+	srv.HandleFunc("test:post-start", func(ctx context.Context, task *asynq.Task) error {
+		return nil
+	})
 }
