@@ -2,6 +2,37 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.3.5] - OpenTelemetry, Distributed Cache, Background Jobs, and Active Context Severing
+
+This release introduces enterprise-readiness integrations including global OpenTelemetry distributed tracing and Prometheus metrics, a new unified caching package (`cachekit`) with Redis and in-memory backends, and an `asynq` background job queue with structured panic recovery. Additionally, it hardens resilience with proactive context-severing checks across all HTTP/gRPC middleware, refactors chaos simulations to Table-Driven Test (TDT) patterns, and applies exhaustive internal logic documentation deep-dives across all core packages.
+
+### 🚀 Additions (Features & Enhancements)
+- **OpenTelemetry & Metrics Integration:** Introduced the new `otelkit` package to bootstrap OpenTelemetry SDK globally with OTLP gRPC tracer export and Prometheus metrics export. Instrumented the `httpkit` chi router using `otelchi` (exposing a `/metrics` endpoint via `promhttp`) and `grpckit` server/client handles using `otelgrpc` StatsHandlers. (PR #104)
+- **Unified Cache Layer (`cachekit`):** Added a new package `cachekit` providing a unified cache interface with two implementations: a thread-safe `InMemoryCache` featuring active background TTL expiration cleanup, and a Redis-backed `RedisCache` utilizing `go-redis/v9`. (PR #106)
+- **Persistent Background Jobs:** Added `asynq` integration to the `async` package, providing a Redis-backed persistent task queue. It wraps worker registration with panic recovery middleware that converts unhandled handler panics into structured `PanicError`s to prevent worker crashes. (PR #107)
+- **Custom Rate Limiting Abstraction:** Decoupled `RateLimitMiddleware` from the standard `x/time/rate` package by abstracting it behind a new `RateLimiter` interface. Added `WithCustomRateLimiter` to the `httpkit` router to support custom distributed rate limiters. (PR #105)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Active Context Severing:** Hardened HTTP middlewares (`RateLimitMiddleware`, `SecurityHeadersMiddleware`, `CORSMiddleware`) and gRPC interceptors (`RecoveryUnaryInterceptor`, `RecoveryStreamInterceptor`) to check for early context expiration (`ctx.Err() != nil`). HTTP middlewares fast-path requests with a `499 Client Closed Request` status to sever dead connections and prevent resource starvation. Updated [FORMAL_PROOF.md](file:///media/zorin/HD1/projetos/GopherCore/FORMAL_PROOF.md) to define these mechanisms. (PR #99)
+- **Table-Driven Chaos Testing & Security Vectors:** Refactored the microservice chaos simulation in [chaos_test.go](file:///media/zorin/HD1/projetos/GopherCore/simulation/chaos_test.go) into a Table-Driven Test (TDT) structure. Added test assertions for nil configuration, malformed payloads, SQL injection payloads, and concurrent load. Hardened `dbkit` fuzz testing to explicitly bypass SQLite driver connection fuzzing, avoiding garbage files in the workspace. (PR #99, PR #101)
+- **Context Cancellation Test Rigor:** Implemented authentic table-driven tests verifying context cancellation handling for both `httpkit` middlewares and `grpckit` interceptors to achieve high statement coverage without metrics manipulation. (PR #100)
+- **Internal Logic Documentation Deep-Dives:** Performed an exhaustive living documentation audit, adding detailed `// Internal Logic Deep-Dive:` docstring comments explaining complex mutex-locking, connection pooling, slice pre-allocation, and context-severing decisions across multiple packages (`async`, `circuitbreaker`, `dbkit`, `grpckit`, `guard`, `httpkit`, `retry`, `config`, `logkit`, `result`). (PR #102, PR #103)
+- **Documentation Cleanup:** Cleaned up redundant `// Package` blocks in `httpkit/response.go` and `dbkit/migration.go` to conform with project standards. (PR #103)
+- **Fuzzing Targets:** Added the new `cachekit` package to the Makefile fuzz targets. (PR #106)
+
+### 📦 Pull Requests
+- **PR #107:** feat(async): add asynq integration for persistent background jobs.
+- **PR #106:** feat: add cachekit module with Redis and in-memory cache implementations.
+- **PR #105:** feat(httpkit): abstract rate limit to allow distributed storage.
+- **PR #104:** feat: integrate OpenTelemetry distributed tracing and prometheus metrics.
+- **PR #103:** docs: Sync and improve package documentation.
+- **PR #102:** docs: add internal logic deep-dives to core functions.
+- **PR #101:** test: Refactor chaos test into table-driven pattern with edge cases.
+- **PR #100:** test: improve context cancellation tests coverage.
+- **PR #99:** Harden HTTP and gRPC middleware with active context severing.
+
+---
+
 ## [v0.3.4] - Concurrency Safeguards, Security Chaos Testing, and Table-Driven Test Rigor
 
 This release introduces critical concurrency safeguards to prevent Goroutine leaks, expands chaos simulation testing with security fuzzing profiles (SQL injection and malicious payload rejection), enforces Table-Driven Testing (TDT) patterns across all test suites to meet memory and architectural constraints, and executes exhaustive project-wide living documentation synchronizations.
