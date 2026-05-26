@@ -322,3 +322,17 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 		})
 	}
 }
+
+type mockRateLimiter struct{}
+
+func (m *mockRateLimiter) Allow() bool {
+	return true
+}
+
+func TestWithCustomRateLimiter(t *testing.T) {
+	mockLimiter := &mockRateLimiter{}
+	r := NewRouter(WithCustomRateLimiter(mockLimiter))
+	if r == nil {
+		t.Fatal("expected router to not be nil")
+	}
+}

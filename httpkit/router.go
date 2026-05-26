@@ -25,6 +25,11 @@ import (
 // Constraints: Must be populated appropriately for the specific environment.
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
 type RouterConfig struct {
+	// RateLimiter allows injection of a custom or distributed rate limiter interface.
+	// Purpose: Provide custom rate limiter, e.g. for horizontal scaling.
+	// Constraints: Takes precedence over RateLimit/RateBurst if set.
+	// Thread-safety: Read-only interface.
+	RateLimiter RateLimiter
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	// Purpose: Configures CORS Access-Control-Allow-Origin dynamically.
 	// Constraints: Can be empty to bypass CORS entirely.
@@ -119,6 +124,16 @@ func WithCORS(origins ...string) RouterOption {
 // Purpose: Defends against volumetric traffic attacks.
 // Constraints: A zero value bypasses rate limiting entirely.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// WithCustomRateLimiter overrides the default memory limiter with a custom distributed rate limiting implementation.
+// Purpose: Enables global, distributed rate limits across horizontal replicas (e.g. Redis).
+// Constraints: Overrides standard RPS/Burst settings if used.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
+func WithCustomRateLimiter(limiter RateLimiter) RouterOption {
+	return func(c *RouterConfig) {
+		c.RateLimiter = limiter
+	}
+}
+
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
@@ -221,7 +236,9 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r.Use(SecurityHeadersMiddleware)
 
 	// Rate limiting based on the x/time/rate token bucket algorithm.
-	if cfg.RateLimit > 0 {
+	if cfg.RateLimiter != nil {
+		r.Use(RateLimitMiddleware(cfg.RateLimiter))
+	} else if cfg.RateLimit > 0 {
 		burst := cfg.RateBurst
 		if burst <= 0 {
 			burst = int(cfg.RateLimit)
