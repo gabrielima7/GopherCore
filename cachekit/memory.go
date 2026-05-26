@@ -1,0 +1,166 @@
+package cachekit
+
+import (
+	"context"
+	"sync"
+	"time"
+)
+
+// cacheItem represents a single item in the in-memory cache.
+type cacheItem struct {
+	value      []byte
+	expiration int64 // unix nano
+}
+
+// InMemoryCache is a local, thread-safe, in-memory Cache implementation.
+// Purpose: Provides fast, local caching without external dependencies.
+// Constraints: Memory-bound. Does not automatically evict items based on memory pressure.
+// Thread-safety: Safe for concurrent use, synchronized via sync.RWMutex.
+type InMemoryCache struct {
+	mu    sync.RWMutex
+	items map[string]cacheItem
+
+	// stopCh is used to signal the cleanup goroutine to stop
+	stopCh chan struct{}
+}
+
+// NewInMemoryCache creates a new InMemoryCache instance and starts a background cleanup routine.
+// The cleanupInterval dictates how often expired items are actively purged.
+// Purpose: Initializes a local in-memory cache.
+// Constraints: Callers should call Close() to release background resources when done.
+// Thread-safety: Returns a thread-safe InMemoryCache.
+func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
+	c := &InMemoryCache{
+		items:  make(map[string]cacheItem),
+		stopCh: make(chan struct{}),
+	}
+
+	if cleanupInterval > 0 {
+		go c.cleanupLoop(cleanupInterval)
+	}
+
+	return c
+}
+
+// cleanupLoop periodically removes expired items from the cache.
+func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.evictExpired()
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+// evictExpired removes all expired items.
+func (c *InMemoryCache) evictExpired() {
+	now := time.Now().UnixNano()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for k, v := range c.items {
+		if v.expiration > 0 && now > v.expiration {
+			delete(c.items, k)
+		}
+	}
+}
+
+// Close stops the background cleanup routine.
+// Purpose: Frees resources associated with the background cleanup.
+// Constraints: Must be called to prevent goroutine leaks.
+// Thread-safety: Safe to call concurrently.
+func (c *InMemoryCache) Close() error {
+	select {
+	case <-c.stopCh:
+		// already closed
+	default:
+		close(c.stopCh)
+	}
+	return nil
+}
+
+// Set stores a value in the memory cache.
+// Purpose: Implements Cache.Set using local map.
+// Constraints: Context is checked for cancellation before operation.
+// Thread-safety: Safe for concurrent use.
+func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	var exp int64
+	if expiration > 0 {
+		exp = time.Now().Add(expiration).UnixNano()
+	}
+
+	// Copy the value to ensure caller cannot modify it after setting
+	valCopy := make([]byte, len(value))
+	copy(valCopy, value)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items[key] = cacheItem{
+		value:      valCopy,
+		expiration: exp,
+	}
+
+	return nil
+}
+
+// Get retrieves a value from the memory cache.
+// Purpose: Implements Cache.Get using local map.
+// Constraints: Context is checked for cancellation before operation. Returns ErrCacheMiss if not found or expired.
+// Thread-safety: Safe for concurrent use.
+func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	c.mu.RLock()
+	item, found := c.items[key]
+	c.mu.RUnlock()
+
+	if !found {
+		return nil, ErrCacheMiss
+	}
+
+	if item.expiration > 0 && time.Now().UnixNano() > item.expiration {
+		// Item has expired, lazily delete it
+		c.mu.Lock()
+		// Double-check inside the lock to prevent deleting a newly updated value
+		// due to a race condition between RUnlock and Lock
+		if currentItem, exists := c.items[key]; exists && currentItem.expiration == item.expiration {
+			delete(c.items, key)
+		}
+		c.mu.Unlock()
+		return nil, ErrCacheMiss
+	}
+
+	// Copy the value to ensure caller cannot modify the cached value
+	valCopy := make([]byte, len(item.value))
+	copy(valCopy, item.value)
+
+	return valCopy, nil
+}
+
+// Delete removes a key from the memory cache.
+// Purpose: Implements Cache.Delete using local map.
+// Constraints: Context is checked for cancellation before operation.
+// Thread-safety: Safe for concurrent use.
+func (c *InMemoryCache) Delete(ctx context.Context, key string) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	delete(c.items, key)
+	return nil
+}
