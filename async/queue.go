@@ -2,11 +2,15 @@ package async
 
 import (
 	"context"
+	"errors"
 	"runtime/debug"
 	"sync"
 
 	"github.com/hibiken/asynq"
 )
+
+// ErrClientNotInitialized is returned when attempting to close or use an uninitialized queue client.
+var ErrClientNotInitialized = errors.New("async: queue client is not initialized")
 
 // QueueServer provides a wrapper around asynq.Server, adding robust panic recovery
 // and centralized task registration.
@@ -14,9 +18,10 @@ import (
 // Constraints: Must be initialized with valid Redis connection options and Asynq configuration.
 // Thread-safety: Thread-safe for concurrent handler registration via internal mutex lock.
 type QueueServer struct {
-	server *asynq.Server
-	mux    *asynq.ServeMux
-	mu     sync.Mutex
+	server  *asynq.Server
+	mux     *asynq.ServeMux
+	mu      sync.Mutex
+	started bool
 }
 
 // NewQueueServer initializes a new QueueServer.
@@ -32,11 +37,15 @@ func NewQueueServer(redisOpt asynq.RedisConnOpt, cfg asynq.Config) *QueueServer 
 
 // HandleFunc maps a task type pattern to a handler function, actively intercepting panics.
 // Purpose: Registers a callback for specific task types with intrinsic panic isolation.
-// Constraints: pattern string must perfectly match the task type.
+// Constraints: pattern string must perfectly match the task type. Cannot be called after Start().
 // Thread-safety: Safely locks the internal mutex to prevent concurrent map writes inside the mux during initialization.
 func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *asynq.Task) error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
+
+	if q.started {
+		panic("asynq: cannot register handler after server has started")
+	}
 
 	// Internal Logic Deep-Dive: By wrapping the user-provided handler, we strictly enforce a recovery boundary.
 	// If a background task triggers a panic (e.g. nil pointer dereference during complex data parsing),
@@ -60,6 +69,9 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 // Constraints: Handlers should be fully registered before calling Start.
 // Thread-safety: Handled internally by Asynq's server start mechanisms.
 func (q *QueueServer) Start() error {
+	q.mu.Lock()
+	q.started = true
+	q.mu.Unlock()
 	return q.server.Start(q.mux)
 }
 
@@ -108,15 +120,10 @@ func (c *QueueClient) EnqueueContext(ctx context.Context, task *asynq.Task, opts
 // Close gracefully disconnects the client from Redis.
 // Purpose: Cleans up network connections and prevents resource leaks.
 // Constraints: Should be deferred immediately after instantiation or called on shutdown.
-// Thread-safety: Handles panics natively in case of unexpected nil pointers in underlying libraries.
-func (c *QueueClient) Close() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = &PanicError{
-				Value: r,
-				Stack: string(debug.Stack()),
-			}
-		}
-	}()
+// Thread-safety: Returns ErrClientNotInitialized if the client is nil.
+func (c *QueueClient) Close() error {
+	if c == nil || c.client == nil {
+		return ErrClientNotInitialized
+	}
 	return c.client.Close()
 }
