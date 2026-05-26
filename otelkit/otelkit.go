@@ -39,16 +39,6 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 	// Set global propagators for distributed tracing.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
-	var shutdownFuncs []func(context.Context) error
-
-	shutdown := func(ctx context.Context) error {
-		var err error
-		for _, fn := range shutdownFuncs {
-			err = errors.Join(err, fn(ctx))
-		}
-		return err
-	}
-
 	// 1. Initialize Traces
 	traceExporter, err := otlptracegrpc.New(ctx)
 	if err != nil {
@@ -59,19 +49,22 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
-	shutdownFuncs = append(shutdownFuncs, tp.Shutdown)
 
 	// 2. Initialize Metrics (Prometheus Exporter)
 	metricExporter, err := prometheus.New()
 	if err != nil {
-		return nil, errors.Join(err, shutdown(ctx))
+		_ = tp.Shutdown(ctx)
+		return nil, err
 	}
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(metricExporter),
 		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(mp)
-	shutdownFuncs = append(shutdownFuncs, mp.Shutdown)
+
+	shutdown := func(ctx context.Context) error {
+		return errors.Join(tp.Shutdown(ctx), mp.Shutdown(ctx))
+	}
 
 	return shutdown, nil
 }
