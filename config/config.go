@@ -146,8 +146,7 @@ func setField(v reflect.Value, value string) error {
 		if err != nil {
 			return err
 		}
-		// Explicitly check bounds. Without this, downcasting a 64-bit int parsed from the OS
-		// into an Int8 could silently truncate the value if it exceeds bounds.
+		// Internal Logic Deep-Dive: We use `v.OverflowInt` to actively block out-of-bounds environment values from silently corrupting configuration at runtime. Without this, passing "300" into an `int8` field would silently wrap around to a small positive or negative value, causing unpredictable application behavior.
 		if v.OverflowInt(intVal) {
 			return fmt.Errorf("integer overflow for value %s", value)
 		}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -187,6 +188,7 @@ func NewServer(opts ...ServerOption) *grpc.Server {
 	streamChain = append(streamChain, cfg.streamInterceptors...)
 
 	grpcOpts := []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(unaryChain...),
 		grpc.ChainStreamInterceptor(streamChain...),
 	}
