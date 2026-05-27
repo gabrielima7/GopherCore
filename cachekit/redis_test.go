@@ -95,3 +95,58 @@ func TestRedisCache(t *testing.T) {
 		t.Run(tt.name, tt.run)
 	}
 }
+
+func TestRedisCache_CanceledContext(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	client := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	defer client.Close()
+
+	cache := cachekit.NewRedisCache(client)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	tests := []struct {
+		name string
+		run  func(t *testing.T)
+	}{
+		{
+			name: "SetError",
+			run: func(t *testing.T) {
+				err := cache.Set(ctx, "key1", []byte("val1"), 0)
+				if err == nil {
+					t.Errorf("expected error due to canceled context, got nil")
+				}
+			},
+		},
+		{
+			name: "GetError",
+			run: func(t *testing.T) {
+				_, err := cache.Get(ctx, "key1")
+				if err == nil {
+					t.Errorf("expected error due to canceled context, got nil")
+				}
+			},
+		},
+		{
+			name: "DeleteError",
+			run: func(t *testing.T) {
+				err := cache.Delete(ctx, "key1")
+				if err == nil {
+					t.Errorf("expected error due to canceled context, got nil")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.run)
+	}
+}
