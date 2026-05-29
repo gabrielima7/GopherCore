@@ -56,6 +56,26 @@ func TestNewRouterDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestNewRouterWithMetricsPath(t *testing.T) {
+	r := NewRouter(
+		WithMetricsPath("/metrics"),
+		WithLogger(false),
+	)
+	if r == nil {
+		t.Fatal("expected non-nil router")
+	}
+
+	// Metrics endpoint should be registered and return 200 (prometheus empty handler is 200)
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 for metrics path, got %d", rr.Code)
+	}
+}
+
+
 func TestRouterOptions(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -106,6 +126,15 @@ func TestRouterOptions(t *testing.T) {
 				defaults := DefaultRouterConfig()
 				if cfg.ReadTimeout != defaults.ReadTimeout {
 					t.Errorf("expected default %v, got %v", defaults.ReadTimeout, cfg.ReadTimeout)
+				}
+			},
+		},
+		{
+			name: "WithMetricsPath",
+			opts: []RouterOption{WithMetricsPath("/metrics")},
+			validate: func(t *testing.T, cfg RouterConfig) {
+				if cfg.MetricsPath != "/metrics" {
+					t.Errorf("expected /metrics, got %v", cfg.MetricsPath)
 				}
 			},
 		},
