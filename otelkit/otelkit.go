@@ -25,10 +25,15 @@ import (
 // Constraints: Must be invoked at application launch.
 // Thread-safety: Global configuration should only happen once sequentially at startup.
 func InitSDK(ctx context.Context, serviceName string) (func(context.Context) error, error) {
+	// Early context cancellation check
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			resource.Default().SchemaURL(),
 			semconv.ServiceNameKey.String(serviceName),
 		),
 	)
