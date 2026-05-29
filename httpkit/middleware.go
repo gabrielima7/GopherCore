@@ -40,20 +40,24 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// RateLimiter defines the interface for an external or internal rate limiting algorithm.
+// Purpose: Allows substitution of the standard rate limiter with distributed alternatives (e.g., Redis).
+// Constraints: Implementations must be thread-safe.
+// Thread-safety: Implementations are expected to manage concurrent state natively.
+type RateLimiter interface {
+	// Allow evaluates whether a single request is permitted to proceed under the current rate limit parameters.
+	// Purpose: Determines if a request should be processed or rejected due to rate limiting.
+	// Constraints: Must execute rapidly (O(1)) without blocking the main router thread.
+	// Thread-safety: Implementations must be natively thread-safe.
+	Allow() bool
+}
+
 // RateLimitMiddleware shields the core application router from denial-of-service volumetric floods by actively discarding connections that surpass the mathematically allocated token bucket allowances.
 // Purpose: Protects endpoints from abuse and DoS attacks by throttling traffic.
 // Constraints: If a request exceeds the permissible limit, it is immediately aborted,
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
 // Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
 // concurrent execution across thousands of requests.
-// RateLimiter defines the interface for an external or internal rate limiting algorithm.
-// Purpose: Allows substitution of the standard rate limiter with distributed alternatives (e.g., Redis).
-// Constraints: Implementations must be thread-safe.
-// Thread-safety: Implementations are expected to manage concurrent state natively.
-type RateLimiter interface {
-	Allow() bool
-}
-
 func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 	if limiter == nil {
 		return func(next http.Handler) http.Handler {
