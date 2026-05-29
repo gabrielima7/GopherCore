@@ -28,7 +28,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			resource.Default().SchemaURL(),
 			semconv.ServiceNameKey.String(serviceName),
 		),
 	)

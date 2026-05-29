@@ -153,7 +153,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	srv := NewQueueServer(redisOpt, asynq.Config{})
-	
+
 	err = srv.Start()
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
