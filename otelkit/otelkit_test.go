@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gabrielima7/GopherCore/otelkit"
+	"go.opentelemetry.io/otel"
 )
 
 func TestInitSDK(t *testing.T) {
@@ -14,6 +15,7 @@ func TestInitSDK(t *testing.T) {
 		serviceName string
 		setupCtx    func() context.Context
 		wantErr     bool
+		verify      func(t *testing.T, ctx context.Context, shutdown func(context.Context) error)
 	}{
 		{
 			name:        "HappyPath_Success",
@@ -22,6 +24,24 @@ func TestInitSDK(t *testing.T) {
 				return context.Background()
 			},
 			wantErr: false,
+			verify: func(t *testing.T, ctx context.Context, shutdown func(context.Context) error) {
+				if shutdown == nil {
+					t.Fatal("expected non-nil shutdown function")
+				}
+
+				// Verify global propagators were set.
+				prop := otel.GetTextMapPropagator()
+				if prop == nil {
+					t.Fatal("expected global text map propagator to be set")
+				}
+
+				// Verify shutdown doesn't panic and behaves correctly
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
+					t.Errorf("shutdown() returned error: %v", shutdownErr)
+				}
+			},
 		},
 		{
 			name:        "UnhappyPath_ContextCanceled",
@@ -32,6 +52,27 @@ func TestInitSDK(t *testing.T) {
 				return ctx
 			},
 			wantErr: true,
+		},
+		{
+			name:        "UnhappyPath_CanceledContextShutdown",
+			serviceName: "test-service-shutdown-fail",
+			setupCtx: func() context.Context {
+				return context.Background()
+			},
+			wantErr: false,
+			verify: func(t *testing.T, ctx context.Context, shutdown func(context.Context) error) {
+				if shutdown == nil {
+					t.Fatal("expected non-nil shutdown function")
+				}
+
+				cancelCtx, cancel := context.WithCancel(context.Background())
+				cancel()
+
+				err := shutdown(cancelCtx)
+				if err == nil {
+					t.Error("expected error from shutdown with canceled context, got nil")
+				}
+			},
 		},
 	}
 
@@ -46,17 +87,8 @@ func TestInitSDK(t *testing.T) {
 				return
 			}
 
-			if err == nil {
-				if shutdown == nil {
-					t.Error("InitSDK() returned nil shutdown function without an error")
-				} else {
-					// Verify shutdown doesn't panic and behaves correctly
-					shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-					defer cancel()
-					if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
-						t.Errorf("shutdown() returned error: %v", shutdownErr)
-					}
-				}
+			if err == nil && tt.verify != nil {
+				tt.verify(t, ctx, shutdown)
 			}
 		})
 	}
