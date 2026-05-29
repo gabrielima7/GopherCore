@@ -19,13 +19,22 @@ var ErrCacheMiss = errors.New("cache: key not found")
 type Cache interface {
 	// Set stores a value in the cache with the given key and expiration time.
 	// If expiration is 0, the key has no expiration time.
+	// Purpose: Allows persistent or volatile storage of byte slice data mapped by a string key.
+	// Constraints: The key must not be empty. Context cancellation terminates external connections immediately.
+	// Thread-safety: Implementations must guarantee thread-safety for concurrent writes.
 	Set(ctx context.Context, key string, value []byte, expiration time.Duration) error
 
 	// Get retrieves a value from the cache by its key.
 	// Returns ErrCacheMiss if the key is not found.
+	// Purpose: Fetches the cached byte slice associated with the specified key.
+	// Constraints: Returns an exact match or ErrCacheMiss. Context cancellation is respected.
+	// Thread-safety: Implementations must be safe for concurrent reads.
 	Get(ctx context.Context, key string) ([]byte, error)
 
 	// Delete removes a key from the cache.
 	// Does not return an error if the key does not exist.
+	// Purpose: Removes a specific entry from the caching layer, freeing memory.
+	// Constraints: Idempotent operation; deleting a non-existent key will not yield an error.
+	// Thread-safety: Implementations must synchronize deletion alongside active reads and writes.
 	Delete(ctx context.Context, key string) error
 }
