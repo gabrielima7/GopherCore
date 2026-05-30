@@ -10,6 +10,9 @@ import (
 )
 
 // ErrClientNotInitialized is returned when attempting to close or use an uninitialized queue client.
+// Purpose: Signals that a queue client method was called on a nil or uninitialized receiver.
+// Constraints: Standardized error for asynchronous queue client initialization failures.
+// Thread-safety: Immutable error value, safe for concurrent access.
 var ErrClientNotInitialized = errors.New("async: queue client is not initialized")
 
 // QueueServer provides a wrapper around asynq.Server, adding robust panic recovery

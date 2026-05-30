@@ -129,10 +129,6 @@ func WithCORS(origins ...string) RouterOption {
 	}
 }
 
-// WithRateLimit imposes a global token-bucket throttling ceiling on all active routing paths, shedding excess traffic that surpasses the designated requests-per-second or instantaneous burst threshold.
-// Purpose: Defends against volumetric traffic attacks.
-// Constraints: A zero value bypasses rate limiting entirely.
-// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 // WithCustomRateLimiter overrides the default memory limiter with a custom distributed rate limiting implementation.
 // Purpose: Enables global, distributed rate limits across horizontal replicas (e.g. Redis).
 // Constraints: Overrides standard RPS/Burst settings if used.
@@ -143,6 +139,10 @@ func WithCustomRateLimiter(limiter RateLimiter) RouterOption {
 	}
 }
 
+// WithRateLimit imposes a global token-bucket throttling ceiling on all active routing paths, shedding excess traffic that surpasses the designated requests-per-second or instantaneous burst threshold.
+// Purpose: Defends against volumetric traffic attacks.
+// Constraints: A zero value bypasses rate limiting entirely.
+// Thread-safety: Mutates configuration struct safely during synchronous initialization.
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
