@@ -75,7 +75,6 @@ func TestNewRouterWithMetricsPath(t *testing.T) {
 	}
 }
 
-
 func TestRouterOptions(t *testing.T) {
 	tests := []struct {
 		name     string
