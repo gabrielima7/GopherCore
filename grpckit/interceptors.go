@@ -1,3 +1,8 @@
+// Package grpckit provides a productive and secure abstraction over gRPC.
+// Purpose: Provide an ergonomic, secure wrapper.
+// Constraints: Assumes usage with grpc-go.
+// Thread-safety: Safe for concurrent use.
+
 package grpckit
 
 import (

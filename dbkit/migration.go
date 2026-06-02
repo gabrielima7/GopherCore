@@ -1,3 +1,8 @@
+// Package dbkit provides thread-safe database connection management.
+// Purpose: Act as the robust bridge for safe stateful persistence and schema evolution.
+// Constraints: Target driver and DSN must be explicitly configured.
+// Thread-safety: Uses sqlx connection pools internally.
+
 package dbkit
 
 import (
