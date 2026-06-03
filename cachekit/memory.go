@@ -1,3 +1,8 @@
+// Package cachekit provides a standardized caching module for GopherCore.
+// Purpose: Offers a unified Cache interface.
+// Constraints: Implementations must handle context cancellation.
+// Thread-safety: Safe for concurrent use.
+
 package cachekit
 
 import (
@@ -129,8 +134,7 @@ func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 	if !item.expiration.IsZero() && time.Now().After(item.expiration) {
 		// Item has expired, lazily delete it
 		c.mu.Lock()
-		// Double-check inside the lock to prevent deleting a newly updated value
-		// due to a race condition between RUnlock and Lock
+		// Internal Logic Deep-Dive: We double-check the expiration inside the write lock to prevent a race condition. Between releasing the `RLock` and acquiring the `Lock`, another goroutine could have aggressively updated the key with a fresh, non-expired value. If we didn't double-check `currentItem.expiration.Equal(item.expiration)`, we would accidentally delete perfectly valid new data.
 		if currentItem, exists := c.items[key]; exists && currentItem.expiration.Equal(item.expiration) {
 			delete(c.items, key)
 		}

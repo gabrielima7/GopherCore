@@ -1,3 +1,8 @@
+// Package cachekit provides a standardized caching module for GopherCore.
+// Purpose: Offers a unified Cache interface.
+// Constraints: Implementations must handle context cancellation.
+// Thread-safety: Safe for concurrent use.
+
 package cachekit
 
 import (

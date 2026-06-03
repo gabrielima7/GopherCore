@@ -41,7 +41,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 		return nil, err
 	}
 
-	// Set global propagators for distributed tracing.
+	// Internal Logic Deep-Dive: We must explicitly set a global TextMapPropagator so that the OpenTelemetry instrumentation natively understands how to inject and extract `traceparent` and `baggage` headers across network boundaries. Without this, distributed tracing breaks immediately when a request leaves this microservice to call another.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	// 1. Initialize Traces
