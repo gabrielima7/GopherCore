@@ -1,6 +1,7 @@
 package grpckit
 
 import (
+	"fmt"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -52,7 +53,9 @@ func startTestServer(t *testing.T, srv *grpc.Server, impl grpc_testing.TestServi
 
 	go func() {
 		// Serve returns when Stop or GracefulStop is called; the error is expected.
-		_ = srv.Serve(ln)
+		if err := srv.Serve(ln); err != nil && err.Error() != "grpc: the server has been stopped" {
+			fmt.Printf("serve ended: %v\n", err)
+		}
 	}()
 
 	t.Cleanup(func() {
@@ -260,7 +263,11 @@ func TestNewServer_HappyPath_UnaryRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.NewClient: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	client := grpc_testing.NewTestServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -284,7 +291,11 @@ func TestNewServer_ErrorPath_UnaryRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.NewClient: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	client := grpc_testing.NewTestServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -318,7 +329,11 @@ func TestRecoveryUnaryInterceptor_HandlerPanic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.NewClient: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	client := grpc_testing.NewTestServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -352,7 +367,11 @@ func TestRecoveryUnaryInterceptor_HandlerPanic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.NewClient (second server): %v", err)
 	}
-	defer func() { _ = conn2.Close() }()
+	defer func() {
+		if err := conn2.Close(); err != nil {
+			t.Errorf("failed to close connection 2: %v", err)
+		}
+	}()
 
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel2()
@@ -618,7 +637,11 @@ func TestNewServer_WithCustomUnaryInterceptor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpc.NewClient: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -749,7 +772,11 @@ func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -824,7 +851,11 @@ func TestNewClient_WithTLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.Listen: %v", err)
 	}
-	go func() { _ = srv.Serve(ln) }()
+	go func() {
+		if err := srv.Serve(ln); err != nil && err.Error() != "grpc: the server has been stopped" {
+			fmt.Printf("serve ended: %v\n", err)
+		}
+	}()
 	t.Cleanup(srv.Stop)
 
 	// Dial using NewClient with TLS — exercises the cfg.tlsConfig != nil branch.
@@ -835,7 +866,11 @@ func TestNewClient_WithTLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient with TLS: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
