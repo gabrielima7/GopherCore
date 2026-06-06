@@ -9,4 +9,11 @@
 // Purpose: Provide an ergonomic, secure, and observable wrapper around standard gRPC.
 // Constraints: Assumes usage with github.com/grpc/grpc-go.
 // Thread-safety: Safe for concurrent use across multiple goroutines.
+//
+// Internal Logic Deep-Dive:
+// GopherCore integrates OpenTelemetry distributed tracing natively using the modern
+// `grpc.StatsHandler` API (via `otelgrpc.NewServerHandler()` and `otelgrpc.NewClientHandler()`)
+// rather than legacy unary/stream interceptors. This ensures complete observability coverage
+// extending into connection lifecycle events, reducing middleware chain complexity while
+// remaining fully spec-compliant.
 package grpckit
