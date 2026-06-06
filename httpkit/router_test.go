@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func mustCloseRouterTest(t *testing.T, closer interface{ Close() error }) {
@@ -72,6 +74,70 @@ func TestNewRouterWithMetricsPath(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200 for metrics path, got %d", rr.Code)
+	}
+}
+
+func TestNewRouterWithEmptyMetricsPath(t *testing.T) {
+	tests := []struct {
+		name         string
+		metricsPath  string
+		method       string
+		path         string
+		expectedCode int
+		setupRoute   func(r *chi.Mux)
+	}{
+		{
+			name:         "EmptyMetricsPath_StandardRoute_Success",
+			metricsPath:  "",
+			method:       http.MethodGet,
+			path:         "/test",
+			expectedCode: http.StatusOK,
+			setupRoute: func(r *chi.Mux) {
+				r.Get("/test", func(w http.ResponseWriter, req *http.Request) {
+					w.WriteHeader(http.StatusOK)
+				})
+			},
+		},
+		{
+			name:         "EmptyMetricsPath_StandardRoute_NotFound",
+			metricsPath:  "",
+			method:       http.MethodGet,
+			path:         "/notfound",
+			expectedCode: http.StatusNotFound,
+			setupRoute:   func(r *chi.Mux) {},
+		},
+		{
+			name:         "NonEmptyMetricsPath_MetricsRoute_Success",
+			metricsPath:  "/custom_metrics",
+			method:       http.MethodGet,
+			path:         "/custom_metrics",
+			expectedCode: http.StatusOK,
+			setupRoute:   func(r *chi.Mux) {},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(
+				WithMetricsPath(tt.metricsPath),
+				WithLogger(false),
+			)
+			if r == nil {
+				t.Fatal("expected non-nil router")
+			}
+
+			if tt.setupRoute != nil {
+				tt.setupRoute(r)
+			}
+
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedCode {
+				t.Fatalf("expected %d, got %d", tt.expectedCode, rr.Code)
+			}
+		})
 	}
 }
 
