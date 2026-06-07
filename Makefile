@@ -71,8 +71,14 @@ fuzz:
 	@echo "==> Running fuzz tests..."
 	@for pkg in async config dbkit grpckit httpkit logkit result retry circuitbreaker guard jsonutil cachekit; do \
 		echo "  -> Fuzzing $$pkg..."; \
-		output=$$(go test -fuzz=. -fuzztime=30s ./$$pkg/ 2>&1); \
-		status=$$?; \
+		output=""; status=0; \
+		for f in $$(go test -list=Fuzz ./$$pkg/ | grep "^Fuzz"); do \
+			out=$$(go test -fuzz="^$${f}$$" -fuzztime=30s ./$$pkg/ 2>&1); \
+			st=$$?; \
+			output="$${output}$${out}\n"; \
+			if [ $$st -ne 0 ]; then status=$$st; break; fi; \
+		done; \
+		output=$$(echo "$$output" | grep -v "testing: will not fuzz"); \
 		if [ $$status -ne 0 ]; then \
 			if echo "$$output" | grep -q "context deadline exceeded" && ! echo "$$output" | grep -i -q "failing input"; then \
 				echo "$$output"; \
