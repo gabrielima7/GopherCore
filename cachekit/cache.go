@@ -21,6 +21,7 @@ var ErrCacheMiss = errors.New("cache: key not found")
 // Purpose: Provides a unified API for both in-memory and distributed caches.
 // Constraints: Implementations must be thread-safe and handle context cancellation.
 // Thread-safety: Implementations must guarantee concurrent safety.
+// Internal Logic Deep-Dive: The unified Cache interface deliberately standardizes on `[]byte` values for all read and write operations rather than generic interfaces (`any`). This architectural constraint ensures consistent serialization/deserialization behavior across both local memory boundaries and network boundaries (Redis), preventing runtime type assertion panics or subtle gob/JSON encoding discrepancies.
 type Cache interface {
 	// Set stores a value in the cache with the given key and expiration time.
 	// If expiration is 0, the key has no expiration time.
