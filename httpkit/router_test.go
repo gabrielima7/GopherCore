@@ -56,22 +56,42 @@ func TestNewRouterDefaultConfig(t *testing.T) {
 	}
 }
 
-func TestNewRouterWithMetricsPath(t *testing.T) {
-	r := NewRouter(
-		WithMetricsPath("/metrics"),
-		WithLogger(false),
-	)
-	if r == nil {
-		t.Fatal("expected non-nil router")
+func TestRouterMetricsRegistration(t *testing.T) {
+	tests := []struct {
+		name         string
+		metricsPath  string
+		expectedCode int
+	}{
+		{
+			name:         "MetricsEnabled",
+			metricsPath:  "/metrics",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "MetricsDisabled",
+			metricsPath:  "",
+			expectedCode: http.StatusNotFound,
+		},
 	}
 
-	// Metrics endpoint should be registered and return 200 (prometheus empty handler is 200)
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(
+				WithMetricsPath(tt.metricsPath),
+				WithLogger(false),
+			)
+			if r == nil {
+				t.Fatal("expected non-nil router")
+			}
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200 for metrics path, got %d", rr.Code)
+			req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedCode {
+				t.Fatalf("expected %d for metrics path, got %d", tt.expectedCode, rr.Code)
+			}
+		})
 	}
 }
 
