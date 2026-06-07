@@ -35,6 +35,7 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 // Purpose: Implements Cache.Set using Redis SET command.
 // Constraints: Context is respected for the operation timeout.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: We map directly to the `go-redis` `Set` method which transparently handles executing the underlying Redis `SET` command. The duration parameter maps safely to Redis' native `PX` expiration capabilities without custom logic.
 func (c *RedisCache) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
 	err := c.client.Set(ctx, key, value, expiration).Err()
 	if err != nil {
@@ -47,6 +48,7 @@ func (c *RedisCache) Set(ctx context.Context, key string, value []byte, expirati
 // Purpose: Implements Cache.Get using Redis GET command.
 // Constraints: Returns ErrCacheMiss if the key does not exist.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: When the underlying `go-redis` library does not find a key, it returns a specific `redis.Nil` error. We explicitly intercept this and remap it to our domain-specific `ErrCacheMiss`. This ensures that callers depending on the unified `Cache` interface are not tightly coupled to external Redis implementation details, preventing abstraction leakage.
 func (c *RedisCache) Get(ctx context.Context, key string) ([]byte, error) {
 	val, err := c.client.Get(ctx, key).Bytes()
 	if err != nil {
