@@ -84,7 +84,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 	taskExecuted := make(chan struct{})
 
 	srv.HandleFunc("test:panic", func(ctx context.Context, task *asynq.Task) error {
-		defer close(taskExecuted)
+		close(taskExecuted)
 		panic("task panic")
 	})
 
