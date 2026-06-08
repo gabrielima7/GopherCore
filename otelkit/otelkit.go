@@ -19,6 +19,12 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
+var (
+	resourceMerge     = resource.Merge
+	newTraceExporter  = otlptracegrpc.New
+	newMetricExporter = prometheus.New
+)
+
 // InitSDK configures the OpenTelemetry SDK with an OTLP gRPC trace exporter and a Prometheus metric exporter.
 // It registers the providers globally.
 // Purpose: Configures OpenTelemetry SDK for the application.
@@ -30,7 +36,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 		return nil, err
 	}
 
-	res, err := resource.Merge(
+	res, err := resourceMerge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			resource.Default().SchemaURL(),
@@ -45,7 +51,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	// 1. Initialize Traces
-	traceExporter, err := otlptracegrpc.New(ctx)
+	traceExporter, err := newTraceExporter(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +62,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 	otel.SetTracerProvider(tp)
 
 	// 2. Initialize Metrics (Prometheus Exporter)
-	metricExporter, err := prometheus.New()
+	metricExporter, err := newMetricExporter()
 	if err != nil {
 		_ = tp.Shutdown(ctx)
 		return nil, err
