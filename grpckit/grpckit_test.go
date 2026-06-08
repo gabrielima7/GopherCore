@@ -1,7 +1,6 @@
 package grpckit
 
 import (
-	"fmt"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -10,6 +9,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"net"
