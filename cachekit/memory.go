@@ -25,6 +25,7 @@ type InMemoryCache struct {
 	mu        sync.RWMutex
 	items     map[string]cacheItem
 	stopCh    chan struct{}
+	wg        sync.WaitGroup
 	closeOnce sync.Once
 }
 
@@ -40,6 +41,7 @@ func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
 	}
 
 	if cleanupInterval > 0 {
+		c.wg.Add(1)
 		go c.cleanupLoop(cleanupInterval)
 	}
 
@@ -48,6 +50,7 @@ func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
 
 // cleanupLoop periodically removes expired items from the cache.
 func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
+	defer c.wg.Done()
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -82,6 +85,7 @@ func (c *InMemoryCache) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.stopCh)
 	})
+	c.wg.Wait()
 	return nil
 }
 
