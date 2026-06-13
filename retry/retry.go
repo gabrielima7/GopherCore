@@ -206,11 +206,14 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 			delay := calculateDelay(cfg, attempt)
 			// Sleep block multiplexed with the context listener. Ensures that if the context
 			// expires during a long exponential backoff sleep, we awake and return instantly.
-			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with `time.After(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and exits without needlessly tying up thread resources for the remaining 9 seconds.
+			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with an explicitly instantiated `time.NewTimer(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and immediately stops the timer (`timer.Stop()`), exiting without needlessly leaking memory or tying up thread resources for the remaining 9 seconds.
+			timer := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return ctx.Err()
-			case <-time.After(delay):
+			case <-timer.C:
+				timer.Stop()
 			}
 		}
 	}
@@ -255,11 +258,14 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 		if attempt < cfg.MaxAttempts-1 {
 			delay := calculateDelay(cfg, attempt)
 			// Yield the goroutine to the runtime scheduler securely while monitoring context.
-			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with `time.After(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and exits without needlessly tying up thread resources for the remaining 9 seconds.
+			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with an explicitly instantiated `time.NewTimer(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and immediately stops the timer (`timer.Stop()`), exiting without needlessly leaking memory or tying up thread resources for the remaining 9 seconds.
+			timer := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return zero, ctx.Err()
-			case <-time.After(delay):
+			case <-timer.C:
+				timer.Stop()
 			}
 		}
 	}
