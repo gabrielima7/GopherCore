@@ -1,12 +1,29 @@
 package httpkit
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 )
+
+type testSlogHandler struct {
+	records []slog.Record
+	mu      sync.Mutex
+}
+
+func (h *testSlogHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h *testSlogHandler) Handle(ctx context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, r)
+	return nil
+}
+func (h *testSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler { return h }
+func (h *testSlogHandler) WithGroup(name string) slog.Handler       { return h }
 
 func TestJSONResponse(t *testing.T) {
 	rr := httptest.NewRecorder()
@@ -228,6 +245,36 @@ func (e *errorResponseWriter) Write(b []byte) (int, error) {
 func (e *errorResponseWriter) WriteHeader(statusCode int) {}
 
 func TestJSONWriteError(t *testing.T) {
+	originalLogger := slog.Default()
+	defer slog.SetDefault(originalLogger)
+
+	handler := &testSlogHandler{}
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
 	w := &errorResponseWriter{header: make(http.Header)}
 	JSON(w, http.StatusOK, map[string]string{"foo": "bar"})
+
+	handler.mu.Lock()
+	defer handler.mu.Unlock()
+
+	if len(handler.records) == 0 {
+		t.Fatal("expected slog warning, got none")
+	}
+
+	found := false
+	for _, r := range handler.records {
+		if r.Message == "failed to write response body" && r.Level == slog.LevelWarn {
+			r.Attrs(func(a slog.Attr) bool {
+				if a.Key == "error" && a.Value.String() == "simulated write error" {
+					found = true
+				}
+				return true
+			})
+		}
+	}
+
+	if !found {
+		t.Fatal("expected specific slog warning 'failed to write response body' with 'simulated write error', but it was not logged")
+	}
 }
