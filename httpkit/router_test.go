@@ -278,12 +278,14 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 	}
 
 	// Wait for GracefulShutdown to return
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
 	select {
 	case err := <-errCh:
 		if err != nil {
 			t.Fatalf("expected nil error, got %v", err)
 		}
-	case <-time.After(2 * time.Second):
+	case <-timer.C:
 		t.Fatal("timeout waiting for GracefulShutdown to return")
 	}
 }
@@ -317,12 +319,14 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 		errCh <- GracefulShutdown(srv, 5*time.Second)
 	}()
 
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
 	select {
 	case err := <-errCh:
 		if err == nil {
 			t.Fatal("expected error due to port already in use, got nil")
 		}
-	case <-time.After(2 * time.Second):
+	case <-timer.C:
 		t.Fatal("timeout waiting for GracefulShutdown to return error")
 	}
 }
@@ -359,12 +363,14 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 				t.Fatalf("failed to close server: %v", err)
 			}
 
+			timer := time.NewTimer(2 * time.Second)
+			defer timer.Stop()
 			select {
 			case err := <-errCh:
 				if (err != nil) != tt.wantErr {
 					t.Errorf("GracefulShutdown() error = %v, wantErr %v", err, tt.wantErr)
 				}
-			case <-time.After(2 * time.Second):
+			case <-timer.C:
 				t.Fatal("timeout waiting for GracefulShutdown to handle ErrServerClosed")
 			}
 		})
