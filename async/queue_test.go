@@ -48,10 +48,12 @@ func TestQueueLifecycle(t *testing.T) {
 		t.Fatalf("failed to enqueue task: %v", err)
 	}
 
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
 	select {
 	case <-taskExecuted:
 		// success
-	case <-time.After(2 * time.Second):
+	case <-timer.C:
 		t.Fatal("timeout waiting for task execution")
 	}
 }
@@ -100,11 +102,13 @@ func TestQueuePanicRecovery(t *testing.T) {
 		t.Fatalf("failed to enqueue task: %v", err)
 	}
 
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
 	select {
 	case <-taskExecuted:
 		// wait a bit for ErrorHandler to run
 		time.Sleep(100 * time.Millisecond)
-	case <-time.After(2 * time.Second):
+	case <-timer.C:
 		t.Fatal("timeout waiting for task execution")
 	}
 }

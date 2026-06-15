@@ -70,6 +70,8 @@ func TestGo_TableDriven(t *testing.T) {
 			}
 
 			if tt.expectPanic {
+				timer := time.NewTimer(time.Second)
+				defer timer.Stop()
 				select {
 				case err := <-errCh:
 					var pe *PanicError
@@ -82,14 +84,16 @@ func TestGo_TableDriven(t *testing.T) {
 					if pe.Stack == "" {
 						t.Fatal("expected stack trace")
 					}
-				case <-time.After(time.Second):
+				case <-timer.C:
 					t.Fatal("timeout waiting for panic recovery")
 				}
 			} else {
+				timer := time.NewTimer(500 * time.Millisecond)
+				defer timer.Stop()
 				select {
 				case <-doneCh:
 					// Success or silent recovery complete
-				case <-time.After(500 * time.Millisecond):
+				case <-timer.C:
 					if tt.name != "panic silent recovery" {
 						t.Fatal("timeout waiting for goroutine")
 					}
