@@ -131,7 +131,10 @@ func (c *QueueClient) EnqueueContext(ctx context.Context, task *asynq.Task, opts
 // Constraints: Should be deferred immediately after instantiation or called on shutdown.
 // Thread-safety: Returns ErrClientNotInitialized if the client is nil.
 func (c *QueueClient) Close() error {
-	if c == nil || c.client == nil {
+	if c == nil {
+		return ErrClientNotInitialized
+	}
+	if c.client == nil {
 		return ErrClientNotInitialized
 	}
 	return c.client.Close()
