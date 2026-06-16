@@ -70,6 +70,10 @@ func (c *InMemoryCache) evictExpired() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// Internal Logic Deep-Dive (Big-O Mathematical Proof): Iterating over a Go map costs O(N) where N is the number of cached keys.
+	// However, memory allocation inside this loop is strictly O(1) constant zero-allocation.
+	// Map `delete` in Go operates directly on the existing map memory structure without triggering immediate memory re-allocation or massive GC churn.
+	// This bounds CPU time tightly to N operations natively, ensuring memory does not exhaust when sweeping millions of keys.
 	for k, v := range c.items {
 		if !v.expiration.IsZero() && now.After(v.expiration) {
 			delete(c.items, k)
