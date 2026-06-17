@@ -2,7 +2,6 @@
 // Purpose: Provide an ergonomic, secure wrapper.
 // Constraints: Assumes usage with grpc-go.
 // Thread-safety: Safe for concurrent use.
-
 package grpckit
 
 import (
