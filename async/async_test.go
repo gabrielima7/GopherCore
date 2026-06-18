@@ -444,6 +444,13 @@ func TestMap_TableDriven(t *testing.T) {
 			expectErr:   nil,
 		},
 		{
+			name:        "worker returns context canceled error while context is still active",
+			items:       []int{1, 2, 3},
+			concurrency: 1,
+			fn:          func(ctx context.Context, n int) (int, error) { return 0, context.Canceled },
+			expectErr:   context.Canceled,
+		},
+		{
 			name:        "immediate context cancellation",
 			items:       []int{1, 2, 3},
 			concurrency: 2,
