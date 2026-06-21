@@ -114,6 +114,9 @@ func NewQueueClient(redisOpt asynq.RedisConnOpt) *QueueClient {
 // Constraints: Returns an error if the task cannot be encoded or the queue is unreachable.
 // Thread-safety: Can be invoked concurrently across varying HTTP handlers or RPCs.
 func (c *QueueClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
+	if c == nil || c.client == nil {
+		return nil, ErrClientNotInitialized
+	}
 	return c.client.Enqueue(task, opts...)
 }
 
@@ -122,6 +125,9 @@ func (c *QueueClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.Ta
 // Constraints: Context timeout primarily impacts the network roundtrip to Redis.
 // Thread-safety: Safe for simultaneous execution.
 func (c *QueueClient) EnqueueContext(ctx context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
+	if c == nil || c.client == nil {
+		return nil, ErrClientNotInitialized
+	}
 	return c.client.EnqueueContext(ctx, task, opts...)
 }
 
