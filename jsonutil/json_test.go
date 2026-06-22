@@ -2,7 +2,9 @@ package jsonutil
 
 import (
 	"bytes"
+	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 )
@@ -102,16 +104,154 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-func TestValid(t *testing.T) {
-	if !Valid([]byte(`{"key":"value"}`)) {
-		t.Fatal("expected valid JSON")
+func TestValid_TableDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected bool
+	}{
+		{"valid object", []byte(`{"key":"value"}`), true},
+		{"valid array", []byte(`[1, 2, 3]`), true},
+		{"valid string", []byte(`"hello"`), true},
+		{"valid number", []byte(`123`), true},
+		{"valid boolean", []byte(`true`), true},
+		{"valid null", []byte(`null`), true},
+		{"missing quotes", []byte(`{key:"value"}`), false},
+		{"truncated array", []byte(`[1, 2, `), false},
+		{"trailing comma object", []byte(`{"key":"value",}`), false},
+		{"trailing comma array", []byte(`[1, 2,]`), false},
+		{"empty byte slice", []byte(""), false},
+		{"nil byte slice", nil, false},
+		{"invalid char", []byte(`{invalid`), false},
 	}
-	if Valid([]byte("{invalid")) {
-		t.Fatal("expected invalid JSON")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Valid(tt.input); got != tt.expected {
+				t.Errorf("Valid(%q) = %v; expected %v", tt.input, got, tt.expected)
+			}
+		})
 	}
-	if Valid(nil) {
-		t.Fatal("expected nil to be invalid")
+}
+
+type errorWriter struct{}
+func (e *errorWriter) Write(p []byte) (n int, err error) {
+	return 0, errors.New("simulated write error")
+}
+
+func TestEncoder_TableDriven(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        any
+		writer      *bytes.Buffer
+		useErrWriter bool
+		expectErr   bool
+	}{
+		{"valid encode", testStruct{Name: "Eve", Age: 28}, &bytes.Buffer{}, false, false},
+		{"unmarshalable channel", make(chan int), &bytes.Buffer{}, false, true},
+		{"writer error", testStruct{Name: "Eve", Age: 28}, nil, true, true},
 	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			if tt.useErrWriter {
+				enc := NewEncoder(&errorWriter{})
+				err = enc.Encode(tt.data)
+			} else {
+				enc := NewEncoder(tt.writer)
+				err = enc.Encode(tt.data)
+			}
+			if (err != nil) != tt.expectErr {
+				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
+			}
+		})
+	}
+}
+
+type errorReader struct{}
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("simulated read error")
+}
+
+func TestDecoder_TableDriven(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		useErrReader bool
+		expectErr   bool
+	}{
+		{"valid decode", `{"name":"Frank","age":50}`, false, false},
+		{"invalid json", `{"name":"Frank","age":}`, false, true},
+		{"reader error", ``, true, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			if tt.useErrReader {
+				dec := NewDecoder(&errorReader{})
+				var s testStruct
+				err = dec.Decode(&s)
+			} else {
+				dec := NewDecoder(strings.NewReader(tt.input))
+				var s testStruct
+				err = dec.Decode(&s)
+			}
+			if (err != nil) != tt.expectErr {
+				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
+			}
+		})
+	}
+}
+
+func TestMarshalIndent_TableDriven(t *testing.T) {
+	tests := []struct {
+		name      string
+		data      any
+		expectErr bool
+	}{
+		{"valid struct", testStruct{Name: "Bob", Age: 25}, false},
+		{"unmarshalable channel", make(chan int), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := MarshalIndent(tt.data, "", "  ")
+			if (err != nil) != tt.expectErr {
+				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
+			}
+		})
+	}
+}
+
+func TestConcurrency_ThreadSafety(t *testing.T) {
+	const numGoroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines * 3)
+
+	data := testStruct{Name: "Alice", Age: 30}
+	marshaledData := []byte(`{"name":"Alice","age":30}`)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			_, _ = Marshal(data)
+		}()
+
+		go func() {
+			defer wg.Done()
+			var s testStruct
+			_ = Unmarshal(marshaledData, &s)
+		}()
+
+		go func() {
+			defer wg.Done()
+			_ = Valid(marshaledData)
+		}()
+	}
+
+	wg.Wait()
 }
 
 func TestMarshalNestedStruct(t *testing.T) {
