@@ -18,6 +18,7 @@ import (
 // randReader is an internal override point for tests.
 // Purpose: Allows injecting mocked random number generators during unit tests.
 // Constraints: Must implement io.Reader.
+// Thread-safety: Not thread-safe for reassignment, must be mocked before concurrent tests.
 var randReader io.Reader = rand.Reader
 
 // ErrMaxAttemptsReached signifies a terminal failure state triggered internally whenever a supervised retry execution loop completely exhausts its configured maximum iteration count without a single success.
@@ -140,7 +141,7 @@ func WithMaxDelay(d time.Duration) Option {
 	}
 }
 
-// WithStrategy forcibly diverts the internal timing engine towards a specified delay curve calculation algorithm, usually toggling between flat-line pauses and dynamically escalating intervals.
+// WithStrategy configures the backoff algorithm used to calculate delay intervals between retry attempts.
 // Purpose: Configures which algorithm dictates backoff timing.
 // Constraints: Assumes StrategyConstant or StrategyExponential.
 // Thread-safety: Mutates configuration synchronously.
@@ -276,6 +277,7 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 // for the current attempt based on the chosen strategy.
 // Purpose: Applies hard mathematical bounds to prevent extreme sleep times
 // and safely injects cryptographic randomness if full jitter is configured.
+// Constraints: An internal calculation helper.
 // Thread-safety: Relies on `crypto/rand` which handles concurrent random draws safely.
 func calculateDelay(cfg *Config, attempt int) time.Duration {
 	var delay time.Duration

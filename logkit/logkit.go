@@ -35,7 +35,7 @@ type Config struct {
 // Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
-// WithLevel calibrates the internal noise threshold filter, ruthlessly discarding any incoming logging messages that fall below the formally designated severity baseline.
+// WithLevel sets the minimum severity threshold for emitting log records.
 // Purpose: Configure log verbosity.
 // Constraints: Rejects logs that don't pass the check.
 // Thread-safety: Synchronous struct mutation.
@@ -79,7 +79,7 @@ func NewLogger(opts ...Option) *slog.Logger {
 	return slog.New(handler)
 }
 
-// Initialize aggressively overrides the underlying Go runtime's global standard logger entirely with a fresh, opinionated, structured instance bound to application-specific rules.
+// Initialize configures the global slog logger with a structured JSON handler based on the provided options.
 // Purpose: Bootstraps the application-wide logging engine.
 // Constraints: This function mutates global application state and
 // should typically only be called once during the application's bootstrap phase.
