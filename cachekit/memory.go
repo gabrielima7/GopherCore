@@ -66,15 +66,32 @@ func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
 // evictExpired removes all expired items.
 func (c *InMemoryCache) evictExpired() {
 	now := time.Now()
-	c.mu.Lock()
-	defer c.mu.Unlock()
 
-	// Internal Logic Deep-Dive (Big-O Mathematical Proof): Iterating over a Go map costs O(N) where N is the number of cached keys.
-	// However, memory allocation inside this loop is strictly O(1) constant zero-allocation.
-	// Map `delete` in Go operates directly on the existing map memory structure without triggering immediate memory re-allocation or massive GC churn.
-	// This bounds CPU time tightly to N operations natively, ensuring memory does not exhaust when sweeping millions of keys.
+	// Phase 1: O(N) Read-Only Scan.
+	// We use RLock to prevent blocking active concurrent Get() and Set() requests
+	// while we iterate over potentially millions of keys.
+	c.mu.RLock()
+	var expiredKeys []string
 	for k, v := range c.items {
 		if !v.expiration.IsZero() && now.After(v.expiration) {
+			expiredKeys = append(expiredKeys, k)
+		}
+	}
+	c.mu.RUnlock()
+
+	if len(expiredKeys) == 0 {
+		return
+	}
+
+	// Phase 2: O(E) Write-Lock Deletion (where E = number of expired keys).
+	// We only acquire the exclusive Lock for the exact duration needed to delete,
+	// mathematically minimizing lock contention and tail-latency spikes.
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, k := range expiredKeys {
+		// Internal Logic Deep-Dive: Double-check expiration. A high-concurrency Goroutine might have
+		// updated this key with a fresh TTL between our RLock and Lock phases.
+		if v, exists := c.items[k]; exists && !v.expiration.IsZero() && now.After(v.expiration) {
 			delete(c.items, k)
 		}
 	}
