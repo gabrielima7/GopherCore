@@ -174,3 +174,38 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 		return nil
 	})
 }
+
+func TestQueueClientUninitializedMethods(t *testing.T) {
+	tests := []struct {
+		name   string
+		client *QueueClient
+	}{
+		{
+			name:   "nil client",
+			client: nil,
+		},
+		{
+			name:   "uninitialized internal client",
+			client: &QueueClient{client: nil},
+		},
+	}
+
+	task := asynq.NewTask("test:dummy", nil)
+	ctx := context.Background()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test Enqueue
+			_, err := tt.client.Enqueue(task)
+			if !errors.Is(err, ErrClientNotInitialized) {
+				t.Errorf("Enqueue() expected %v, got %v", ErrClientNotInitialized, err)
+			}
+
+			// Test EnqueueContext
+			_, err = tt.client.EnqueueContext(ctx, task)
+			if !errors.Is(err, ErrClientNotInitialized) {
+				t.Errorf("EnqueueContext() expected %v, got %v", ErrClientNotInitialized, err)
+			}
+		})
+	}
+}

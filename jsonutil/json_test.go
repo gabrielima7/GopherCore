@@ -135,17 +135,18 @@ func TestValid_TableDriven(t *testing.T) {
 }
 
 type errorWriter struct{}
+
 func (e *errorWriter) Write(p []byte) (n int, err error) {
 	return 0, errors.New("simulated write error")
 }
 
 func TestEncoder_TableDriven(t *testing.T) {
 	tests := []struct {
-		name        string
-		data        any
-		writer      *bytes.Buffer
+		name         string
+		data         any
+		writer       *bytes.Buffer
 		useErrWriter bool
-		expectErr   bool
+		expectErr    bool
 	}{
 		{"valid encode", testStruct{Name: "Eve", Age: 28}, &bytes.Buffer{}, false, false},
 		{"unmarshalable channel", make(chan int), &bytes.Buffer{}, false, true},
@@ -170,16 +171,17 @@ func TestEncoder_TableDriven(t *testing.T) {
 }
 
 type errorReader struct{}
+
 func (e *errorReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("simulated read error")
 }
 
 func TestDecoder_TableDriven(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
+		name         string
+		input        string
 		useErrReader bool
-		expectErr   bool
+		expectErr    bool
 	}{
 		{"valid decode", `{"name":"Frank","age":50}`, false, false},
 		{"invalid json", `{"name":"Frank","age":}`, false, true},
