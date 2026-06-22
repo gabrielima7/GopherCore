@@ -8,7 +8,7 @@ package result
 
 import "fmt"
 
-// Result codifies a strictly enforced monadic boundary, safely compartmentalizing either a successfully computed value or an underlying execution failure into an immutable structure.
+// Result represents either a successful value or an error in an immutable container.
 // Purpose: It encourages explicit error handling and functional transformations.
 // Constraints: Cannot be mutated after instantiation.
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
@@ -19,7 +19,7 @@ type Result[T any] struct {
 	ok    bool
 }
 
-// Ok unconditionally creates a structurally valid success container perfectly enveloping the target value payload, signaling that the originating computation succeeded.
+// Ok creates a successful Result containing the provided value.
 // Purpose: Wraps a raw value into a success state.
 // Constraints: The internal error state is implicitly nil.
 // Thread-safety: Pure functional constructor.
@@ -43,7 +43,7 @@ func Errf[T any](format string, args ...any) Result[T] {
 	return Result[T]{err: fmt.Errorf(format, args...), ok: false}
 }
 
-// Of absorbs the classic Go dual-return-value idiom completely, digesting both the theoretical value and the adjacent error to programmatically resolve the correct internal success or failure state.
+// Of converts a standard (value, error) return pair into a Result type.
 // Purpose: Converts a classic (value, err) return tuple into a Result.
 // Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
 // Thread-safety: Pure functional constructor.
@@ -71,7 +71,7 @@ func (r Result[T]) IsErr() bool {
 	return !r.ok
 }
 
-// Unwrap pierces the monadic armor entirely, ejecting both the theoretical valid value and the latent error object back into the classic Go multiple-return signature plane.
+// Unwrap returns the underlying value and error, bridging the Result type back to idiomatic Go error handling.
 // Purpose: This allows the Result container to be bridged back into standard, idiomatic
 // Go error handling logic (value, err).
 // Constraints: Assumes the consumer will handle the returned error appropriately.
@@ -122,7 +122,7 @@ func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 	return Err[U](r.err)
 }
 
-// FlatMap fuses sequential operations by securely passing an uncorrupted interior value into a secondary fallible function, returning the newly synthesized error boundaries as the final output.
+// FlatMap passes a successful value to a function that also returns a Result, flattening the nested outcome.
 // Purpose: Allows chaining operations that themselves may return errors.
 // Constraints: This enables elegant chaining of multiple operations that might fail.
 // If the original Result is an Err, the error is propagated unchanged.
