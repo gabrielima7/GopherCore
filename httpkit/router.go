@@ -226,7 +226,7 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 	return cfg
 }
 
-// NewRouter fabricates an intensely opinionated multiplexer from the ground up, welding together an unbypassable chain of defense-in-depth interceptors alongside any user-selected functional options.
+// NewRouter creates a new chi.Mux router with standard security, recovery, and observability middlewares applied.
 //
 // The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
 // panic safety (Recoverer), and strict security headers. Optional middlewares

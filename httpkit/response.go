@@ -52,7 +52,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
-// Error fabricates a meticulously structured ErrorResponse dictionary mapped to the corresponding HTTP status code and instantly broadcasts it to the connecting client socket.
+// Error creates an ErrorResponse mapped to the HTTP status code and writes it as JSON to the client.
 // Purpose: Standardizes JSON error messages.
 // Constraints: Status should be a valid HTTP status code.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
@@ -74,7 +74,7 @@ func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
 }
 
-// Created sends a specialized HTTP 201 status code back to the client, semantically indicating that a requested resource was structurally synthesized and stored on the server.
+// Created sends an HTTP 201 status code with the provided data as a JSON payload, indicating resource creation.
 // Purpose: Shorthand for returning successful 201 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.

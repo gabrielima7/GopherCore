@@ -135,7 +135,7 @@ func (g *Group) Go(fn func() error) {
 	}()
 }
 
-// Wait physically arrests the progression of the calling thread, enforcing an impenetrable barrier until every associated worker node has explicitly reported completion to the group registry.
+// Wait blocks the calling goroutine until all spawned workers in the Group have finished execution.
 // Purpose: Acts as a synchronization barrier, waiting for all dispatched goroutines to finish.
 // Constraints: It returns a slice containing all collected errors, including any recovered panics.
 // If no errors occurred, it returns nil.
