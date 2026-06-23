@@ -1,7 +1,6 @@
 package simulation
 
 import (
-
 	"context"
 	"errors"
 	"net/http"
