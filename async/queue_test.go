@@ -174,3 +174,29 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 		return nil
 	})
 }
+
+func TestQueueClientEnqueueNil(t *testing.T) {
+	var c *QueueClient
+	task := asynq.NewTask("test:nil", nil)
+	_, err := c.Enqueue(task)
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
+	}
+
+	c = &QueueClient{client: nil}
+	_, err = c.Enqueue(task)
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
+	}
+
+	_, err = c.EnqueueContext(context.Background(), task)
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
+	}
+
+	var c2 *QueueClient
+	_, err = c2.EnqueueContext(context.Background(), task)
+	if !errors.Is(err, ErrClientNotInitialized) {
+		t.Fatalf("expected ErrClientNotInitialized, got %v", err)
+	}
+}
