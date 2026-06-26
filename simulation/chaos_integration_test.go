@@ -58,7 +58,7 @@ func TestIntegrationChaos(t *testing.T) {
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 
-	const numRequests = 2000
+	const numRequests = 5000
 
 	startCh := make(chan struct{})
 	var wg sync.WaitGroup
