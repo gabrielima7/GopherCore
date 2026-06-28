@@ -177,13 +177,23 @@ func WithRetryIf(fn func(error) bool) Option {
 // Thread-safety: Safe for concurrent execution, maintaining local state loop
 // variables per individual invocation.
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
+	if len(opts) == 0 {
+		return doWithConfig(ctx, fn, defaultConfig())
+	}
+
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if opt != nil {
 			opt(&cfg)
 		}
 	}
+	return doWithConfig(ctx, fn, cfg)
+}
 
+// doWithConfig executes the retry loop using a pre-calculated Config struct.
+// Internal Logic: Keeping cfg as a value parameter prevents it from escaping to the heap
+// when no options are dynamically evaluated.
+func doWithConfig(ctx context.Context, fn func(ctx context.Context) error, cfg Config) error {
 	var lastErr error
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ {
 		// Respect the caller's context lifecycle strictly by intercepting cancellations
@@ -230,13 +240,23 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 // or fails after exhausting all attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state per call.
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {
+	if len(opts) == 0 {
+		return doWithValueWithConfig(ctx, fn, defaultConfig())
+	}
+
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if opt != nil {
 			opt(&cfg)
 		}
 	}
+	return doWithValueWithConfig(ctx, fn, cfg)
+}
 
+// doWithValueWithConfig executes the value-returning retry loop using a pre-calculated Config struct.
+// Internal Logic: Keeping cfg as a value parameter prevents it from escaping to the heap
+// when no options are dynamically evaluated.
+func doWithValueWithConfig[T any](ctx context.Context, fn func(ctx context.Context) (T, error), cfg Config) (T, error) {
 	var (
 		lastErr error
 		zero    T
