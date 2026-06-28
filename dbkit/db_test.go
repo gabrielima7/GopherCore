@@ -215,27 +215,61 @@ func TestMustConnectPanicsOnInvalidDriver(t *testing.T) {
 	MustConnect(context.Background(), "invalid_driver", "invalid_dsn")
 }
 
-func TestHealthCheck(t *testing.T) {
-	db := newTestDB(t)
-	ctx := context.Background()
-
-	err := HealthCheck(ctx, db)
-	if err != nil {
-		t.Fatalf("health check failed: %v", err)
+func TestHealthCheck_TableDriven(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func(t *testing.T) (*sqlx.DB, context.Context, context.CancelFunc)
+		expectErr bool
+	}{
+		{
+			name: "success",
+			setup: func(t *testing.T) (*sqlx.DB, context.Context, context.CancelFunc) {
+				db := newTestDB(t)
+				return db, context.Background(), func() {}
+			},
+			expectErr: false,
+		},
+		{
+			name: "fails after close",
+			setup: func(t *testing.T) (*sqlx.DB, context.Context, context.CancelFunc) {
+				dbPath := filepath.Join(t.TempDir(), "healthcheck_closed.db")
+				db, err := sqlx.Connect("sqlite3", dbPath)
+				if err != nil {
+					t.Fatalf("failed to create db: %v", err)
+				}
+				mustClose(t, db)
+				return db, context.Background(), func() {}
+			},
+			expectErr: true,
+		},
+		{
+			name: "cancelled context",
+			setup: func(t *testing.T) (*sqlx.DB, context.Context, context.CancelFunc) {
+				db := newTestDB(t)
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // Force immediate failure
+				return db, ctx, cancel
+			},
+			expectErr: true,
+		},
 	}
-}
 
-func TestHealthCheckFailsAfterClose(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "healthcheck_closed.db")
-	db, err := sqlx.Connect("sqlite3", dbPath)
-	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
-	}
-	mustClose(t, db) // Close it.
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, ctx, cancel := tt.setup(t)
+			defer cancel()
 
-	err = HealthCheck(context.Background(), db)
-	if err == nil {
-		t.Fatal("expected health check to fail after close")
+			err := HealthCheck(ctx, db)
+			if tt.expectErr {
+				if err == nil {
+					t.Fatal("expected health check to fail")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("health check failed: %v", err)
+				}
+			}
+		})
 	}
 }
 

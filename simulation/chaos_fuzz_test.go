@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/gabrielima7/GopherCore/async"
 	"github.com/gabrielima7/GopherCore/cachekit"
@@ -92,11 +92,11 @@ func FuzzChaos(f *testing.F) {
 					return finalVal, err
 				}, retry.WithMaxAttempts(3), retry.WithInitialDelay(10*time.Millisecond))
 
-                if err == nil {
-                    _ = cache.Set(ctx, key, []byte(res), 5*time.Second)
-                } else {
-                    errs[idx] = err
-                }
+				if err == nil {
+					_ = cache.Set(ctx, key, []byte(res), 5*time.Second)
+				} else {
+					errs[idx] = err
+				}
 			}(i)
 		}
 
