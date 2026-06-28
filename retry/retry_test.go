@@ -238,7 +238,7 @@ func TestDoWithValueRetryIf(t *testing.T) {
 
 func TestWithMaxDelay(t *testing.T) {
 	cfg := defaultConfig()
-	WithMaxDelay(5 * time.Second)(cfg)
+	WithMaxDelay(5 * time.Second)(&cfg)
 	if cfg.MaxDelay != 5*time.Second {
 		t.Fatalf("expected 5s, got %v", cfg.MaxDelay)
 	}
@@ -247,7 +247,7 @@ func TestWithMaxDelay(t *testing.T) {
 func TestWithMaxAttemptsZero(t *testing.T) {
 	cfg := defaultConfig()
 	original := cfg.MaxAttempts
-	WithMaxAttempts(0)(cfg) // zero should be ignored
+	WithMaxAttempts(0)(&cfg) // zero should be ignored
 	if cfg.MaxAttempts != original {
 		t.Fatalf("expected %d (unchanged), got %d", original, cfg.MaxAttempts)
 	}
@@ -256,7 +256,7 @@ func TestWithMaxAttemptsZero(t *testing.T) {
 func TestWithMaxAttemptsNegative(t *testing.T) {
 	cfg := defaultConfig()
 	original := cfg.MaxAttempts
-	WithMaxAttempts(-1)(cfg) // negative should be ignored
+	WithMaxAttempts(-1)(&cfg) // negative should be ignored
 	if cfg.MaxAttempts != original {
 		t.Fatalf("expected %d (unchanged), got %d", original, cfg.MaxAttempts)
 	}
