@@ -95,11 +95,11 @@ type Option func(*Config)
 // Purpose: Generates an internal baseline default configuration for retries.
 // Constraints: Should be considered read-only after being returned unless mutated by functional options.
 // Thread-safety: Returns a new struct pointer, safe across goroutines before sharing.
-func defaultConfig() *Config {
+func defaultConfig() Config {
 	// These default tunings enforce an exponential backoff capped at 10 seconds with full jitter.
 	// This specific combination guarantees that widespread transient failures don't
 	// accidentally synchronize massive waves of retries that could crush external services.
-	return &Config{
+	return Config{
 		MaxAttempts:  3,
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     10 * time.Second,
@@ -180,7 +180,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if opt != nil {
-			opt(cfg)
+			opt(&cfg)
 		}
 	}
 
@@ -204,7 +204,7 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 		}
 
 		if attempt < cfg.MaxAttempts-1 {
-			delay := calculateDelay(cfg, attempt)
+			delay := calculateDelay(&cfg, attempt)
 			// Sleep block multiplexed with the context listener. Ensures that if the context
 			// expires during a long exponential backoff sleep, we awake and return instantly.
 			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with an explicitly instantiated `time.NewTimer(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and immediately stops the timer (`timer.Stop()`), exiting without needlessly leaking memory or tying up thread resources for the remaining 9 seconds.
@@ -233,7 +233,7 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 	cfg := defaultConfig()
 	for _, opt := range opts {
 		if opt != nil {
-			opt(cfg)
+			opt(&cfg)
 		}
 	}
 
@@ -257,7 +257,7 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 		}
 
 		if attempt < cfg.MaxAttempts-1 {
-			delay := calculateDelay(cfg, attempt)
+			delay := calculateDelay(&cfg, attempt)
 			// Yield the goroutine to the runtime scheduler securely while monitoring context.
 			// Internal Logic Deep-Dive: We use a `select` block combining `ctx.Done()` with an explicitly instantiated `time.NewTimer(delay)` so that if a massive exponential backoff initiates (e.g., a 10 second sleep), but the incoming request context is suddenly cancelled by the client after 1 second, the goroutine cleanly wakes up and immediately stops the timer (`timer.Stop()`), exiting without needlessly leaking memory or tying up thread resources for the remaining 9 seconds.
 			timer := time.NewTimer(delay)
