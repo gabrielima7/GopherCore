@@ -625,7 +625,17 @@ func TestDoWithValue_TableDriven(t *testing.T) {
 		expectedCalls int
 	}{
 		{
-			name:        "nil option safety",
+			name:        "no options provided (nil slice)",
+			fn: func(ctx context.Context) (int, error) {
+				return 24, nil
+			},
+			opts:          nil,
+			expectedError: nil,
+			expectedValue: 24,
+			expectedCalls: 1,
+		},
+		{
+			name:        "slice with nil options safety",
 			maxAttempts: 3,
 			fn: func(ctx context.Context) (int, error) {
 				return 42, nil
