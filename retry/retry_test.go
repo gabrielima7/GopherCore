@@ -626,7 +626,6 @@ func TestDoWithValue_TableDriven(t *testing.T) {
 	}{
 		{
 			name:        "no options provided (nil slice)",
-			maxAttempts: 3,
 			fn: func(ctx context.Context) (int, error) {
 				return 24, nil
 			},
