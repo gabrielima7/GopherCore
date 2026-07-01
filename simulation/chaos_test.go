@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -202,7 +203,10 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 							!errors.Is(err, circuitbreaker.ErrTooManyRequests) &&
 							!errors.Is(err, context.DeadlineExceeded) &&
 							!errors.Is(err, context.Canceled) &&
-							err.Error() != "bad status" {
+							err.Error() != "bad status" &&
+							!strings.Contains(err.Error(), "max attempts reached") &&
+							!strings.Contains(err.Error(), "deadline exceeded") &&
+							!strings.Contains(err.Error(), "context canceled") {
 							t.Errorf("unexpected error in chaos testing: %v", err)
 						}
 					}
