@@ -2,6 +2,85 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.4.0] - Chaos Engineering, Concurrency Hardening, Escape Analysis, and Extensive TDT Coverage
+
+This release hardens GopherCore's concurrency model, memory optimization, and test coverage. It implements heap escape analysis fixes to optimize allocations, resolves critical memory/goroutine leaks in active timers and caching structures, and expands the chaos engineering simulation suite with fuzz and integration tests. Additionally, the release refactors several core packages to Table-Driven Test (TDT) patterns to fix global state leakage and achieve 100% GoDoc living documentation compliance.
+
+### 🚀 Additions (Features & Enhancements)
+- **Chaos Engineering & Fuzzing Expansion:** Added robust chaos integration tests (`simulation/chaos_integration_test.go`) and expanded fuzz testing to the `circuitbreaker` and `retry` packages. Added formal verification, chaos fuzzing, and stress amplification (`simulation/chaos_fuzz_test.go`). (PR #123, PR #145, PR #158)
+- **InMemory Cache Unit Tests:** Added `cachekit/redis_error_test.go` to validate error paths and unit tests for cache options. (PR #108)
+- **Otelkit Coverage Improvements:** Improved unit test coverage for `otelkit` package initialization error paths. (PR #108, PR #127)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Escape Analysis and Stack Allocation:** Prevented `retry.Config` from escaping to the heap, implementing a stack-allocation fast-path for zero-option calls to minimize GC pressure. (PR #160)
+- **Timer and Goroutine Leak Fixes:** Fixed a goroutine leak in `InMemoryCache` upon calling `Close()`, and eliminated timer-based memory leaks in the `retry` package and test simulations by explicitly calling `Stop()`. (PR #128, PR #130, PR #132)
+- **Table-Driven Test (TDT) Refactoring:**
+    - Refactored `dbkit` healthcheck tests into Table-Driven Test suites with context cancellation edge-case validation. (PR #159)
+    - Refactored `logkit` tests into TDT suites, resolving global state leakage. (PR #166)
+    - Refactored `jsonutil` tests to include robust table-driven validation for edge cases. (PR #149)
+    - Converted `TestNewRouterWithMetricsPath` to TDT and added empty path validations. (PR #126)
+- **Resilience and Error Assertions:** Resolved panic recovery tests and unhandled defer statements in `grpckit` tests, and enforced strict error handling and assertions in chaos microservice tests. (PR #119, PR #167)
+- **Exhaustive Living Documentation Audit:** Completed a repository-wide docstring audit to ensure 100% GoDoc compliance, adding missing tags, correcting misplaced docstrings, formatting package comments, and updating mathematical state convergence proofs. (PR #113, PR #115, PR #135, PR #137, PR #141, PR #151)
+- **CI/CD Pipeline Hardening:** Bumped `actions/checkout` version to `v7`, updated the project-wide Go version and GOTOOLCHAIN to `1.26.4` to patch standard library vulnerability checks, and updated the Makefile to run multiple fuzz tests sequentially. (PR #110, PR #123, PR #146)
+- **Dependency Upgrades:**
+    - Updated `google.golang.org/grpc` to `v1.82.0`. (PR #165)
+    - Updated `github.com/mattn/go-sqlite3` to `v1.14.46`. (PR #140)
+    - Updated `github.com/prometheus/common` to `v0.69.0`. (PR #138)
+    - Updated `go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp` to `v0.69.0`. (PR #136)
+    - Updated `github.com/redis/go-redis/v9` to `v9.20.1`. (PR #129)
+    - Updated standard libraries `golang.org/x/crypto` and `golang.org/x/net`. (PR #131)
+    - Updated `github.com/jackc/pgx/v5` and `golang.org/x/exp`. (PR #157)
+    - Consolidated multiple project-wide dependency upgrades. (PR #114, PR #150, PR #162)
+
+### 🗑️ Exclusions (Deprecations & Removals)
+- **Relocation of Proofs:** Deleted `FORMAL_PROOF.md` from the root directory and relocated it to `simulation/FORMAL_PROOF.md` to keep verification files organized in the simulation package. (PR #145, PR #147)
+
+### 📦 Pull Requests
+- **PR #167:** fix(simulation): enforce strict error handling in chaos microservice tests.
+- **PR #166:** test(logkit): refactor tests into Table-Driven Test suites and fix global state leakage.
+- **PR #165:** chore: update google.golang.org/grpc to v1.82.0.
+- **PR #164:** Systemic Chaos & SDET Validation (No flaws found).
+- **PR #163:** test(retry): add coverage for empty option slice in DoWithValue.
+- **PR #162:** build(deps): update multiple indirect dependencies.
+- **PR #160:** refactor: eliminate heap allocation for retry.Config.
+- **PR #159:** test(dbkit): refactor HealthCheck tests into TDT and add context cancellation edge case.
+- **PR #158:** test: chaos engineering fuzz expansion and formal proof metrics.
+- **PR #157:** build(deps): update pgx/v5 and x/exp dependencies.
+- **PR #152:** test(async): improve coverage for QueueClient uninitialized methods.
+- **PR #151:** docs: exhaustive project-wide docstring synchronization and formatting.
+- **PR #147:** feat: harden concurrency and update formal proofs.
+- **PR #146:** chore(deps): bump actions/checkout from 4 to 7.
+- **PR #145:** test: add chaos integration test and update formal proof.
+- **PR #144:** build(deps): update indirect dependencies golang.org/x/tools and golang.org/x/exp.
+- **PR #141:** docs: Ensure 100% GoDoc Compliance and Fix Package Comments.
+- **PR #140:** chore(deps): bump github.com/mattn/go-sqlite3 from 1.14.45 to 1.14.46 in the go-minor-patch group.
+- **PR #139:** Improve edge case coverage in async package.
+- **PR #138:** Update github.com/prometheus/common to v0.69.0.
+- **PR #137:** docs: exhaustive documentation synchronization for gophercore.
+- **PR #136:** build(deps): bump github.com/felixge/httpsnoop to v1.1.0.
+- **PR #135:** docs: add escape analysis and mathematical state convergence proofs.
+- **PR #133:** test(httpkit): assert slog warning on JSON write failure.
+- **PR #132:** fix(testing): eliminate timer-based memory leaks in test simulations.
+- **PR #131:** build(deps): bump golang.org/x/crypto and golang.org/x/net.
+- **PR #130:** fix: prevent memory leaks by explicitly stopping timers in retry block.
+- **PR #129:** chore(deps): bump github.com/redis/go-redis/v9 from 9.20.0 to 9.20.1 in the go-minor-patch group.
+- **PR #128:** Fix goroutine leak in InMemoryCache Close.
+- **PR #127:** test: improve otelkit coverage to 100% by testing initialization error paths.
+- **PR #126:** merge: test empty metrics path.
+- **PR #125:** merge: update sqlite3 dep consolidated.
+- **PR #124:** merge: doc deep dives.
+- **PR #123:** merge: apply chaos fuzz tests cleaned.
+- **PR #119:** merge: resolve panic recovery test and defers.
+- **PR #116:** chore(deps): update github.com/prometheus/common to v0.68.0.
+- **PR #115:** docs: execute exhaustive living documentation audit across project.
+- **PR #114:** build(deps): update validator and mysql dependencies.
+- **PR #113:** docs: synchronize living documentation with code.
+- **PR #112:** test: merge and consolidate PR #112 coverage improvements for httpkit and otelkit.
+- **PR #110:** chore(deps): bump the go-minor-patch group with 7 updates.
+- **PR #108:** test: improve unit test coverage in cachekit and otelkit.
+
+---
+
 ## [v0.3.5] - OpenTelemetry, Distributed Cache, Background Jobs, and Active Context Severing
 
 This release introduces enterprise-readiness integrations including global OpenTelemetry distributed tracing and Prometheus metrics, a new unified caching package (`cachekit`) with Redis and in-memory backends, and an `asynq` background job queue with structured panic recovery. Additionally, it hardens resilience with proactive context-severing checks across all HTTP/gRPC middleware, refactors chaos simulations to Table-Driven Test (TDT) patterns, and applies exhaustive internal logic documentation deep-dives across all core packages.
