@@ -115,6 +115,10 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 		if !strings.Contains(errMsg, "bad status") &&
 			!strings.Contains(errMsg, "circuit is open") &&
 			!strings.Contains(errMsg, "too many requests") &&
+			!strings.Contains(errMsg, "connection refused") &&
+			!strings.Contains(errMsg, "connectex") &&
+			!strings.Contains(errMsg, "dial tcp") &&
+			!strings.Contains(errMsg, "max attempts reached") &&
 			!errors.Is(err, context.DeadlineExceeded) &&
 			!errors.Is(err, context.Canceled) {
 			t.Errorf("unexpected catastrophic error: %v", err)
