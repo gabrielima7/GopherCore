@@ -405,6 +405,24 @@ func TestMiddleware_TableDriven(t *testing.T) {
 		if rr2.Header().Get("Retry-After") != "1" {
 			t.Errorf("expected Retry-After: 1, got %q", rr2.Header().Get("Retry-After"))
 		}
+
+		// Third request to /metrics (bypasses limiter even though token bucket is exhausted)
+		req3 := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+		rr3 := httptest.NewRecorder()
+		handler.ServeHTTP(rr3, req3)
+		if rr3.Code != http.StatusOK {
+			t.Errorf("expected /metrics request to be OK (bypassed), got %d", rr3.Code)
+		}
+	})
+
+	t.Run("RateLimitMiddleware Nil Limiter", func(t *testing.T) {
+		handler := RateLimitMiddleware(nil)(dummyHandler)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected OK status for nil limiter, got %d", rr.Code)
+		}
 	})
 
 	t.Run("ContextCancellation", func(t *testing.T) {
