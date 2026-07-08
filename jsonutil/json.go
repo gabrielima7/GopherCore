@@ -16,7 +16,6 @@ import (
 // for significantly improved encoding performance.
 // Constraints: Can fail if standard data structures are not encodable.
 // Thread-safety: Completely stateless and safe for concurrent use across multiple goroutines.
-// Internal Logic Deep-Dive: By directly wrapping `github.com/goccy/go-json`, we gain a 2x-4x throughput improvement over standard library JSON encoding. We explicitly hide this implementation detail so we can swap underlying JSON engines seamlessly in the future without breaking user contracts.
 func Marshal(v any) ([]byte, error) {
 	return gojson.Marshal(v)
 }

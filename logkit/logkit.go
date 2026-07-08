@@ -16,7 +16,6 @@ import (
 // Purpose: Dictates logging levels and destinations.
 // Constraints: Initialized indirectly via options.
 // Thread-safety: Mutative during setup, read-only afterwards.
-// Internal Logic Deep-Dive: The `Config` struct enforces absolute boundaries for the application's logging volume. Passing a zero-value logger could flood system outputs, so we deliberately intercept zero states during initialization to enforce a baseline `Info` log level.
 type Config struct {
 	// Level configures the minimum severity threshold for emitting log records.
 	// Purpose: Establishes the noise threshold (e.g., Info vs Debug).

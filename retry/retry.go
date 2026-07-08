@@ -51,7 +51,6 @@ const (
 // Purpose: Parameterizes retry loops.
 // Constraints: Must be populated with sensible bounds.
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
-// Internal Logic Deep-Dive: To avoid heap escapes on high-frequency retry loops, we strictly return the base configuration by value. This pairs with variadic functional options to afford maximum flexibility without compromising zero-allocation guarantees.
 type Config struct {
 	// MaxAttempts limits the total number of execution iterations before completely failing.
 	// Purpose: Provides a hard upper bound on retry loops.

@@ -234,7 +234,6 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 // Purpose: Quickly bootstraps a production-ready HTTP router.
 // Constraints: Expects valid setup parameters.
 // Thread-safety: Safely initializes global middlewares for concurrent request processing.
-// Internal Logic Deep-Dive: We wrap `chi.Mux` within our own routing abstraction to firmly control the routing perimeter. This prevents downstream developers from accidentally exposing insecure handlers or bypassing our global security middleware chain, ensuring all traffic funnels through our validated authentication pipeline.
 func NewRouter(opts ...RouterOption) *chi.Mux {
 	cfg := parseOptions(opts...)
 

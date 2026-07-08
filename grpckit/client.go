@@ -184,7 +184,6 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 // out or if the transport credentials cannot be applied.
 // Thread-safety: Construction is synchronous. The returned *grpc.ClientConn is
 // safe for concurrent use across goroutines.
-// Internal Logic Deep-Dive: Instantiating the gRPC client binds standard telemetry and resilience interceptors by default. We proactively inject OpenTelemetry interceptors so distributed traces seamlessly cross microservice boundaries without requiring manual context propagation by developers.
 func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	cfg := parseClientOptions(opts...)
 

@@ -17,7 +17,6 @@ import (
 // Purpose: Dictates the connection pool boundaries and driver settings.
 // Constraints: Passed to connection handlers, typically not manually constructed.
 // Thread-safety: Safely read-only post instantiation.
-// Internal Logic Deep-Dive: `Config` specifies the connection pooling limits. We explicitly expose connection bounds instead of letting them default to zero, because unlimited concurrent connections on heavy traffic bursts will catastrophically exhaust downstream database memory and trigger out-of-memory crashes on the database server.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
 	// Purpose: Specifies which underlying driver sqlx should initialize.

@@ -37,7 +37,6 @@ type ErrorResponse struct {
 // Purpose: Simplifies sending structured JSON to clients securely.
 // Constraints: The data payload must be serializable to JSON.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
-// Internal Logic Deep-Dive: We use a custom, highly optimized JSON marshaler instead of the standard library to drastically reduce CPU overhead during heavy payload serialization. The forced hardcoded 500 error fallback acts as an absolute safety net, guaranteeing the client receives a valid HTTP response even if the primary payload fails to encode.
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {

@@ -13,7 +13,6 @@ import "fmt"
 // Constraints: Cannot be mutated after instantiation.
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
 // the type is entirely immutable by design after creation.
-// Internal Logic Deep-Dive: The struct explicitly uses a boolean `ok` field alongside the `value` and `err` fields to cleanly distinguish between a genuinely nil successful value and a zero-state initialization, ensuring airtight pattern matching downstream.
 type Result[T any] struct {
 	value T
 	err   error
