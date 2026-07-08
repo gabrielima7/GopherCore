@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -143,4 +144,14 @@ func TestIntegrationChaos(t *testing.T) {
 
 	// Verify we handled errors gracefully (some are expected due to intentional cancellations and failures)
 	// The main goal is no race conditions or deadlocks.
+	for _, err := range errs {
+		if err != nil &&
+			err.Error() != "bad status" &&
+			err.Error() != "circuitbreaker: circuit is open" &&
+			!errors.Is(err, context.DeadlineExceeded) &&
+			!errors.Is(err, context.Canceled) &&
+			!strings.Contains(err.Error(), "max attempts reached") {
+			t.Errorf("unexpected error in chaos integration test: %v", err)
+		}
+	}
 }
