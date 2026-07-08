@@ -395,7 +395,14 @@ func TestConnect_TableDriven(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "nil option safety",
+			name:      "no options provided",
+			driver:    "sqlite3",
+			dsn:       dbPath,
+			opts:      nil,
+			expectErr: false,
+		},
+		{
+			name:      "slice with nil options safety",
 			driver:    "sqlite3",
 			dsn:       dbPath,
 			opts:      []Option{nil, WithMaxOpenConns(5), nil},
@@ -466,9 +473,17 @@ func TestMustConnect_TableDriven(t *testing.T) {
 		panicMsg    string
 	}{
 		{
-			name:        "valid connection",
+			name:        "no options provided",
 			driver:      "sqlite3",
 			dsn:         dbPath,
+			opts:        nil,
+			expectPanic: false,
+		},
+		{
+			name:        "slice with nil options safety",
+			driver:      "sqlite3",
+			dsn:         dbPath,
+			opts:        []Option{nil, WithMaxOpenConns(5), nil},
 			expectPanic: false,
 		},
 		{
