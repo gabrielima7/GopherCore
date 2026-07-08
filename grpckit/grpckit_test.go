@@ -102,12 +102,23 @@ func (errorService) EmptyCall(_ context.Context, _ *grpc_testing.Empty) (*grpc_t
 // Server option tests
 // ─────────────────────────────────────────────────────────────────────────────
 
-func TestNewServer_DefaultOptions(t *testing.T) {
-	srv := NewServer()
-	if srv == nil {
-		t.Fatal("expected non-nil *grpc.Server")
+func TestNewServer_TableDriven(t *testing.T) {
+	tests := []struct {
+		name string
+		opts []ServerOption
+	}{
+		{"no options provided", nil},
+		{"slice with nil options safety", []ServerOption{nil, WithServerLogger(silentLogger()), nil}},
 	}
-	srv.Stop()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := NewServer(tt.opts...)
+			if srv == nil {
+				t.Fatal("expected non-nil *grpc.Server")
+			}
+			srv.Stop()
+		})
+	}
 }
 
 func TestNewServer_WithNilOption(t *testing.T) {
@@ -176,6 +187,31 @@ func TestWithStreamInterceptors_NilSkipped(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Client option tests
 // ─────────────────────────────────────────────────────────────────────────────
+
+func TestNewClient_TableDriven(t *testing.T) {
+	tests := []struct {
+		name string
+		opts []ClientOption
+	}{
+		{"no options provided", nil},
+		{"slice with nil options safety", []ClientOption{nil, WithDialTimeout(200 * time.Millisecond), nil}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// grpc.DialContext is non-blocking by default. A successful non-blocking dial
+			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,
+			// or if we wait until the timeout. We just assert the constructor doesn't panic
+			// and returns successfully (since it's non-blocking).
+			conn, err := NewClient("127.0.0.1:1", tt.opts...)
+			if err != nil {
+				t.Fatalf("expected nil error for non-blocking dial, got %v", err)
+			}
+			if conn != nil {
+				conn.Close()
+			}
+		})
+	}
+}
 
 func TestNewClient_InvalidTarget(t *testing.T) {
 	// Dial to a port that nothing listens on should fail within the timeout.

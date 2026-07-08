@@ -49,10 +49,21 @@ func TestNewRouter(t *testing.T) {
 	}
 }
 
-func TestNewRouterDefaultConfig(t *testing.T) {
-	r := NewRouter()
-	if r == nil {
-		t.Fatal("expected non-nil router")
+func TestNewRouter_TableDriven(t *testing.T) {
+	tests := []struct {
+		name string
+		opts []RouterOption
+	}{
+		{"no options provided", nil},
+		{"slice with nil options safety", []RouterOption{nil, WithLogger(false), nil}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(tt.opts...)
+			if r == nil {
+				t.Fatal("expected non-nil router")
+			}
+		})
 	}
 }
 
@@ -198,6 +209,25 @@ func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
 	)
 	if r == nil {
 		t.Fatal("expected non-nil router")
+	}
+}
+
+func TestNewServer_TableDriven(t *testing.T) {
+	tests := []struct {
+		name string
+		opts []RouterOption
+	}{
+		{"no options provided", nil},
+		{"slice with nil options safety", []RouterOption{nil, WithReadTimeout(5 * time.Second), nil}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := NewRouter(WithLogger(false))
+			srv := NewServer(":8080", r, tt.opts...)
+			if srv.Addr != ":8080" {
+				t.Fatalf("expected :8080, got %s", srv.Addr)
+			}
+		})
 	}
 }
 
