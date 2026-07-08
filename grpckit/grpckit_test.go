@@ -202,9 +202,12 @@ func TestNewClient_TableDriven(t *testing.T) {
 			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,
 			// or if we wait until the timeout. We just assert the constructor doesn't panic
 			// and returns successfully (since it's non-blocking).
-			_, err := NewClient("127.0.0.1:1", tt.opts...)
+			conn, err := NewClient("127.0.0.1:1", tt.opts...)
 			if err != nil {
 				t.Fatalf("expected nil error for non-blocking dial, got %v", err)
+			}
+			if conn != nil {
+				conn.Close()
 			}
 		})
 	}
