@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -20,6 +19,8 @@ import (
 	"github.com/gabrielima7/GopherCore/retry"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+var errBadStatus = errors.New("bad status")
 
 func TestIntegrationChaos(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "integration_chaos.db")
@@ -108,7 +109,7 @@ func TestIntegrationChaos(t *testing.T) {
 					defer resp.Body.Close()
 
 					if resp.StatusCode != http.StatusOK {
-						return errors.New("bad status")
+						return errBadStatus
 					}
 
 					finalVal = "success"
@@ -145,13 +146,33 @@ func TestIntegrationChaos(t *testing.T) {
 	// Verify we handled errors gracefully (some are expected due to intentional cancellations and failures)
 	// The main goal is no race conditions or deadlocks.
 	for _, err := range errs {
-		if err != nil &&
-			err.Error() != "bad status" &&
-			err.Error() != "circuitbreaker: circuit is open" &&
-			!errors.Is(err, context.DeadlineExceeded) &&
-			!errors.Is(err, context.Canceled) &&
-			!strings.Contains(err.Error(), "max attempts reached") {
+		if err != nil && !isExpectedError(err) {
 			t.Errorf("unexpected error in chaos integration test: %v", err)
 		}
 	}
+}
+
+func isExpectedError(err error) bool {
+	if err == nil {
+		return true
+	}
+	// Unwrap joined errors if any (from errors.Join)
+	if uw, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, e := range uw.Unwrap() {
+			if !isExpectedError(e) {
+				return false
+			}
+		}
+		return true
+	}
+	// Check individual error
+	if errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, circuitbreaker.ErrCircuitOpen) ||
+		errors.Is(err, circuitbreaker.ErrTooManyRequests) ||
+		errors.Is(err, retry.ErrMaxAttemptsReached) ||
+		errors.Is(err, errBadStatus) {
+		return true
+	}
+	return false
 }
