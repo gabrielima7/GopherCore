@@ -90,6 +90,7 @@ func (ve ValidationErrors) Error() string {
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely
 // thread-safe for concurrent use.
+// Internal Logic Deep-Dive: We use a cached, thread-safe validator instance to avoid the massive performance penalty of re-instantiating the validation engine for every request. By extracting the raw field faults and normalizing them into a custom `ValidationErrors` slice, we decouple our public API from the third-party `go-playground/validator` library.
 func Validate(s any) error {
 	err := validate.Struct(s)
 	// Fast path: if the payload fully complies, avoid further reflection or allocations.

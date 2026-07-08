@@ -37,6 +37,7 @@ var validate = validator.New()
 //   - `env:"NAME"`: Binds the struct field to the environment variable NAME.
 //   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
 //   - `validate:"rule"`: Applies standard go-playground validation rules.
+// Internal Logic Deep-Dive: This core function leverages reflection heavily to traverse structs and bind environment variables dynamically. While reflection carries a runtime cost, we deliberately limit its use to the application bootstrap phase, ensuring zero performance penalty during steady-state execution.
 func Load(cfg any) error {
 	// Dynamically introspect the target struct and enforce it is a valid pointer.
 	// This is required to ensure we can assign values back to the original fields.

@@ -16,9 +16,10 @@ import (
 // Purpose: Dictates logging levels and destinations.
 // Constraints: Initialized indirectly via options.
 // Thread-safety: Mutative during setup, read-only afterwards.
+// Internal Logic Deep-Dive: The `Config` struct enforces absolute boundaries for the application's logging volume. Passing a zero-value logger could flood system outputs, so we deliberately intercept zero states during initialization to enforce a baseline `Info` log level.
 type Config struct {
-	// Level determines the minimum severity threshold for emitting log records.
-	// Purpose: Sets the noise threshold (e.g., Info vs Debug).
+	// Level configures the minimum severity threshold for emitting log records.
+	// Purpose: Establishes the noise threshold (e.g., Info vs Debug).
 	// Constraints: Must be a valid slog.Level.
 	// Thread-safety: Read-only during execution.
 	Level slog.Level
@@ -35,7 +36,7 @@ type Config struct {
 // Thread-safety: Safe when used sequentially during initialization.
 type Option func(*Config)
 
-// WithLevel sets the minimum severity threshold for emitting log records.
+// WithLevel establishes the minimum severity threshold for emitting log records.
 // Purpose: Configure log verbosity.
 // Constraints: Rejects logs that don't pass the check.
 // Thread-safety: Synchronous struct mutation.

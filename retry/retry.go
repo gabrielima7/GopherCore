@@ -51,6 +51,7 @@ const (
 // Purpose: Parameterizes retry loops.
 // Constraints: Must be populated with sensible bounds.
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
+// Internal Logic Deep-Dive: To avoid heap escapes on high-frequency retry loops, we strictly return the base configuration by value. This pairs with variadic functional options to afford maximum flexibility without compromising zero-allocation guarantees.
 type Config struct {
 	// MaxAttempts limits the total number of execution iterations before completely failing.
 	// Purpose: Provides a hard upper bound on retry loops.
@@ -234,9 +235,9 @@ func doWithConfig(ctx context.Context, fn func(ctx context.Context) error, cfg C
 	return errors.Join(ErrMaxAttemptsReached, lastErr)
 }
 
-// DoWithValue protects an opaque code segment demanding a concrete return payload in a highly fault-tolerant protective layer, actively resolving intermittent disruptions until retrieving valid data safely.
+// DoWithValue encapsulates an opaque code segment demanding a concrete return payload in a highly fault-tolerant protective layer, actively resolving intermittent disruptions until retrieving valid data safely.
 // Purpose: Safely wrap fallible pure computations or fetches in a resilient loop.
-// Constraints: It repeatedly executes fn until it succeeds and returns the result,
+// Constraints: It repeatedly executes fn until it succeeds and provides the result,
 // or fails after exhausting all attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state per call.
 func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, error), opts ...Option) (T, error) {

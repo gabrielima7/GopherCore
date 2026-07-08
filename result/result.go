@@ -13,6 +13,7 @@ import "fmt"
 // Constraints: Cannot be mutated after instantiation.
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
 // the type is entirely immutable by design after creation.
+// Internal Logic Deep-Dive: The struct explicitly uses a boolean `ok` field alongside the `value` and `err` fields to cleanly distinguish between a genuinely nil successful value and a zero-state initialization, ensuring airtight pattern matching downstream.
 type Result[T any] struct {
 	value T
 	err   error
@@ -71,7 +72,7 @@ func (r Result[T]) IsErr() bool {
 	return !r.ok
 }
 
-// Unwrap returns the underlying value and error, bridging the Result type back to idiomatic Go error handling.
+// Unwrap extracts the underlying value and error, bridging the Result type back to idiomatic Go error handling.
 // Purpose: This allows the Result container to be bridged back into standard, idiomatic
 // Go error handling logic (value, err).
 // Constraints: Assumes the consumer will handle the returned error appropriately.
@@ -80,10 +81,10 @@ func (r Result[T]) Unwrap() (T, error) {
 	return r.value, r.err
 }
 
-// UnwrapOr forces a guaranteed resolution by extracting the legitimate success value if present, or forcibly pivoting to the provided static fallback object if an error was captured.
+// UnwrapOr executes a guaranteed resolution by extracting the legitimate success value if present, or forcibly pivoting to the provided static fallback object if an error was captured.
 // Purpose: Retrieve the value while providing a default on failure.
 // Constraints: If the Result encapsulates an error, it ignores the error and
-// immediately returns the explicitly provided fallback value instead.
+// immediately provides the explicitly provided fallback value instead.
 // Thread-safety: Read-only mapping.
 func (r Result[T]) UnwrapOr(fallback T) T {
 	if r.ok {

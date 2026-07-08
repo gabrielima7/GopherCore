@@ -61,7 +61,7 @@ func defaultServerConfig() serverConfig {
 // Thread-safety: Safe when used sequentially during initialization.
 type ServerOption func(*serverConfig)
 
-// WithServerAddress sets the TCP address on which the gRPC server will accept
+// WithServerAddress establishes the TCP address on which the gRPC server will accept
 // connections (e.g. ":50051" or "0.0.0.0:8080").
 // Purpose: Overrides the default listen address ":50051".
 // Constraints: The address must be a valid TCP host:port string. An empty value

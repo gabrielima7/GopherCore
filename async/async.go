@@ -155,10 +155,10 @@ func (g *Group) Wait() []error {
 	return g.errs
 }
 
-// Map disperses identical transformation logic against a massive collection of entities in parallel, leveraging a semaphore to strictly throttle total active throughput down to an exact ceiling value.
+// Map executes identical transformation logic against a massive collection of entities in parallel, leveraging a semaphore to strictly throttle total active throughput down to an exact ceiling value.
 // Purpose: Efficiently apply a mapping function to a slice with controlled concurrent execution.
 // Constraints: It respects context cancellation, immediately halting further processing if
-// the context is canceled, returning ctx.Err(). It returns the mapped results in the exact
+// the context is canceled, returning ctx.Err(). It provides the mapped results in the exact
 // same order as the input items, or the first encountered error (including context cancellation).
 // Thread-safety: It uses a buffered channel as a counting semaphore to restrict the number of
 // concurrently active goroutines. Panics within workers are gracefully recovered.

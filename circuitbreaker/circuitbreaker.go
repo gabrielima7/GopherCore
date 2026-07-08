@@ -78,6 +78,7 @@ func (s State) String() string {
 // Purpose: Defines operational limits like timeout and failure thresholds.
 // Constraints: All numeric fields must be strictly positive or will be set to defaults.
 // Thread-safety: Treat as read-only once passed to the Breaker constructor.
+// Internal Logic Deep-Dive: The `Config` struct is returned by value from constructors to prevent it from escaping to the heap, which is an explicit optimization choice to reduce garbage collection overhead on hot-path initializations.
 type Config struct {
 	// FailureThreshold is the number of consecutive failures before
 	// the circuit breaker transitions from Closed to Open.
