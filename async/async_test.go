@@ -639,3 +639,38 @@ func TestMapWorkerReturnsContextCanceledWithActiveContext(t *testing.T) {
 		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
 	}
 }
+
+func TestMapContextCancellationDuringSemaphoreWait(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Use a channel to coordinate the test. We want the first worker to start
+	// and hold the semaphore, and the second worker to block on the semaphore.
+	workerStarted := make(chan struct{})
+
+	items := []int{1, 2}
+
+	go func() {
+		// Wait until the first worker has started and grabbed the semaphore.
+		<-workerStarted
+		// Yield slightly to ensure the second loop iteration hits the select block
+		// and blocks on the semaphore rather than the fast-path ctx.Err().
+		time.Sleep(10 * time.Millisecond)
+		// Cancel the context to unblock the second worker's select statement.
+		cancel()
+	}()
+
+	results, err := Map(ctx, items, 1, func(c context.Context, n int) (int, error) {
+		if n == 1 {
+			close(workerStarted)
+			// Block until context is cancelled to hold the semaphore.
+			<-c.Done()
+			return 0, c.Err()
+		}
+		return n, nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
+	}
+}
