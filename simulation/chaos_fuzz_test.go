@@ -40,9 +40,10 @@ func FuzzChaos(f *testing.F) {
 
 	f.Add(100)
 	f.Fuzz(func(t *testing.T, numRequests int) {
-		if numRequests <= 0 || numRequests > 2000 {
-			t.Skip()
+		if numRequests < 0 {
+			numRequests = ^numRequests
 		}
+		numRequests = (numRequests % 2000) + 1
 
 		startCh := make(chan struct{})
 		var wg sync.WaitGroup
