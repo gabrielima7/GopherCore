@@ -207,7 +207,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 				t.Fatalf("expected nil error for non-blocking dial, got %v", err)
 			}
 			if conn != nil {
-				conn.Close()
+				_ = conn.Close()
 			}
 		})
 	}
