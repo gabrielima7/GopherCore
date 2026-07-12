@@ -3,6 +3,7 @@ package grpckit
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ func TestClientOptions(t *testing.T) {
 	streamInt := func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		return streamer(ctx, desc, cc, method, opts...)
 	}
-	rawDialOpt := grpc.WithBlock()
+	rawDialOpt := grpc.WithAuthority("test")
 
 	tests := []struct {
 		name     string
@@ -128,18 +129,26 @@ func TestClientOptions(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	// Test pure option configurations without network dependencies by using an explicitly invalid target.
-	// As per instructions, avoid invoking the actual dialer with a real target if we only want to test options.
-	// grpc.DialContext parses the target and can fail fast if it's completely invalid.
-
-	conn, err := NewClient("127.0.0.1:1", WithDialTimeout(10*time.Millisecond))
-
-	// Since we are not passing grpc.WithBlock(), the Dial might succeed in creating the ClientConn
-	// even if the target is unreachable (it connects in the background).
+	// Happy path: start a local gRPC server on an ephemeral port to provide a real target for the dialer.
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("unexpected error creating client: %v", err)
+		t.Fatalf("failed to listen: %v", err)
+	}
+
+	srv := grpc.NewServer()
+	go func() {
+		_ = srv.Serve(lis)
+	}()
+	defer srv.Stop()
+
+	// Connect to the real local server using insecure transport and a custom user agent option.
+	conn, err := NewClient(lis.Addr().String(), WithDialTimeout(2*time.Second), WithInsecure(), WithRawDialOptions(grpc.WithAuthority("test")))
+	if err != nil {
+		t.Fatalf("expected successful connection, got error: %v", err)
 	}
 	defer conn.Close()
 
-	// A basic test just to ensure NewClient executes the option parsing and returns a client
+	if conn == nil {
+		t.Fatal("expected non-nil connection object")
+	}
 }
