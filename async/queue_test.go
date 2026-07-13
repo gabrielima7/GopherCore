@@ -209,3 +209,39 @@ func TestQueueClientUninitializedMethods(t *testing.T) {
 		})
 	}
 }
+
+func TestQueueClientEnqueueOptions(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
+	client := NewQueueClient(redisOpt)
+	defer client.Close()
+
+	ctx := context.Background()
+	task := asynq.NewTask("test:options", nil)
+
+	tests := []struct {
+		name string
+		opts []asynq.Option
+	}{
+		{"no options provided", nil},
+		{"slice with nil options safety", []asynq.Option{nil, asynq.MaxRetry(3), nil}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.Enqueue(task, tt.opts...)
+			if err != nil {
+				t.Fatalf("Enqueue expected nil error, got: %v", err)
+			}
+			_, err = client.EnqueueContext(ctx, task, tt.opts...)
+			if err != nil {
+				t.Fatalf("EnqueueContext expected nil error, got: %v", err)
+			}
+		})
+	}
+}
