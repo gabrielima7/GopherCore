@@ -30,16 +30,15 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(499) // 499 Client Closed Request
 			return
 		}
-		// Assigning directly to the Header map bypasses the default key canonicalization
-		// overhead of Set(), reducing CPU allocation micro-overheads per request.
-		h := w.Header()
-		h["Strict-Transport-Security"] = []string{"max-age=63072000; includeSubDomains; preload"}
-		h["X-Content-Type-Options"] = []string{"nosniff"}
-		h["X-Frame-Options"] = []string{"DENY"}
-		h["Referrer-Policy"] = []string{"strict-origin-when-cross-origin"}
-		h["Permissions-Policy"] = []string{"camera=(), microphone=(), geolocation=()"}
-		h["X-Xss-Protection"] = []string{"1; mode=block"}
-		h["Content-Security-Policy"] = []string{"default-src 'self'"}
+		// Using Set ensures canonicalization
+
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		w.Header().Set("X-Xss-Protection", "1; mode=block")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -84,8 +83,7 @@ func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 			// providing a static Retry-After header, we mitigate CPU exhaustion attacks
 			// securely without executing downstream routing or serialization logic.
 			if !limiter.Allow() {
-				h := w.Header()
-				h["Retry-After"] = []string{"1"}
+				w.Header().Set("Retry-After", "1")
 				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 				return
 			}
@@ -126,22 +124,21 @@ func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) fun
 			origin := r.Header.Get("Origin")
 
 			if origin != "" && (allowAll || originsSet[origin]) {
-				// We assign directly to the header map structure rather than using w.Header().Set()
-				// to avoid lock overhead, since we know these keys are unique and non-colliding here.
-				h := w.Header()
+				// We use w.Header().Set() for canonicalization
+
 				if allowAll {
-					h["Access-Control-Allow-Origin"] = []string{"*"}
+					w.Header().Set("Access-Control-Allow-Origin", "*")
 					// Note: Setting Allow-Credentials with a wildcard origin is explicitly forbidden
 					// by browser security models, so it is strictly omitted here.
 				} else {
-					h["Access-Control-Allow-Origin"] = []string{origin}
-					h["Access-Control-Allow-Credentials"] = []string{"true"}
-					h["Vary"] = []string{"Origin"}
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+					w.Header().Set("Vary", "Origin")
 				}
-				h["Access-Control-Allow-Methods"] = []string{methodsStr}
-				h["Access-Control-Allow-Headers"] = []string{headersStr}
+				w.Header().Set("Access-Control-Allow-Methods", methodsStr)
+				w.Header().Set("Access-Control-Allow-Headers", headersStr)
 				// Cache the preflight response in the browser for 24 hours to reduce OPTIONS traffic.
-				h["Access-Control-Max-Age"] = []string{"86400"}
+				w.Header().Set("Access-Control-Max-Age", "86400")
 			}
 
 			// Preflight requests (OPTIONS) shouldn't reach the actual API handlers. Break the chain.
