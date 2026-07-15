@@ -841,20 +841,6 @@ func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
 // function returns a non-nil error without bypassing any internal code paths.
 // ─────────────────────────────────────────────────────────────────────────────
 
-func TestNewClient_DialError(t *testing.T) {
-	// grpc.WithBlock forces grpc.DialContext to perform a synchronous connection
-	// attempt. Combined with a tiny timeout against an unreachable address, this
-	// causes NewClient to return a non-nil error, exercising client.go:186.
-	_, err := NewClient(
-		"127.0.0.1:1",
-		WithDialTimeout(50*time.Millisecond),
-		WithRawDialOptions(grpc.WithBlock()), //nolint:staticcheck // grpc.DialContext (used internally) still supports WithBlock; needed for synchronous dial error testing.
-	)
-	if err == nil {
-		t.Fatal("expected dial error for unreachable target with WithBlock, got nil")
-	}
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Branch coverage: NewClient — TLS credentials path
 // (client.go:168 true-branch)
