@@ -53,7 +53,7 @@ func TestIntegrationChaos(t *testing.T) {
 	})
 
 	srv := httptest.NewServer(router)
-	defer func() { _ = srv.Close() }()
+	defer srv.Close()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
@@ -106,7 +106,7 @@ func TestIntegrationChaos(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					defer func() { _ = resp.Body.Close() }()
+					defer resp.Body.Close()
 
 					if resp.StatusCode != http.StatusOK {
 						return errBadStatus

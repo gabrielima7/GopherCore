@@ -31,7 +31,7 @@ func FuzzChaos(f *testing.F) {
 		httpkit.JSON(w, http.StatusOK, map[string]string{"status": "ok", "id": id})
 	})
 	srv := httptest.NewServer(router)
-	defer func() { _ = srv.Close() }()
+	defer srv.Close()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
@@ -83,7 +83,7 @@ func FuzzChaos(f *testing.F) {
 						if err != nil {
 							return err
 						}
-						defer func() { _ = resp.Body.Close() }()
+						defer resp.Body.Close()
 						if resp.StatusCode != http.StatusOK {
 							return errors.New("bad status")
 						}

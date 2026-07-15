@@ -29,7 +29,7 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 		httpkit.JSON(w, http.StatusOK, map[string]string{"status": "success"})
 	})
 	srv := httptest.NewServer(router)
-	defer func() { _ = srv.Close() }()
+	defer srv.Close()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
@@ -70,7 +70,7 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 					if doErr != nil {
 						return doErr
 					}
-					defer func() { _ = resp.Body.Close() }()
+					defer resp.Body.Close()
 
 					if resp.StatusCode != http.StatusOK {
 						return errors.New("bad status")
