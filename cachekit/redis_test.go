@@ -22,7 +22,7 @@ func TestRedisCache(t *testing.T) {
 	client := redis.NewClient(&redis.Options{
 		Addr: mr.Addr(),
 	})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	cache := cachekit.NewRedisCache(client)
 	ctx := context.Background()

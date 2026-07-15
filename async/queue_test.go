@@ -20,7 +20,7 @@ func TestQueueLifecycle(t *testing.T) {
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	srv := NewQueueServer(redisOpt, asynq.Config{
 		Concurrency: 1,
@@ -68,7 +68,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	srv := NewQueueServer(redisOpt, asynq.Config{
 		Concurrency: 1,
@@ -122,7 +122,7 @@ func TestQueueClientEnqueueContext(t *testing.T) {
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // instantly cancel to force failure
@@ -219,7 +219,7 @@ func TestQueueClientEnqueueOptions(t *testing.T) {
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	task := asynq.NewTask("test:options", nil)

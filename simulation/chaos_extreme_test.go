@@ -32,7 +32,7 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 	defer srv.Close()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
-	defer cache.Close()
+	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 
