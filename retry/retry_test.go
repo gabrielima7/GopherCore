@@ -439,6 +439,16 @@ func TestDo_TableDriven(t *testing.T) {
 		expectedCalls int
 	}{
 		{
+			name:        "no options provided (nil slice)",
+			maxAttempts: 3,
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			opts:          nil,
+			expectedError: nil,
+			expectedCalls: 1,
+		},
+		{
 			name:        "success on first attempt",
 			maxAttempts: 3,
 			fn: func(ctx context.Context) error {
