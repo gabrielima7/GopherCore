@@ -2,6 +2,58 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.4.1] - gRPC Client Hardening, HTTP Canonicalization, Extreme Concurrency Simulation, and QA Defensive Teardowns
+
+This release improves the stability and compliance of GopherCore's networking and concurrency models. It migrates deprecated gRPC dial connections to the modern client initializer while preserving timeout behavior via custom context dialers. In addition, it enforces standard HTTP header canonicalization in all middleware and utility packages, introduces extreme concurrency simulations to prove O(1) space and time complexity convergence, and hardens test suites with defensive teardown logic to prevent G104 unhandled error violations.
+
+### 🚀 Additions (Features & Enhancements)
+- **Extreme Concurrency Chaos Simulations:** Introduced `simulation/chaos_extreme_test.go` and `simulation/chaos_load_test.go` to test API ergonomics, concurrency chaos, and stress-test the cache, circuit breaker, retry, result, and HTTP middleware packages under massive concurrency load (up to 5000 goroutines) with zero data races or goroutine leaks. (PR #172, PR #192)
+- **Comprehensive gRPC Client Tests:** Added `grpckit/client_test.go` to test gRPC client options (`WithInsecure`, `WithClientTLS`, `WithDialTimeout`, `WithClientUnaryInterceptors`, `WithClientStreamInterceptors`, `WithRawDialOptions`), configuration parsing, and NewClient initialization logic, raising statement coverage to 100%. (PR #188)
+- **Variadic Option Safety Tests:** Added `TestQueueClientEnqueueOptions` to `async/queue_test.go` to validate variadic `asynq.Option` parsing logic and nil-slice safety for `async.QueueClient` operations. (PR #189)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **gRPC Client Initializer Migration:** Migrated the deprecated `grpc.DialContext` to the newer `grpc.NewClient` API. To preserve background connection timeout behavior, implemented a custom context dialer using `grpc.WithContextDialer` and `net.Dialer`. (PR #196)
+- **HTTP Header Canonicalization:** Replaced direct header map writes (e.g. `h := w.Header(); h["Key"] = ...`) with standard `w.Header().Set(...)` assignments across `CORSMiddleware`, `RateLimitMiddleware`, `SecurityHeadersMiddleware`, and `JSON(...)` responses to ensure key canonicalization and avoid potential header collision overhead. (PR #193)
+- **Defensive Test Teardowns (G104 Mitigation):** Wrapped test teardowns (such as `client.Close()`, `db.Close()`, `cache.Close()`) in deferred closures using blank identifier assignments (`_ = x.Close()`) to resolve `gosec G104` unhandled error findings across all package test suites. (PR #185, PR #197)
+- **TDT Edge Cases and Safety checks:** Added zero-options and nil-pointer edge case tests to the `guard` and `retry` packages, including "no options provided" for `TestDo_TableDriven` and "nil pointer to struct" for `TestValidate_TableDriven`. (PR #179, PR #195)
+- **Fuzz Input Clamping:** Refactored `simulation/chaos_fuzz_test.go` to clamp fuzz inputs via modulo operations instead of skipping negative inputs, increasing testing coverage for extreme bounds. (PR #187)
+- **Dependency Upgrades:** Updated dependencies across the project:
+    - Updated `go-chi/chi/v5` to `v5.3.1` and `golang.org/x/text` to `v0.39.0` (PR #176).
+    - Updated `golang.org/x/crypto` to `v0.54.0` and `golang.org/x/net` to `v0.57.0` (PR #182, PR #186).
+    - Updated `github.com/mattn/go-sqlite3` to `v1.14.48` (PR #190).
+    - Updated indirect dependencies `google.golang.org/genproto/googleapis/api` and `rpc` to resolve potential security fixes (PR #194).
+    - Updated indirect dependencies `github.com/klauspost/compress` to `v1.19.0` and `github.com/klauspost/cpuid/v2` to `v2.4.0` (PR #171).
+
+### 🗑️ Exclusions (Deprecations & Removals)
+- **Removal of Inapplicable Dial Tests:** Removed `TestNewClient_DialError` from `grpckit/grpckit_test.go` because the new `grpc.NewClient` API does not support the blocking `grpc.WithBlock` dial option, making synchronous connection failure tests obsolete. (PR #196)
+- **Cleanup of Untracked Analysis Artifacts:** Deleted the untracked `escape_analysis.txt` file from the simulation directory to maintain a clean workspace. (PR #178)
+
+### 📦 Pull Requests
+- **PR #197:** fix(test): explicitly handle and ignore test teardown errors to resolve gosec G104.
+- **PR #196:** fix(grpckit): migrate deprecated `grpc.DialContext` to `grpc.NewClient` and enforce dial timeout via custom net dialer.
+- **PR #195:** test: improve test coverage for guard and retry packages by adding edge cases for zero options and nil structs.
+- **PR #194:** chore(deps): update google.golang.org/genproto/googleapis/api and rpc to latest.
+- **PR #193:** refactor(httpkit): use w.Header().Set() for canonicalization instead of direct Header map assignments.
+- **PR #192:** test(simulation): add extreme concurrency chaos testing with 5000 concurrent goroutines.
+- **PR #190:** chore(deps): bump github.com/mattn/go-sqlite3 from 1.14.47 to 1.14.48 in the go-minor-patch group.
+- **PR #189:** test(async): add nil options safety tests for queue client.
+- **PR #188:** test: add comprehensive unit tests for grpckit client (100% coverage).
+- **PR #187:** test(simulation): fix FuzzChaos to safely clamp negative inputs without t.Skip().
+- **PR #186:** build(deps): update x/net and prometheus/common dependencies.
+- **PR #185:** fix(grpckit): handle unhandled conn.Close() errors in grpckit tests.
+- **PR #184:** test: add targeted context cancellation test for async.Map.
+- **PR #182:** build(deps): bump golang.org/x/crypto to v0.54.0 and related x/sys, x/text packages.
+- **PR #179:** test: add comprehensive edge-case coverage for core utility options (dbkit, grpckit, httpkit).
+- **PR #178:** fix(simulation): remove escape_analysis.txt and fix expected error filtering in chaos test.
+- **PR #176:** build: update go-chi/chi and x/text dependencies.
+- **PR #175:** test(httpkit): add coverage for RateLimitMiddleware bypass and nil limiter.
+- **PR #174:** test: conduct rigorous chaos simulation and proofing.
+- **PR #173:** chore: perform exhaustive living documentation audit.
+- **PR #172:** test: implement chaos engineering simulations and formal proofs.
+- **PR #171:** build(deps): update indirect dependencies compress to v1.19.0 and cpuid to v2.4.0.
+
+---
+
 ## [v0.4.0] - Chaos Engineering, Concurrency Hardening, Escape Analysis, and Extensive TDT Coverage
 
 This release hardens GopherCore's concurrency model, memory optimization, and test coverage. It implements heap escape analysis fixes to optimize allocations, resolves critical memory/goroutine leaks in active timers and caching structures, and expands the chaos engineering simulation suite with fuzz and integration tests. Additionally, the release refactors several core packages to Table-Driven Test (TDT) patterns to fix global state leakage and achieve 100% GoDoc living documentation compliance.
