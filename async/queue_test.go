@@ -15,12 +15,12 @@ func TestQueueLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer mr.Close()
+	defer func() { _ = mr.Close() }()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	srv := NewQueueServer(redisOpt, asynq.Config{
 		Concurrency: 1,
@@ -63,12 +63,12 @@ func TestQueuePanicRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer mr.Close()
+	defer func() { _ = mr.Close() }()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	srv := NewQueueServer(redisOpt, asynq.Config{
 		Concurrency: 1,
@@ -118,11 +118,11 @@ func TestQueueClientEnqueueContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer mr.Close()
+	defer func() { _ = mr.Close() }()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // instantly cancel to force failure
@@ -153,7 +153,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer mr.Close()
+	defer func() { _ = mr.Close() }()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	srv := NewQueueServer(redisOpt, asynq.Config{})
@@ -215,11 +215,11 @@ func TestQueueClientEnqueueOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer mr.Close()
+	defer func() { _ = mr.Close() }()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 	task := asynq.NewTask("test:options", nil)
