@@ -75,6 +75,12 @@ func TestValidate_TableDriven(t *testing.T) {
 			expectValidationErrs: false,
 		},
 		{
+			name:                 "nil pointer to struct",
+			input:                (*createUserInput)(nil),
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
+		{
 			name:                 "nil input",
 			input:                nil,
 			expectErr:            true,
