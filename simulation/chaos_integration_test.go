@@ -25,7 +25,7 @@ var errBadStatus = errors.New("bad status")
 func TestIntegrationChaos(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "integration_chaos.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY, value TEXT)"); err != nil {
 		t.Fatalf("failed to create table: %v", err)
 	}
@@ -53,10 +53,10 @@ func TestIntegrationChaos(t *testing.T) {
 	})
 
 	srv := httptest.NewServer(router)
-	defer srv.Close()
+	defer func() { _ = srv.Close() }()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
-	defer cache.Close()
+	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 
@@ -106,7 +106,7 @@ func TestIntegrationChaos(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					defer resp.Body.Close()
+					defer func() { _ = resp.Body.Close() }()
 
 					if resp.StatusCode != http.StatusOK {
 						return errBadStatus
