@@ -7,6 +7,7 @@ package grpckit
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -206,15 +207,17 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 		dialOpts = append(dialOpts, grpc.WithChainStreamInterceptor(cfg.streamInterceptors...))
 	}
 
+	// Apply the timeout for background dialing operations using a custom context dialer.
+	dialOpts = append(dialOpts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+		d := &net.Dialer{Timeout: cfg.dialTimeout}
+		return d.DialContext(ctx, "tcp", addr)
+	}))
+
 	// Append any raw dial options last so they can override derived options.
 	// Internal Logic Deep-Dive: We deliberately append `cfg.rawDialOpts` at the very end of the `dialOpts` slice. Because gRPC evaluates dial options sequentially, appending raw options last provides a powerful escape hatch, enabling consumers to forcibly override our managed interceptor chains or TLS posture for highly specialized environments.
 	dialOpts = append(dialOpts, cfg.rawDialOpts...)
 
-	// Establish a bounded dial context derived from the configured timeout.
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.dialTimeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(ctx, target, dialOpts...) //nolint:staticcheck // grpc.DialContext is the stable API; NewClient requires grpc >= v1.81 experimental.
+	conn, err := grpc.NewClient(target, dialOpts...)
 	if err != nil {
 		return nil, err
 	}
