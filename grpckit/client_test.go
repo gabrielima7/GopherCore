@@ -146,7 +146,7 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected successful connection, got error: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if conn == nil {
 		t.Fatal("expected non-nil connection object")

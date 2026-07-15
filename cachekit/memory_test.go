@@ -21,7 +21,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "SetAndGet",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				err := cache.Set(ctx, "key1", []byte("val1"), 0)
 				if err != nil {
@@ -42,7 +42,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "GetMiss",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				_, err := cache.Get(ctx, "nonexistent")
 				if !errors.Is(err, cachekit.ErrCacheMiss) {
@@ -54,7 +54,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "Delete",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				_ = cache.Set(ctx, "key_del", []byte("val"), 0)
 				err := cache.Delete(ctx, "key_del")
@@ -72,7 +72,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "ExpirationLazy",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0) // No active cleanup
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				err := cache.Set(ctx, "key_exp", []byte("val"), 10*time.Millisecond)
 				if err != nil {
@@ -91,7 +91,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "ExpirationActive",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(10 * time.Millisecond)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				err := cache.Set(ctx, "key_exp_active", []byte("val"), 20*time.Millisecond)
 				if err != nil {
@@ -113,7 +113,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "Concurrency",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				var wg sync.WaitGroup
 				startCh := make(chan struct{})
@@ -146,7 +146,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "ContextCancellation",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				canceledCtx, cancel := context.WithCancel(context.Background())
 				cancel() // Pre-cancel
@@ -171,7 +171,7 @@ func TestInMemoryCache(t *testing.T) {
 			name: "IsolationCopy",
 			run: func(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
-				defer cache.Close()
+				defer func() { _ = cache.Close() }()
 
 				orig := []byte("orig")
 				_ = cache.Set(ctx, "k", orig, 0)

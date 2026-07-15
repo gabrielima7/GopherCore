@@ -35,7 +35,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 
 	// 2. Setup internal infrastructure components
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
-	defer cache.Close()
+	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 
