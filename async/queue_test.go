@@ -15,7 +15,7 @@ func TestQueueLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
@@ -63,7 +63,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 
@@ -118,7 +118,7 @@ func TestQueueClientEnqueueContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)
@@ -153,7 +153,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	srv := NewQueueServer(redisOpt, asynq.Config{})
@@ -215,7 +215,7 @@ func TestQueueClientEnqueueOptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
 	client := NewQueueClient(redisOpt)

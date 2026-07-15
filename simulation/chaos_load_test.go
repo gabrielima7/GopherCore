@@ -31,7 +31,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 		httpkit.JSON(w, http.StatusOK, map[string]string{"msg": "success", "id": id})
 	})
 	srv := httptest.NewServer(router)
-	defer func() { _ = srv.Close() }()
+	defer srv.Close()
 
 	// 2. Setup internal infrastructure components
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
@@ -80,7 +80,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				defer func() { _ = resp.Body.Close() }()
+				defer resp.Body.Close()
 				if resp.StatusCode != http.StatusOK {
 					return errors.New("bad status")
 				}

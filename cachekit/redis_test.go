@@ -17,7 +17,7 @@ func TestRedisCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { _ = mr.Close() }()
+	defer mr.Close()
 
 	client := redis.NewClient(&redis.Options{
 		Addr: mr.Addr(),
