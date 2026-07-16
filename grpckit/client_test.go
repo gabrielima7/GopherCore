@@ -152,3 +152,40 @@ func TestNewClient(t *testing.T) {
 		t.Fatal("expected non-nil connection object")
 	}
 }
+
+func TestNewClient_ErrorPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		target  string
+		opts    []ClientOption
+		wantErr bool
+	}{
+		{
+			name:    "invalid target with control character",
+			target:  "\x00",
+			opts:    []ClientOption{WithInsecure()},
+			wantErr: true,
+		},
+		{
+			name:    "empty target",
+			target:  "",
+			opts:    []ClientOption{WithInsecure()},
+			wantErr: false, // grpc.NewClient allows empty target
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn, err := NewClient(tt.target, tt.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil && conn != nil {
+				t.Errorf("expected nil connection on error, got %v", conn)
+			}
+			if conn != nil {
+				_ = conn.Close()
+			}
+		})
+	}
+}
