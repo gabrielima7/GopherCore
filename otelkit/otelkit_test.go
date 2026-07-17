@@ -86,9 +86,9 @@ func TestInitSDK(t *testing.T) {
 				return context.Background()
 			},
 			setupMock: func() {
-				SetResourceMerge(func(r1, r2 *resource.Resource) (*resource.Resource, error) {
+				resourceMerge = func(r1, r2 *resource.Resource) (*resource.Resource, error) {
 					return nil, errors.New("simulated resource merge error")
-				})
+				}
 			},
 			wantErr: true,
 		},
@@ -99,9 +99,9 @@ func TestInitSDK(t *testing.T) {
 				return context.Background()
 			},
 			setupMock: func() {
-				SetNewTraceExporter(func(ctx context.Context, opts ...otlptracegrpc.Option) (*otlptrace.Exporter, error) {
+				newTraceExporter = func(ctx context.Context, opts ...otlptracegrpc.Option) (*otlptrace.Exporter, error) {
 					return nil, errors.New("simulated trace exporter error")
-				})
+				}
 			},
 			wantErr: true,
 		},
@@ -112,9 +112,9 @@ func TestInitSDK(t *testing.T) {
 				return context.Background()
 			},
 			setupMock: func() {
-				SetNewMetricExporter(func(opts ...prometheus.Option) (*prometheus.Exporter, error) {
+				newMetricExporter = func(opts ...prometheus.Option) (*prometheus.Exporter, error) {
 					return nil, errors.New("simulated metric exporter error")
-				})
+				}
 			},
 			wantErr: true,
 		},
@@ -122,13 +122,17 @@ func TestInitSDK(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			origMerge := resourceMerge
+			origTraceExporter := newTraceExporter
+			origMetricExporter := newMetricExporter
+			defer func() {
+				resourceMerge = origMerge
+				newTraceExporter = origTraceExporter
+				newMetricExporter = origMetricExporter
+			}()
+
 			if tt.setupMock != nil {
 				tt.setupMock()
-				defer func() {
-					RestoreResourceMerge()
-					RestoreNewTraceExporter()
-					RestoreNewMetricExporter()
-				}()
 			}
 
 			ctx := tt.setupCtx()
