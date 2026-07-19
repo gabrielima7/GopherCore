@@ -171,7 +171,7 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 //
 // Callers must close the connection when done:
 //
-//	conn, err := grpckit.NewClient("localhost:50051")
+//	conn, err := grpckit.NewClient(ctx, "localhost:50051")
 //	if err != nil { ... }
 //	defer conn.Close()
 //
@@ -181,7 +181,7 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 // out or if the transport credentials cannot be applied.
 // Thread-safety: Construction is synchronous. The returned *grpc.ClientConn is
 // safe for concurrent use across goroutines.
-func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
+func NewClient(ctx context.Context, target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	cfg := parseClientOptions(opts...)
 
 	dialOpts := []grpc.DialOption{
@@ -204,9 +204,25 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	}
 
 	// Apply the timeout for background dialing operations using a custom context dialer.
-	dialOpts = append(dialOpts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+	dialOpts = append(dialOpts, grpc.WithContextDialer(func(innerCtx context.Context, addr string) (net.Conn, error) {
 		d := &net.Dialer{Timeout: cfg.dialTimeout}
-		return d.DialContext(ctx, "tcp", addr)
+		// In order to respect early cancellation from the caller during synchronous dials,
+		// without completely replacing gRPC's internal connection management context,
+		// we use a cancelable context bounded by both the gRPC system and the caller.
+		dialCtx, cancel := context.WithCancel(innerCtx)
+		defer cancel()
+
+		if ctx != nil {
+			go func() {
+				select {
+				case <-ctx.Done():
+					cancel()
+				case <-dialCtx.Done():
+				}
+			}()
+		}
+
+		return d.DialContext(dialCtx, "tcp", addr)
 	}))
 
 	// Append any raw dial options last so they can override derived options.

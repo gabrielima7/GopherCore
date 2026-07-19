@@ -202,7 +202,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,
 			// or if we wait until the timeout. We just assert the constructor doesn't panic
 			// and returns successfully (since it's non-blocking).
-			conn, err := NewClient("127.0.0.1:1", tt.opts...)
+			conn, err := NewClient(context.Background(), "127.0.0.1:1", tt.opts...)
 			if err != nil {
 				t.Fatalf("expected nil error for non-blocking dial, got %v", err)
 			}
@@ -215,7 +215,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 
 func TestNewClient_InvalidTarget(t *testing.T) {
 	// Dial to a port that nothing listens on should fail within the timeout.
-	_, err := NewClient("127.0.0.1:1", WithDialTimeout(200*time.Millisecond))
+	_, err := NewClient(context.Background(), "127.0.0.1:1", WithDialTimeout(200*time.Millisecond))
 	// grpc.DialContext is non-blocking by default; a successful non-blocking dial
 	// returns a conn even to unreachable targets. We only assert the call itself
 	// does not panic and returns the expected types.
@@ -800,7 +800,7 @@ func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
 	srv := NewServer(WithServerLogger(silentLogger()))
 	addr := startTestServer(t, srv, okService{})
 
-	conn, err := NewClient(addr,
+	conn, err := NewClient(context.Background(), addr,
 		WithClientUnaryInterceptors(unaryInterceptor),
 		WithClientStreamInterceptors(streamInterceptor),
 		WithDialTimeout(3*time.Second),
@@ -881,7 +881,7 @@ func TestNewClient_WithTLS(t *testing.T) {
 	t.Cleanup(srv.Stop)
 
 	// Dial using NewClient with TLS — exercises the cfg.tlsConfig != nil branch.
-	conn, err := NewClient(ln.Addr().String(),
+	conn, err := NewClient(context.Background(), ln.Addr().String(),
 		WithClientTLS(clientTLS),
 		WithDialTimeout(3*time.Second),
 	)

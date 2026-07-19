@@ -142,7 +142,7 @@ func TestNewClient(t *testing.T) {
 	defer srv.Stop()
 
 	// Connect to the real local server using insecure transport and a custom user agent option.
-	conn, err := NewClient(lis.Addr().String(), WithDialTimeout(2*time.Second), WithInsecure(), WithRawDialOptions(grpc.WithAuthority("test")))
+	conn, err := NewClient(context.Background(), lis.Addr().String(), WithDialTimeout(2*time.Second), WithInsecure(), WithRawDialOptions(grpc.WithAuthority("test")))
 	if err != nil {
 		t.Fatalf("expected successful connection, got error: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestNewClient_ErrorPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn, err := NewClient(tt.target, tt.opts...)
+			conn, err := NewClient(context.Background(), tt.target, tt.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewClient() error = %v, wantErr %v", err, tt.wantErr)
 			}
