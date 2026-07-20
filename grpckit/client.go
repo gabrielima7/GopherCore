@@ -205,8 +205,14 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 
 	// Apply the timeout for background dialing operations using a custom context dialer.
 	dialOpts = append(dialOpts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-		d := &net.Dialer{Timeout: cfg.dialTimeout}
-		return d.DialContext(ctx, "tcp", addr)
+		dialCtx := ctx
+		var cancel context.CancelFunc
+		if cfg.dialTimeout > 0 {
+			dialCtx, cancel = context.WithTimeout(ctx, cfg.dialTimeout)
+			defer cancel()
+		}
+		d := &net.Dialer{}
+		return d.DialContext(dialCtx, "tcp", addr)
 	}))
 
 	// Append any raw dial options last so they can override derived options.
