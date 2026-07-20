@@ -189,6 +189,24 @@ func TestWithStreamInterceptors_NilSkipped(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewClient_TableDriven(t *testing.T) {
+	// Start a fast-failing local listener to test pure option configurations without network dependencies
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer ln.Close()
+	addr := ln.Addr().String()
+	go func() {
+		// Accept and immediately close to simulate a fast-failing network connection
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			_ = conn.Close()
+		}
+	}()
+
 	tests := []struct {
 		name string
 		opts []ClientOption
@@ -202,7 +220,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,
 			// or if we wait until the timeout. We just assert the constructor doesn't panic
 			// and returns successfully (since it's non-blocking).
-			conn, err := NewClient("127.0.0.1:1", tt.opts...)
+			conn, err := NewClient(addr, tt.opts...)
 			if err != nil {
 				t.Fatalf("expected nil error for non-blocking dial, got %v", err)
 			}
