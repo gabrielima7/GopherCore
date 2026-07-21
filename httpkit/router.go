@@ -335,7 +335,13 @@ func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	case <-quit:
 		// When a shutdown signal is caught, establish a bounded deadline. Any requests
 		// still processing when the context expires will be abruptly disconnected.
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		var ctx context.Context
+		var cancel context.CancelFunc
+		if timeout > 0 {
+			ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		} else {
+			ctx, cancel = context.WithCancel(context.Background())
+		}
 		defer cancel()
 		return srv.Shutdown(ctx)
 	}
