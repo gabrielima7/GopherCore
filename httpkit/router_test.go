@@ -372,6 +372,11 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 			timeout: 5 * time.Second,
 			wantErr: false,
 		},
+		{
+			name:    "Server natively closed with zero timeout",
+			timeout: 0,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
