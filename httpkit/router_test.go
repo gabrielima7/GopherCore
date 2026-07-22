@@ -281,42 +281,64 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 		return
 	}
 
-	srv := &http.Server{
-		Addr: "127.0.0.1:0", // Listen on any available port
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(100 * time.Millisecond) // Simulate work
-			w.WriteHeader(http.StatusOK)
-		}),
-		ReadHeaderTimeout: 5 * time.Second,
+	tests := []struct {
+		name    string
+		timeout time.Duration
+	}{
+		{
+			name:    "With positive timeout",
+			timeout: 5 * time.Second,
+		},
+		{
+			name:    "With zero timeout",
+			timeout: 0,
+		},
+		{
+			name:    "With negative timeout",
+			timeout: -1 * time.Second,
+		},
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- GracefulShutdown(srv, 5*time.Second)
-	}()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := &http.Server{
+				Addr: "127.0.0.1:0", // Listen on any available port
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(100 * time.Millisecond) // Simulate work
+					w.WriteHeader(http.StatusOK)
+				}),
+				ReadHeaderTimeout: 5 * time.Second,
+			}
 
-	// Give the server time to start
-	time.Sleep(100 * time.Millisecond)
+			errCh := make(chan error, 1)
+			go func() {
+				errCh <- GracefulShutdown(srv, tt.timeout)
+			}()
 
-	// Send SIGINT
-	p, err := os.FindProcess(os.Getpid())
-	if err != nil {
-		t.Fatalf("failed to find process: %v", err)
-	}
-	if err := p.Signal(syscall.SIGINT); err != nil {
-		t.Fatalf("failed to send signal: %v", err)
-	}
+			// Give the server time to start
+			time.Sleep(100 * time.Millisecond)
 
-	// Wait for GracefulShutdown to return
-	timer := time.NewTimer(2 * time.Second)
-	defer timer.Stop()
-	select {
-	case err := <-errCh:
-		if err != nil {
-			t.Fatalf("expected nil error, got %v", err)
-		}
-	case <-timer.C:
-		t.Fatal("timeout waiting for GracefulShutdown to return")
+			// Send SIGINT
+			p, err := os.FindProcess(os.Getpid())
+			if err != nil {
+				t.Fatalf("failed to find process: %v", err)
+			}
+			if err := p.Signal(syscall.SIGINT); err != nil {
+				t.Fatalf("failed to send signal: %v", err)
+			}
+
+			// Wait for GracefulShutdown to return
+			timer := time.NewTimer(2 * time.Second)
+			defer timer.Stop()
+			select {
+			case err := <-errCh:
+				if err != nil {
+					t.Fatalf("expected nil error, got %v", err)
+				}
+			case <-timer.C:
+				t.Fatal("timeout waiting for GracefulShutdown to return")
+			}
+		})
 	}
 }
 
