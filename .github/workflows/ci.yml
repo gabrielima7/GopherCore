@@ -12,6 +12,30 @@ permissions:
 
 jobs:
   # ──────────────────────────────────────────────────
+  # Quality Gate: Trava de Diff Vazio
+  # ──────────────────────────────────────────────────
+  verify-diff:
+    name: Verify Non-Empty Diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check for Code Changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          echo "Total de arquivos alterados: $CHANGED_FILES"
+          if [ "$CHANGED_FILES" -eq 0 ]; then
+            echo "❌ ERRO DevSecOps: Esta Pull Request possui um diff vazio (0 arquivos alterados)."
+            echo "PRs sem alterações reais de código não são permitidas neste repositório."
+            exit 1
+          fi
+          echo "✅ Validação QA: PR contém alterações de código válidas."
+
+  # ──────────────────────────────────────────────────
   # Linting
   # ──────────────────────────────────────────────────
   lint:
