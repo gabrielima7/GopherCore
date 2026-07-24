@@ -83,7 +83,7 @@ func (q *QueueServer) Start() error {
 // Constraints: Should be called during application teardown, typically via defer.
 // Thread-safety: Safe for concurrent invocation.
 func (q *QueueServer) Stop() {
-	q.server.Stop()
+	q.server.Shutdown()
 }
 
 // QueueClient provides a simplified wrapper for dispatching Asynq tasks.
