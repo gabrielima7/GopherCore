@@ -451,3 +451,6 @@ The project uses GitHub Actions with a rigorous pipeline:
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
+
+## Documentation Note
+The GopherCore repository maintains strict 100% GoDoc compliance for all exported entities, ensuring comprehensive "Living Documentation" directly within the codebase.
