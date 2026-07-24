@@ -1,4 +1,4 @@
-// Package circuitbreaker provides the Circuit Breaker pattern to prevent
+// Package circuitbreaker provides the Circuit Breaker pattern to safely prevent
 // cascading failures. It wraps fallible operations and trips when too many
 // failures occur, allowing the system to recover gracefully.
 // Purpose: Intercepts requests to backend services to prevent cascading failures during outages.
