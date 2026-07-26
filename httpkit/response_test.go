@@ -127,7 +127,7 @@ func TestResponses_TableDriven(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"error":"internal server error","code":500}`,
-			expectedHeader: map[string]string{"Content-Type": "text/plain; charset=utf-8"}, // http.Error default
+			expectedHeader: map[string]string{"Content-Type": "application/json; charset=utf-8"}, // http.Error default
 		},
 		{
 			name: "Error standard",
