@@ -37,7 +37,9 @@ func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {
 		// Internal Logic Deep-Dive: If serialization completely fails (e.g. passing an unsupported type like a channel into the payload), we fallback to a hardcoded standard 500 JSON string response. We explicitly DO NOT call `Error()` here to construct the response because if the root cause was a fundamental marshalling failure, trying to recursively marshal a generic `ErrorResponse` could trigger an infinite loop or a secondary panic.
-		http.Error(w, `{"error":"internal server error","code":500}`, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error":"internal server error","code":500}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

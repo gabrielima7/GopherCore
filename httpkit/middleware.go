@@ -80,7 +80,9 @@ func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 			// securely without executing downstream routing or serialization logic.
 			if !limiter.Allow() {
 				w.Header().Set("Retry-After", "1")
-				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(`{"error":"Too Many Requests","code":429}`))
 				return
 			}
 			next.ServeHTTP(w, r)
