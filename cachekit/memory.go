@@ -7,6 +7,9 @@ import (
 )
 
 // cacheItem represents a single item in the in-memory cache.
+// Purpose: Encapsulates the cached byte payload alongside its exact expiration time.
+// Constraints: Internal structure used exclusively by InMemoryCache.
+// Thread-safety: Not thread-safe on its own; heavily guarded by InMemoryCache's mutex.
 type cacheItem struct {
 	value      []byte
 	expiration time.Time
@@ -44,6 +47,9 @@ func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
 }
 
 // cleanupLoop periodically removes expired items from the cache.
+// Purpose: Automates memory reclamation for short-lived cache items in the background.
+// Constraints: Runs continually as a goroutine until the cache is explicitly closed.
+// Thread-safety: Designed to run concurrently with active cache reads and writes.
 func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(interval)
@@ -60,6 +66,9 @@ func (c *InMemoryCache) cleanupLoop(interval time.Duration) {
 }
 
 // evictExpired removes all expired items.
+// Purpose: Explicitly triggers a sweep across the cache to remove stale items.
+// Constraints: Executes a two-phase check to minimize write-lock contention.
+// Thread-safety: Internally manages its own RWMutex locks to ensure concurrency safety.
 func (c *InMemoryCache) evictExpired() {
 	now := time.Now()
 

@@ -15,8 +15,22 @@ import (
 )
 
 var (
-	resourceMerge     = resource.Merge
-	newTraceExporter  = otlptracegrpc.New
+	// resourceMerge is an internal override hook.
+	// Purpose: Allows mocking OpenTelemetry resource merging in unit tests.
+	// Constraints: Should only be reassigned during test setup.
+	// Thread-safety: Unsafe to modify concurrently.
+	resourceMerge = resource.Merge
+
+	// newTraceExporter is an internal override hook.
+	// Purpose: Allows mocking the OTLP trace exporter in unit tests.
+	// Constraints: Should only be reassigned during test setup.
+	// Thread-safety: Unsafe to modify concurrently.
+	newTraceExporter = otlptracegrpc.New
+
+	// newMetricExporter is an internal override hook.
+	// Purpose: Allows mocking the Prometheus metric exporter in unit tests.
+	// Constraints: Should only be reassigned during test setup.
+	// Thread-safety: Unsafe to modify concurrently.
 	newMetricExporter = prometheus.New
 )
 
