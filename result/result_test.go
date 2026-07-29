@@ -327,6 +327,20 @@ func TestResult_Methods_TableDriven(t *testing.T) {
 			expectedErr: errBoom,
 		},
 		{
+			name:        "Unwrap on Ok returns value",
+			res:         Ok(42),
+			op:          "Unwrap",
+			expectedOk:  true,
+			expectedVal: 42,
+		},
+		{
+			name:        "Unwrap on Err returns error",
+			res:         Err[int](errBoom),
+			op:          "Unwrap",
+			expectedOk:  false,
+			expectedErr: errBoom,
+		},
+		{
 			name:        "UnwrapOr on Ok returns value",
 			res:         Ok(42),
 			op:          "UnwrapOr",
@@ -417,6 +431,20 @@ func TestResult_Methods_TableDriven(t *testing.T) {
 				val := tt.res.UnwrapOr(tt.fallbackVal)
 				if val != tt.expectedVal {
 					t.Errorf("UnwrapOr expected %d, got %d", tt.expectedVal, val)
+				}
+			case "Unwrap":
+				val, err := tt.res.Unwrap()
+				if tt.expectedOk {
+					if err != nil {
+						t.Errorf("Unwrap expected no error, got %v", err)
+					}
+					if val != tt.expectedVal {
+						t.Errorf("Unwrap expected value %d, got %d", tt.expectedVal, val)
+					}
+				} else {
+					if !errors.Is(err, tt.expectedErr) {
+						t.Errorf("Unwrap expected error %v, got %v", tt.expectedErr, err)
+					}
 				}
 			case "UnwrapOrElse":
 				val := tt.res.UnwrapOrElse(tt.fallbackFn)
