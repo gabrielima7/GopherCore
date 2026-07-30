@@ -41,6 +41,7 @@ func Errf[T any](format string, args ...any) Result[T] {
 // Purpose: Converts a classic (value, err) return tuple into a Result.
 // Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
 // Thread-safety: Pure functional constructor.
+// Internal Logic Deep-Dive: We encapsulate standard tuple returns `(T, error)` into a monad-like `Result[T]` container to force explicit error handling or unwrapping semantics upon the caller, eliminating accidental unhandled error returns.
 func Of[T any](value T, err error) Result[T] {
 	// Internal Logic Deep-Dive: By checking the error unconditionally here, we safely absorb panic-free operations into the monadic pipeline flow, effectively converting classic Go dual-return-value idioms into a unified state representation that cleanly isolates execution failures from subsequent functional mapping sequences.
 	if err != nil {

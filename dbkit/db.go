@@ -14,6 +14,7 @@ import (
 // Thread-safety: Safely read-only post instantiation.
 type Config struct {
 	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
+	// The correct driver must be explicitly imported in the `main` package (e.g., `_ "github.com/lib/pq"`).
 	// Purpose: Specifies which underlying driver sqlx should initialize.
 	// Constraints: Must be a registered database driver name.
 	// Thread-safety: Read-only string.
