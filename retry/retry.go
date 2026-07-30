@@ -186,6 +186,9 @@ func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option)
 }
 
 // doWithConfig executes the retry loop using a pre-calculated Config struct.
+// Purpose: Contains the core retry engine logic separated from option parsing.
+// Constraints: Requires a fully populated Config struct to operate correctly.
+// Thread-safety: Operates safely in concurrent contexts; relies on external state immutability.
 // Internal Logic: Keeping cfg as a value parameter prevents it from escaping to the heap
 // when no options are dynamically evaluated.
 func doWithConfig(ctx context.Context, fn func(ctx context.Context) error, cfg Config) error {
@@ -249,6 +252,9 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 }
 
 // doWithValueWithConfig executes the value-returning retry loop using a pre-calculated Config struct.
+// Purpose: Contains the core retry engine logic separated from option parsing, specifically for generic return types.
+// Constraints: Requires a fully populated Config struct to operate correctly.
+// Thread-safety: Operates safely in concurrent contexts; relies on external state immutability.
 // Internal Logic: Keeping cfg as a value parameter prevents it from escaping to the heap
 // when no options are dynamically evaluated.
 func doWithValueWithConfig[T any](ctx context.Context, fn func(ctx context.Context) (T, error), cfg Config) (T, error) {

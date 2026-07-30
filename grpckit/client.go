@@ -39,6 +39,9 @@ type clientConfig struct {
 
 // defaultClientConfig returns a clientConfig pre-populated with production-safe
 // defaults: insecure transport, 10-second dial timeout, no extra interceptors.
+// Purpose: Generates safe, conservative defaults for client timeouts and limits.
+// Constraints: Assumes typical microservice operational bounds.
+// Thread-safety: Returns a new struct configuration instance.
 func defaultClientConfig() clientConfig {
 	return clientConfig{
 		dialTimeout: 10 * time.Second,
