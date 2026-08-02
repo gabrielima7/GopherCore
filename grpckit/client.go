@@ -131,7 +131,7 @@ func WithClientStreamInterceptors(interceptors ...grpc.StreamClientInterceptor) 
 }
 
 // WithRawDialOptions appends one or more raw grpc.DialOption values that are
-// passed directly to grpc.DialContext after all other derived options. This
+// passed directly to grpc.NewClient after all other derived options. This
 // escape-hatch allows callers to use advanced gRPC dial options (e.g.
 // grpc.WithBlock for synchronous connection establishment in readiness probes)
 // that are not yet surfaced as first-class ClientOptions.
@@ -208,14 +208,11 @@ func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 
 	// Apply the timeout for background dialing operations using a custom context dialer.
 	dialOpts = append(dialOpts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-		dialCtx := ctx
-		var cancel context.CancelFunc
-		if cfg.dialTimeout > 0 {
-			dialCtx, cancel = context.WithTimeout(ctx, cfg.dialTimeout)
-			defer cancel()
-		}
 		d := &net.Dialer{}
-		return d.DialContext(dialCtx, "tcp", addr)
+		if cfg.dialTimeout > 0 {
+			d.Timeout = cfg.dialTimeout
+		}
+		return d.DialContext(ctx, "tcp", addr)
 	}))
 
 	// Append any raw dial options last so they can override derived options.
