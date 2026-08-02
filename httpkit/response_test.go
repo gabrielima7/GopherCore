@@ -139,6 +139,33 @@ func TestResponses_TableDriven(t *testing.T) {
 			expectedHeader: map[string]string{"Content-Type": "application/json; charset=utf-8"},
 		},
 		{
+			name: "Created payload",
+			fn: func(w http.ResponseWriter) {
+				Created(w, map[string]string{"id": "123"})
+			},
+			expectedStatus: http.StatusCreated,
+			expectedBody:   `{"id":"123"}`,
+			expectedHeader: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+		},
+		{
+			name: "NoContent",
+			fn: func(w http.ResponseWriter) {
+				NoContent(w)
+			},
+			expectedStatus: http.StatusNoContent,
+			expectedBody:   ``,
+			expectedHeader: map[string]string{},
+		},
+		{
+			name: "Error teapot",
+			fn: func(w http.ResponseWriter) {
+				Error(w, http.StatusTeapot, "i'm a teapot")
+			},
+			expectedStatus: http.StatusTeapot,
+			expectedBody:   `{"error":"I'm a teapot","code":418,"message":"i'm a teapot"}`,
+			expectedHeader: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+		},
+		{
 			name: "Ok string payload",
 			fn: func(w http.ResponseWriter) {
 				Ok(w, "success")
