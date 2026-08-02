@@ -1,3 +1,0 @@
-1. Update `grpckit/client.go` to properly handle the custom dialer context timeout without entirely overwriting the context, so that gRPC's internal connection backoff, lifecycle management, and cancellation logic are not broken.
-2. Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
-3. Submit the changes.
