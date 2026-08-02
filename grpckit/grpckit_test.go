@@ -216,7 +216,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// grpc.DialContext is non-blocking by default. A successful non-blocking dial
+			// grpc.NewClient is non-blocking by default. A successful non-blocking dial
 			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,
 			// or if we wait until the timeout. We just assert the constructor doesn't panic
 			// and returns successfully (since it's non-blocking).
@@ -234,7 +234,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 func TestNewClient_InvalidTarget(t *testing.T) {
 	// Dial to a port that nothing listens on should fail within the timeout.
 	_, err := NewClient("127.0.0.1:1", WithDialTimeout(200*time.Millisecond))
-	// grpc.DialContext is non-blocking by default; a successful non-blocking dial
+	// grpc.NewClient is non-blocking by default; a successful non-blocking dial
 	// returns a conn even to unreachable targets. We only assert the call itself
 	// does not panic and returns the expected types.
 	_ = err // may be nil (lazy connect) or non-nil; either is acceptable here.
@@ -853,7 +853,7 @@ func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
 // Branch coverage: NewClient — dial error path
 // (client.go:186 true-branch)
 //
-// We add WithBlock to the DialOptions so that grpc.DialContext performs a
+// We add WithBlock to the DialOptions so that grpc.NewClient performs a
 // synchronous connection attempt. Combined with a tiny timeout against an
 // unreachable address, NewClient's `if err != nil` branch is exercised and the
 // function returns a non-nil error without bypassing any internal code paths.
