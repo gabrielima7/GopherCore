@@ -114,6 +114,18 @@ func TestValidate_TableDriven(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name:                 "string slice instead of struct",
+			input:                []string{"hello"},
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
+		{
+			name:                 "map instead of struct",
+			input:                map[string]string{"Name": "Alice"},
+			expectErr:            true,
+			expectValidationErrs: false,
+		},
+		{
 			name:                 "pointer to pointer to struct",
 			input:                &ptrInput,
 			expectErr:            true,
