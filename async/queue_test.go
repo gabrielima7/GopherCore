@@ -40,7 +40,7 @@ func TestQueueLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	task := asynq.NewTask("test:task", nil)
 	_, err = client.Enqueue(task)
@@ -56,6 +56,25 @@ func TestQueueLifecycle(t *testing.T) {
 	case <-timer.C:
 		t.Fatal("timeout waiting for task execution")
 	}
+}
+
+func TestQueueServerStopBackwardCompatibility(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
+	srv := NewQueueServer(redisOpt, asynq.Config{})
+
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("failed to start server: %v", err)
+	}
+
+	// Verify Stop() doesn't panic and gracefully stops the server
+	srv.Stop()
 }
 
 func TestQueuePanicRecovery(t *testing.T) {
@@ -94,7 +113,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	task := asynq.NewTask("test:panic", nil)
 	_, err = client.Enqueue(task)
@@ -162,7 +181,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	defer func() {
 		if r := recover(); r == nil {
