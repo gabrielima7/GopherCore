@@ -58,6 +58,25 @@ func TestQueueLifecycle(t *testing.T) {
 	}
 }
 
+func TestQueueServerStopBackwardCompatibility(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	redisOpt := asynq.RedisClientOpt{Addr: mr.Addr()}
+	srv := NewQueueServer(redisOpt, asynq.Config{})
+
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("failed to start server: %v", err)
+	}
+
+	// Verify Stop() doesn't panic and gracefully stops the server
+	srv.Stop()
+}
+
 func TestQueuePanicRecovery(t *testing.T) {
 	mr, err := miniredis.Run()
 	if err != nil {

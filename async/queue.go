@@ -78,6 +78,14 @@ func (q *QueueServer) Start() error {
 	return q.server.Start(q.mux)
 }
 
+// Stop gracefully shuts down the queue server, waiting for active tasks to finish.
+// Purpose: Provides a safe termination signal to halt job consumption and gracefully drain ongoing operations.
+// Constraints: Retained for backward compatibility. Invokes Shutdown() to gracefully drain tasks.
+// Thread-safety: Safe for concurrent invocation.
+func (q *QueueServer) Stop() {
+	q.Shutdown()
+}
+
 // Shutdown gracefully shuts down the queue server, waiting for active tasks to finish.
 // Purpose: Provides a safe termination signal to halt job consumption and gracefully drain ongoing operations.
 // Constraints: Should be called during application teardown, typically via defer.
