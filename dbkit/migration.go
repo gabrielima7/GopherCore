@@ -33,6 +33,7 @@ type MigrationConfig struct {
 // a transaction depending on the underlying database engine. Ensure backups are available.
 // Thread-safety: Operations are inherently stateful on the database side; concurrent migration execution from
 // multiple nodes is usually handled safely by golang-migrate's internal advisory locks.
+// Internal Logic Deep-Dive: A strict defer block explicitly drops the migration source and DB driver instances (`m.Close()`). If these advisory connection locks aren't properly released due to an unhandled migration crash, future deployment pipelines will infinitely hang while attempting to acquire the stale database locks.
 func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {

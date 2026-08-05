@@ -19,6 +19,8 @@ import (
 //   - Permissions-Policy: Disables camera, microphone, and geolocation access.
 //   - X-XSS-Protection: Enables legacy XSS filtering.
 //   - Content-Security-Policy: Restricts resource loading to 'self'.
+//
+// Internal Logic Deep-Dive: We rigorously overwrite all HTTP security headers securely utilizing `w.Header().Set()` directly. Setting them statically this way ensures proper Header Canonicalization and prevents header injection vulnerabilities compared to raw map assignments, while avoiding the overhead of creating maps or iterating during request processing.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Immediately sever the connection if the client has disconnected or timed out.
@@ -57,6 +59,7 @@ type RateLimiter interface {
 // and an HTTP 429 (Too Many Requests) response is returned to the client along with a Retry-After header.
 // Thread-safety: The internal limiter manages its own mutexes and is inherently safe for
 // concurrent execution across thousands of requests.
+// Internal Logic Deep-Dive: We implement a zero-allocation short-circuit path when `limiter.Allow()` fails. By utilizing hardcoded JSON strings via `w.Write()` and setting canonical headers instantly, we aggressively terminate illegitimate traffic with O(1) complexity, safeguarding CPU cycles from expensive JSON serialization operations during layer 7 application floods.
 func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 	if limiter == nil {
 		return func(next http.Handler) http.Handler {
