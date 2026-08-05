@@ -40,7 +40,7 @@ func TestQueueLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	task := asynq.NewTask("test:task", nil)
 	_, err = client.Enqueue(task)
@@ -94,7 +94,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	task := asynq.NewTask("test:panic", nil)
 	_, err = client.Enqueue(task)
@@ -162,7 +162,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
-	defer srv.Stop()
+	defer srv.Shutdown()
 
 	defer func() {
 		if r := recover(); r == nil {
