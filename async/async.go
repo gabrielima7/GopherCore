@@ -39,6 +39,7 @@ func (p *PanicError) Error() string {
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
 // callback functions, if any are provided. If no callback is provided, the panic is silently recovered.
 // Thread-safety: Safely detaches and isolates panic propagation from the calling goroutine.
+// Internal Logic Deep-Dive: We encapsulate the worker in a goroutine and apply a defer recovery block at its root. This strictly isolates panic fault boundaries, guaranteeing that a single bad asynchronous worker never crashes the main application thread.
 func Go(fn func(), onPanic ...func(err error)) {
 	go func() {
 		// By injecting a strict recovery block at the root of every dispatched goroutine,
