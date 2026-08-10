@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"go.uber.org/goleak"
+
 	"bytes"
 	"context"
 	"errors"
@@ -28,6 +30,8 @@ type Payload struct {
 }
 
 func TestChaosMicroserviceSimulation(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	// Initialize dbkit with SQLite
 	dbPath := filepath.Join(t.TempDir(), "chaos_test.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
