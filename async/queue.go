@@ -46,6 +46,7 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	// Internal Logic Deep-Dive: A strict check prevents registering handlers after the queue has started to avoid concurrent map writes inside Asynq.
 	if q.started {
 		panic("asynq: cannot register handler after server has started")
 	}

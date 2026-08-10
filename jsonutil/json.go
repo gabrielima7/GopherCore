@@ -20,6 +20,7 @@ func Marshal(v any) ([]byte, error) {
 // Constraints: Output is significantly larger, should only be used for debugging/logging.
 // Thread-safety: It is fully thread-safe and safe for concurrent use across multiple goroutines.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
+	// Internal Logic Deep-Dive: goccy/go-json provides significant performance improvements for indented serialization by optimizing buffer allocations when inserting whitespace.
 	return gojson.MarshalIndent(v, prefix, indent)
 }
 

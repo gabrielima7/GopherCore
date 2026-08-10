@@ -132,6 +132,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 
 	// ConnectContext opens the database and then pings it. We rely on the provided context
 	// to fail fast if the database is completely unreachable during application bootstrap.
+	// Internal Logic Deep-Dive: Using ConnectContext guarantees that critical schema modifications or bootstrap queries fail fast by verifying the connection immediately, ensuring the application doesn't run with an invalid state.
 	db, err := sqlx.ConnectContext(ctx, cfg.Driver, cfg.DSN)
 	if err != nil {
 		return nil, err
