@@ -1,6 +1,8 @@
 package async
 
 import (
+	"go.uber.org/goleak"
+
 	"context"
 	"errors"
 	"sync/atomic"
@@ -641,6 +643,8 @@ func TestMapWorkerReturnsContextCanceledWithActiveContext(t *testing.T) {
 }
 
 func TestMapContextCancellationDuringSemaphoreWait(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
