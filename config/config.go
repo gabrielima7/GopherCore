@@ -38,6 +38,7 @@ func Load(cfg any) error {
 	}
 
 	// Dereference the pointer to get to the underlying struct type before populating.
+	// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic.
 	v = v.Elem()
 	if v.Kind() != reflect.Struct {
 		return errors.New("cfg must be a pointer to a struct")
