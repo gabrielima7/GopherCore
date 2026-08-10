@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"go.uber.org/goleak"
+
 	"context"
 	"errors"
 	"net/http"
@@ -23,6 +25,8 @@ import (
 var errBadStatus = errors.New("bad status")
 
 func TestIntegrationChaos(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	dbPath := filepath.Join(t.TempDir(), "integration_chaos.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
 	defer func() { _ = db.Close() }()
