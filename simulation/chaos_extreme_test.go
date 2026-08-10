@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"go.uber.org/goleak"
+
 	"context"
 	"errors"
 	"net/http"
@@ -18,6 +20,8 @@ import (
 )
 
 func TestExtremeConcurrencyLoad(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	router := httpkit.NewRouter()
 	var requestCount int64
 	router.Get("/process", func(w http.ResponseWriter, r *http.Request) {
