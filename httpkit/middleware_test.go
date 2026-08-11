@@ -1,6 +1,7 @@
 package httpkit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestSecurityHeadersMiddleware(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := SecurityHeadersMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -38,6 +40,7 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 }
 
 func TestRateLimitMiddleware(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Allow 1 request per second, burst of 1.
 	limiter := rate.NewLimiter(1, 1)
 
@@ -66,6 +69,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 }
 
 func TestCORSMiddleware(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := CORSMiddleware(
 		[]string{"https://example.com"},
 		[]string{"GET", "POST"},
@@ -112,6 +116,7 @@ func TestCORSMiddleware(t *testing.T) {
 }
 
 func TestSecurityHeadersMiddlewareConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := SecurityHeadersMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -141,6 +146,7 @@ func TestSecurityHeadersMiddlewareConcurrency(t *testing.T) {
 }
 
 func TestRateLimitMiddlewareConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Allow 100 requests per second, burst of 100
 	limiter := rate.NewLimiter(100, 100)
 
@@ -173,6 +179,7 @@ func TestRateLimitMiddlewareConcurrency(t *testing.T) {
 }
 
 func TestCORSMiddlewareConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := CORSMiddleware(
 		[]string{"https://example.com"},
 		[]string{"GET", "POST"},
@@ -216,6 +223,7 @@ func TestCORSMiddlewareConcurrency(t *testing.T) {
 }
 
 func TestCORSWildcard(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := CORSMiddleware(
 		[]string{"*"},
 		[]string{"GET"},
@@ -238,6 +246,7 @@ func TestCORSWildcard(t *testing.T) {
 }
 
 func TestNoOriginHeader(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	handler := CORSMiddleware(
 		[]string{"https://example.com"},
 		[]string{"GET"},
@@ -256,6 +265,7 @@ func TestNoOriginHeader(t *testing.T) {
 }
 
 func TestMiddleware_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	dummyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

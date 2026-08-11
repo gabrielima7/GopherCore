@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"math"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestDoSuccess(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var calls int
 	err := Do(context.Background(), func(_ context.Context) error {
 		calls++
@@ -24,6 +26,7 @@ func TestDoSuccess(t *testing.T) {
 }
 
 func TestDoContextCancelledDuringDelay(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	attempts := 0
@@ -51,6 +54,7 @@ func TestDoContextCancelledDuringDelay(t *testing.T) {
 }
 
 func TestDoRetryAndSucceed(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var calls int
 	err := Do(context.Background(), func(_ context.Context) error {
 		calls++
@@ -68,6 +72,7 @@ func TestDoRetryAndSucceed(t *testing.T) {
 }
 
 func TestDoMaxAttemptsReached(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var calls int
 	err := Do(context.Background(), func(_ context.Context) error {
 		calls++
@@ -86,6 +91,7 @@ func TestDoMaxAttemptsReached(t *testing.T) {
 }
 
 func TestDoContextCancellation(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	var calls int
 	err := Do(ctx, func(_ context.Context) error {
@@ -102,6 +108,7 @@ func TestDoContextCancellation(t *testing.T) {
 }
 
 func TestDoContextAlreadyCancelled(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel before calling Do.
 
@@ -116,6 +123,7 @@ func TestDoContextAlreadyCancelled(t *testing.T) {
 }
 
 func TestDoRetryIf(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	permanentErr := errors.New("permanent")
 	var calls int
 	err := Do(context.Background(), func(_ context.Context) error {
@@ -134,6 +142,7 @@ func TestDoRetryIf(t *testing.T) {
 }
 
 func TestDoConstantStrategy(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var calls int
 	start := time.Now()
 	err := Do(context.Background(), func(_ context.Context) error {
@@ -155,6 +164,7 @@ func TestDoConstantStrategy(t *testing.T) {
 }
 
 func TestDoWithValue(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var calls atomic.Int32
 	val, err := DoWithValue(context.Background(), func(_ context.Context) (string, error) {
 		calls.Add(1)
@@ -173,6 +183,7 @@ func TestDoWithValue(t *testing.T) {
 }
 
 func TestDoWithValueAllFail(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	val, err := DoWithValue(context.Background(), func(_ context.Context) (int, error) {
 		return 0, errors.New("fail")
 	}, WithMaxAttempts(2), WithInitialDelay(time.Millisecond), WithJitter(false))
@@ -189,6 +200,7 @@ func TestDoWithValueAllFail(t *testing.T) {
 }
 
 func TestDoWithValueContextCancelled(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -203,6 +215,7 @@ func TestDoWithValueContextCancelled(t *testing.T) {
 }
 
 func TestDoWithValueContextCancelledDuringRetry(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	var calls int
 	_, err := DoWithValue(ctx, func(_ context.Context) (int, error) {
@@ -219,6 +232,7 @@ func TestDoWithValueContextCancelledDuringRetry(t *testing.T) {
 }
 
 func TestDoWithValueRetryIf(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	permanentErr := errors.New("permanent")
 	var calls int
 	_, err := DoWithValue(context.Background(), func(_ context.Context) (string, error) {
@@ -237,6 +251,7 @@ func TestDoWithValueRetryIf(t *testing.T) {
 }
 
 func TestWithMaxDelay(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := defaultConfig()
 	WithMaxDelay(5 * time.Second)(&cfg)
 	if cfg.MaxDelay != 5*time.Second {
@@ -245,6 +260,7 @@ func TestWithMaxDelay(t *testing.T) {
 }
 
 func TestWithMaxAttemptsZero(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := defaultConfig()
 	original := cfg.MaxAttempts
 	WithMaxAttempts(0)(&cfg) // zero should be ignored
@@ -254,6 +270,7 @@ func TestWithMaxAttemptsZero(t *testing.T) {
 }
 
 func TestWithMaxAttemptsNegative(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := defaultConfig()
 	original := cfg.MaxAttempts
 	WithMaxAttempts(-1)(&cfg) // negative should be ignored
@@ -263,6 +280,7 @@ func TestWithMaxAttemptsNegative(t *testing.T) {
 }
 
 func TestCalculateDelayExponential(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     10 * time.Second,
@@ -288,6 +306,7 @@ func TestCalculateDelayExponential(t *testing.T) {
 }
 
 func TestCalculateDelayMaxCap(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		InitialDelay: 1 * time.Second,
 		MaxDelay:     5 * time.Second,
@@ -307,6 +326,7 @@ func TestCalculateDelayMaxCap(t *testing.T) {
 }
 
 func TestCalculateDelayInitialExceedsMax(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		InitialDelay: 10 * time.Second,
 		MaxDelay:     5 * time.Second,
@@ -319,6 +339,7 @@ func TestCalculateDelayInitialExceedsMax(t *testing.T) {
 }
 
 func TestCalculateDelayUnknownStrategy(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     10 * time.Second,
@@ -338,6 +359,7 @@ func (e errorReader) Read(p []byte) (n int, err error) {
 }
 
 func TestCalculateDelayJitterErrorFallback(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	originalReader := randReader
 	t.Cleanup(func() { randReader = originalReader })
 
@@ -359,6 +381,7 @@ func TestCalculateDelayJitterErrorFallback(t *testing.T) {
 }
 
 func TestCalculateDelaySafeAttemptBound(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// A delay calculation without exceeding MaxDelay logic, but safeAttempt capped at 62
 	// 100ms * 2^62 is larger than max int64 duration, so we use a small initial delay
 	cfg := &Config{
@@ -376,6 +399,7 @@ func TestCalculateDelaySafeAttemptBound(t *testing.T) {
 }
 
 func TestCalculateDelayJitterBounds(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		InitialDelay: 100 * time.Millisecond,
 		MaxDelay:     10 * time.Second,
@@ -417,6 +441,7 @@ func FuzzCalculateDelay(f *testing.F) {
 }
 
 func TestCalculateDelayZeroMaxDelay(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := &Config{
 		MaxDelay: 0,
 	}
@@ -426,6 +451,7 @@ func TestCalculateDelayZeroMaxDelay(t *testing.T) {
 }
 
 func TestDo_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errTest := errors.New("test error")
 	errAbort := errors.New("abort error")
 
@@ -572,6 +598,7 @@ func TestDo_TableDriven(t *testing.T) {
 }
 
 func TestDoConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name        string
 		isValueTest bool
@@ -623,6 +650,7 @@ func TestDoConcurrency(t *testing.T) {
 }
 
 func TestDoWithValue_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errAbort := errors.New("abort error")
 
 	tests := []struct {

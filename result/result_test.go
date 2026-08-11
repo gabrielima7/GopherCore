@@ -1,6 +1,7 @@
 package result
 
 import (
+	"go.uber.org/goleak"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 )
 
 func TestResultConstructors_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errFail := errors.New("something failed")
 
 	tests := []struct {
@@ -81,6 +83,7 @@ func TestResultConstructors_TableDriven(t *testing.T) {
 }
 
 func TestOf(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		valFn    func() (int, error)
@@ -122,6 +125,7 @@ func TestOf(t *testing.T) {
 }
 
 func TestUnwrapOr(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ok := Ok(10)
 	if ok.UnwrapOr(0) != 10 {
 		t.Fatal("expected 10")
@@ -133,6 +137,7 @@ func TestUnwrapOr(t *testing.T) {
 }
 
 func TestUnwrapOrElse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		res      Result[int]
@@ -180,6 +185,7 @@ func TestUnwrapOrElse(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name string
 		res  Result[int]
@@ -219,6 +225,7 @@ func TestError(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	r := Ok(5)
 	doubled := Map(r, func(v int) int { return v * 2 })
 	val, err := doubled.Unwrap()
@@ -237,6 +244,7 @@ func TestMap(t *testing.T) {
 }
 
 func TestFlatMap(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	r := Ok(10)
 	halved := FlatMap(r, func(v int) Result[int] {
 		if v%2 != 0 {
@@ -260,6 +268,7 @@ func TestFlatMap(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ok := Ok(42)
 	if ok.String() != "Ok(42)" {
 		t.Fatalf("unexpected string: %s", ok.String())
@@ -271,6 +280,7 @@ func TestString(t *testing.T) {
 }
 
 func TestResult_Methods_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errBoom := errors.New("boom")
 
 	tests := []struct {
@@ -483,6 +493,7 @@ func FuzzResultUnwrapOr(f *testing.F) {
 }
 
 func TestResultConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name  string
 		isMap bool
