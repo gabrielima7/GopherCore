@@ -1,6 +1,7 @@
 package jsonutil
 
 import (
+	"go.uber.org/goleak"
 	"bytes"
 	"errors"
 	"strings"
@@ -16,6 +17,7 @@ type testStruct struct {
 }
 
 func TestMarshal(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	s := testStruct{Name: "Alice", Age: 30}
 	data, err := Marshal(s)
 	if err != nil {
@@ -28,6 +30,7 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestMarshalIndent(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	s := testStruct{Name: "Bob", Age: 25}
 	data, err := MarshalIndent(s, "", "  ")
 	if err != nil {
@@ -39,6 +42,7 @@ func TestMarshalIndent(t *testing.T) {
 }
 
 func TestUnmarshal(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	raw := `{"name":"Charlie","age":40,"email":"charlie@example.com"}`
 	var s testStruct
 	if err := Unmarshal([]byte(raw), &s); err != nil {
@@ -50,6 +54,7 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestRoundtrip(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	original := testStruct{Name: "Dana", Age: 35, Email: "dana@test.com"}
 	data, err := Marshal(original)
 	if err != nil {
@@ -66,6 +71,7 @@ func TestRoundtrip(t *testing.T) {
 }
 
 func TestUnmarshalNil(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var s testStruct
 	err := Unmarshal(nil, &s)
 	if err == nil {
@@ -74,6 +80,7 @@ func TestUnmarshalNil(t *testing.T) {
 }
 
 func TestUnmarshalInvalidJSON(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var s testStruct
 	err := Unmarshal([]byte("{invalid"), &s)
 	if err == nil {
@@ -82,6 +89,7 @@ func TestUnmarshalInvalidJSON(t *testing.T) {
 }
 
 func TestEncoder(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var buf bytes.Buffer
 	enc := NewEncoder(&buf)
 	if err := enc.Encode(testStruct{Name: "Eve", Age: 28}); err != nil {
@@ -93,6 +101,7 @@ func TestEncoder(t *testing.T) {
 }
 
 func TestDecoder(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	input := `{"name":"Frank","age":50}`
 	dec := NewDecoder(strings.NewReader(input))
 	var s testStruct
@@ -105,6 +114,7 @@ func TestDecoder(t *testing.T) {
 }
 
 func TestValid_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		input    []byte
@@ -141,6 +151,7 @@ func (e *errorWriter) Write(p []byte) (n int, err error) {
 }
 
 func TestEncoder_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name         string
 		data         any
@@ -177,6 +188,7 @@ func (e *errorReader) Read(p []byte) (n int, err error) {
 }
 
 func TestDecoder_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name         string
 		input        string
@@ -208,6 +220,7 @@ func TestDecoder_TableDriven(t *testing.T) {
 }
 
 func TestMarshalIndent_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name      string
 		data      any
@@ -228,6 +241,7 @@ func TestMarshalIndent_TableDriven(t *testing.T) {
 }
 
 func TestConcurrency_ThreadSafety(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	const numGoroutines = 100
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines * 3)
@@ -257,6 +271,7 @@ func TestConcurrency_ThreadSafety(t *testing.T) {
 }
 
 func TestMarshalNestedStruct(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	type inner struct {
 		ID int `json:"id"`
 	}

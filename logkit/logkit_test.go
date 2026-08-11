@@ -1,6 +1,7 @@
 package logkit
 
 import (
+	"go.uber.org/goleak"
 	"bytes"
 	"encoding/json"
 	"log/slog"
@@ -8,6 +9,7 @@ import (
 )
 
 func TestNewLogger(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name          string
 		opts          []Option
@@ -98,6 +100,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestInitialize(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Capture the original logger to prevent global state leakage across tests.
 	originalLogger := slog.Default()
 	defer slog.SetDefault(originalLogger)

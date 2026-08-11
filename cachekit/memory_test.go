@@ -1,6 +1,7 @@
 package cachekit_test
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"sync"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestInMemoryCache(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	ctx := context.Background()
 
 	tests := []struct {

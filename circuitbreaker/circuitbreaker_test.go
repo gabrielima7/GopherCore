@@ -1,6 +1,7 @@
 package circuitbreaker
 
 import (
+	"go.uber.org/goleak"
 	"errors"
 	"sync"
 	"testing"
@@ -19,6 +20,7 @@ func newTestBreaker() *Breaker {
 }
 
 func TestClosedState(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 	if cb.State() != StateClosed {
 		t.Fatalf("expected Closed, got %s", cb.State())
@@ -31,6 +33,7 @@ func TestClosedState(t *testing.T) {
 }
 
 func TestTransitionToOpen(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 
 	// Trigger failure threshold.
@@ -49,6 +52,7 @@ func TestTransitionToOpen(t *testing.T) {
 }
 
 func TestTransitionToHalfOpen(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 
 	for i := 0; i < 3; i++ {
@@ -64,6 +68,7 @@ func TestTransitionToHalfOpen(t *testing.T) {
 }
 
 func TestHalfOpenToClosedOnSuccess(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := New(Config{
 		FailureThreshold:    2,
 		SuccessThreshold:    2,
@@ -91,6 +96,7 @@ func TestHalfOpenToClosedOnSuccess(t *testing.T) {
 }
 
 func TestHalfOpenToOpenOnFailure(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 
 	for i := 0; i < 3; i++ {
@@ -107,6 +113,7 @@ func TestHalfOpenToOpenOnFailure(t *testing.T) {
 }
 
 func TestTooManyRequestsInHalfOpen(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker() // MaxHalfOpenRequests = 1
 
 	for i := 0; i < 3; i++ {
@@ -144,6 +151,7 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 }
 
 func TestReset_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name          string
 		setup         func(*testing.T, *Breaker)
@@ -200,6 +208,7 @@ func TestReset_TableDriven(t *testing.T) {
 }
 
 func TestOnStateChange(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var transitions []struct{ from, to State }
 	cb := New(Config{
 		FailureThreshold:    2,
@@ -222,6 +231,7 @@ func TestOnStateChange(t *testing.T) {
 }
 
 func TestStateString(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		state    State
 		expected string
@@ -239,6 +249,7 @@ func TestStateString(t *testing.T) {
 }
 
 func TestBreaker_Execute_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errGeneric := errors.New("generic error")
 
 	tests := []struct {
@@ -355,6 +366,7 @@ func TestBreaker_Execute_TableDriven(t *testing.T) {
 }
 
 func TestConcurrentExecute(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := New(Config{
 		FailureThreshold:    100,
 		SuccessThreshold:    1,
@@ -378,6 +390,7 @@ func TestConcurrentExecute(t *testing.T) {
 }
 
 func TestConfig_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		input    Config
@@ -455,6 +468,7 @@ func TestConfig_TableDriven(t *testing.T) {
 }
 
 func TestTransitionToSameStateIsNoOp(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	called := false
 	cb := New(Config{
 		FailureThreshold:    3,
@@ -479,6 +493,7 @@ func TestTransitionToSameStateIsNoOp(t *testing.T) {
 }
 
 func TestExecuteSuccessInClosedResetsFailures(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 
 	// Add some failures (below threshold).
@@ -498,6 +513,7 @@ func TestExecuteSuccessInClosedResetsFailures(t *testing.T) {
 }
 
 func TestNoOnStateChangeCallback(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Config without OnStateChange — should not panic.
 	cb := New(Config{
 		FailureThreshold: 1,
@@ -511,6 +527,7 @@ func TestNoOnStateChangeCallback(t *testing.T) {
 }
 
 func TestFullCycleClosedOpenHalfOpenClosed(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var stateLog []string
 	cb := New(Config{
 		FailureThreshold:    2,
@@ -570,6 +587,7 @@ func FuzzBreakerThresholds(f *testing.F) {
 }
 
 func TestExecutePanic(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cb := newTestBreaker()
 
 	// Ensure a panic inside Execute records a failure and propagates the panic.

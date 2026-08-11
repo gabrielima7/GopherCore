@@ -1,6 +1,7 @@
 package guard
 
 import (
+	"go.uber.org/goleak"
 	"errors"
 	"fmt"
 	"testing"
@@ -15,6 +16,7 @@ type createUserInput struct {
 }
 
 func TestValidate_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	type Inner struct {
 		Code string `validate:"required,min=3"`
 	}
@@ -180,6 +182,7 @@ func TestValidate_TableDriven(t *testing.T) {
 }
 
 func TestValidationErrorsString(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	errs := ValidationErrors{
 		{Field: "Name", Tag: "required", Message: "field 'Name' is required"},
 		{Field: "Email", Tag: "email", Message: "field 'Email' must be a valid email address"},
@@ -194,6 +197,7 @@ func TestValidationErrorsString(t *testing.T) {
 }
 
 func TestValidationErrorString(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	e := ValidationError{
 		Field:   "Name",
 		Tag:     "required",
@@ -205,6 +209,7 @@ func TestValidationErrorString(t *testing.T) {
 }
 
 func TestRegisterValidation(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	err := RegisterValidation("is_even", func(fl validator.FieldLevel) bool {
 		return fl.Field().Int()%2 == 0
 	})
@@ -229,6 +234,7 @@ func TestRegisterValidation(t *testing.T) {
 }
 
 func TestSanitizeString(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		input    string
@@ -254,6 +260,7 @@ func TestSanitizeString(t *testing.T) {
 }
 
 func TestStripHTML(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		input    string
@@ -277,6 +284,7 @@ func TestStripHTML(t *testing.T) {
 }
 
 func TestFormatValidationErrorAllTags_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Define exactly one failing tag condition per struct to cleanly test `formatValidationError`.
 	type reqInput struct {
 		Val string `validate:"required"`
@@ -412,6 +420,7 @@ func FuzzSanitizeString(f *testing.F) {
 }
 
 func TestGuardConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name string
 		fn   func() error

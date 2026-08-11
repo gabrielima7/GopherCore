@@ -1,6 +1,7 @@
 package grpckit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -103,6 +104,7 @@ func (errorService) EmptyCall(_ context.Context, _ *grpc_testing.Empty) (*grpc_t
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	tests := []struct {
 		name string
 		opts []ServerOption
@@ -122,6 +124,7 @@ func TestNewServer_TableDriven(t *testing.T) {
 }
 
 func TestNewServer_WithNilOption(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Nil options must be silently skipped; the constructor must not panic.
 	srv := NewServer(nil, nil)
 	if srv == nil {
@@ -131,6 +134,7 @@ func TestNewServer_WithNilOption(t *testing.T) {
 }
 
 func TestNewServer_WithServerLogger(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	logger := silentLogger()
 	srv := NewServer(WithServerLogger(logger))
 	if srv == nil {
@@ -140,6 +144,7 @@ func TestNewServer_WithServerLogger(t *testing.T) {
 }
 
 func TestNewServer_WithNilLogger(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// A nil logger must be silently ignored; the default logger is kept.
 	srv := NewServer(WithServerLogger(nil))
 	if srv == nil {
@@ -149,6 +154,7 @@ func TestNewServer_WithNilLogger(t *testing.T) {
 }
 
 func TestWithServerAddress(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseServerOptions(WithServerAddress(":9999"))
 	if cfg.addr != ":9999" {
 		t.Fatalf("expected :9999, got %s", cfg.addr)
@@ -156,6 +162,7 @@ func TestWithServerAddress(t *testing.T) {
 }
 
 func TestWithServerTLS_NilIgnored(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseServerOptions(WithServerTLS(nil))
 	if cfg.tlsConfig != nil {
 		t.Fatal("nil *tls.Config should be ignored")
@@ -163,6 +170,7 @@ func TestWithServerTLS_NilIgnored(t *testing.T) {
 }
 
 func TestWithServerTLS_Applied(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS13}
 	cfg := parseServerOptions(WithServerTLS(tlsCfg))
 	if cfg.tlsConfig == nil {
@@ -171,6 +179,7 @@ func TestWithServerTLS_Applied(t *testing.T) {
 }
 
 func TestWithUnaryInterceptors_NilSkipped(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseServerOptions(WithUnaryInterceptors(nil, nil))
 	if len(cfg.unaryInterceptors) != 0 {
 		t.Fatalf("expected 0 interceptors after nil inputs, got %d", len(cfg.unaryInterceptors))
@@ -178,6 +187,7 @@ func TestWithUnaryInterceptors_NilSkipped(t *testing.T) {
 }
 
 func TestWithStreamInterceptors_NilSkipped(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseServerOptions(WithStreamInterceptors(nil))
 	if len(cfg.streamInterceptors) != 0 {
 		t.Fatalf("expected 0 interceptors after nil inputs, got %d", len(cfg.streamInterceptors))
@@ -189,6 +199,7 @@ func TestWithStreamInterceptors_NilSkipped(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewClient_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Start a fast-failing local listener to test pure option configurations without network dependencies
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -232,6 +243,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 }
 
 func TestNewClient_InvalidTarget(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Dial to a port that nothing listens on should fail within the timeout.
 	_, err := NewClient("127.0.0.1:1", WithDialTimeout(200*time.Millisecond))
 	// grpc.NewClient is non-blocking by default; a successful non-blocking dial
@@ -241,6 +253,7 @@ func TestNewClient_InvalidTarget(t *testing.T) {
 }
 
 func TestWithInsecure(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithInsecure())
 	if cfg.tlsConfig != nil {
 		t.Fatal("WithInsecure should set tlsConfig to nil")
@@ -248,6 +261,7 @@ func TestWithInsecure(t *testing.T) {
 }
 
 func TestWithClientTLS_NilIgnored(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithClientTLS(nil))
 	if cfg.tlsConfig != nil {
 		t.Fatal("nil *tls.Config should be ignored")
@@ -255,6 +269,7 @@ func TestWithClientTLS_NilIgnored(t *testing.T) {
 }
 
 func TestWithClientTLS_Applied(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS13}
 	cfg := parseClientOptions(WithClientTLS(tlsCfg))
 	if cfg.tlsConfig == nil {
@@ -263,6 +278,7 @@ func TestWithClientTLS_Applied(t *testing.T) {
 }
 
 func TestWithDialTimeout_PositiveValue(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithDialTimeout(5 * time.Second))
 	if cfg.dialTimeout != 5*time.Second {
 		t.Fatalf("expected 5s, got %v", cfg.dialTimeout)
@@ -270,6 +286,7 @@ func TestWithDialTimeout_PositiveValue(t *testing.T) {
 }
 
 func TestWithDialTimeout_ZeroIgnored(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithDialTimeout(0))
 	if cfg.dialTimeout != 10*time.Second {
 		t.Fatalf("expected default 10s, got %v", cfg.dialTimeout)
@@ -277,6 +294,7 @@ func TestWithDialTimeout_ZeroIgnored(t *testing.T) {
 }
 
 func TestWithDialTimeout_NegativeIgnored(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithDialTimeout(-1 * time.Second))
 	if cfg.dialTimeout != 10*time.Second {
 		t.Fatalf("expected default 10s, got %v", cfg.dialTimeout)
@@ -284,6 +302,7 @@ func TestWithDialTimeout_NegativeIgnored(t *testing.T) {
 }
 
 func TestWithClientUnaryInterceptors_NilSkipped(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithClientUnaryInterceptors(nil))
 	if len(cfg.unaryInterceptors) != 0 {
 		t.Fatalf("expected 0 interceptors, got %d", len(cfg.unaryInterceptors))
@@ -291,6 +310,7 @@ func TestWithClientUnaryInterceptors_NilSkipped(t *testing.T) {
 }
 
 func TestWithClientStreamInterceptors_NilSkipped(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(WithClientStreamInterceptors(nil))
 	if len(cfg.streamInterceptors) != 0 {
 		t.Fatalf("expected 0 interceptors, got %d", len(cfg.streamInterceptors))
@@ -298,6 +318,7 @@ func TestWithClientStreamInterceptors_NilSkipped(t *testing.T) {
 }
 
 func TestWithClientNilOption(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := parseClientOptions(nil, nil)
 	// Defaults must be intact.
 	if cfg.dialTimeout != 10*time.Second {
@@ -310,6 +331,7 @@ func TestWithClientNilOption(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_HappyPath_UnaryRPC(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	srv := NewServer(WithServerLogger(silentLogger()))
 	addr := startTestServer(t, srv, okService{})
 
@@ -338,6 +360,7 @@ func TestNewServer_HappyPath_UnaryRPC(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_ErrorPath_UnaryRPC(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	srv := NewServer(WithServerLogger(silentLogger()))
 	addr := startTestServer(t, srv, errorService{})
 
@@ -372,6 +395,7 @@ func TestNewServer_ErrorPath_UnaryRPC(t *testing.T) {
 //  3. Asserts the server is still alive after the panic (sends a second RPC).
 //  4. Asserts the client receives codes.Internal, NOT a transport-level crash.
 func TestRecoveryUnaryInterceptor_HandlerPanic(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Capture log output to verify the panic is recorded.
 	var logBuf strings.Builder
 	logger := slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelError}))
@@ -437,6 +461,7 @@ func TestRecoveryUnaryInterceptor_HandlerPanic(t *testing.T) {
 }
 
 func TestInterceptors_ContextCancellation(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // pre-cancel context
 
@@ -476,6 +501,7 @@ func TestInterceptors_ContextCancellation(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestRecoveryUnaryInterceptor_NoPanic(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := RecoveryUnaryInterceptor(silentLogger())
 	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/NoPanic"}
 	handler := func(_ context.Context, _ any) (any, error) {
@@ -492,6 +518,7 @@ func TestRecoveryUnaryInterceptor_NoPanic(t *testing.T) {
 }
 
 func TestRecoveryUnaryInterceptor_Panic(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := RecoveryUnaryInterceptor(silentLogger())
 	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Panic"}
 	handler := func(_ context.Context, _ any) (any, error) {
@@ -508,6 +535,7 @@ func TestRecoveryUnaryInterceptor_Panic(t *testing.T) {
 }
 
 func TestLoggingUnaryInterceptor_OK(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := LoggingUnaryInterceptor(silentLogger())
 	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/OK"}
 	handler := func(_ context.Context, _ any) (any, error) {
@@ -521,6 +549,7 @@ func TestLoggingUnaryInterceptor_OK(t *testing.T) {
 }
 
 func TestLoggingUnaryInterceptor_Error(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := LoggingUnaryInterceptor(silentLogger())
 	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/Error"}
 	wantErr := status.Error(codes.PermissionDenied, "not allowed")
@@ -535,6 +564,7 @@ func TestLoggingUnaryInterceptor_Error(t *testing.T) {
 }
 
 func TestRecoveryStreamInterceptor_Panic(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := RecoveryStreamInterceptor(silentLogger())
 	info := &grpc.StreamServerInfo{FullMethod: "/test.Service/Stream"}
 	handler := func(_ any, _ grpc.ServerStream) error {
@@ -549,6 +579,7 @@ func TestRecoveryStreamInterceptor_Panic(t *testing.T) {
 }
 
 func TestLoggingStreamInterceptor_OK(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := LoggingStreamInterceptor(silentLogger())
 	info := &grpc.StreamServerInfo{FullMethod: "/test.Service/Stream"}
 	handler := func(_ any, _ grpc.ServerStream) error { return nil }
@@ -640,6 +671,7 @@ func makeTLSClientConfig(t *testing.T, certDER []byte) *tls.Config {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestDefaultServerConfig(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := defaultServerConfig()
 	if cfg.addr != ":50051" {
 		t.Fatalf("expected :50051, got %s", cfg.addr)
@@ -656,6 +688,7 @@ func TestDefaultServerConfig(t *testing.T) {
 }
 
 func TestDefaultClientConfig(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	cfg := defaultClientConfig()
 	if cfg.dialTimeout != 10*time.Second {
 		t.Fatalf("expected 10s, got %v", cfg.dialTimeout)
@@ -670,6 +703,7 @@ func TestDefaultClientConfig(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_WithCustomUnaryInterceptor(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	called := false
 	custom := func(
 		ctx context.Context,
@@ -715,6 +749,7 @@ func TestNewServer_WithCustomUnaryInterceptor(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestWithUnaryInterceptors_NonNilAppended(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	noop := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		return handler(ctx, req)
 	}
@@ -730,6 +765,7 @@ func TestWithUnaryInterceptors_NonNilAppended(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestWithStreamInterceptors_NonNilAppended(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	noop := func(_ any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		return handler(nil, ss)
 	}
@@ -748,6 +784,7 @@ func TestWithStreamInterceptors_NonNilAppended(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_WithTLS(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Generate a minimal self-signed certificate valid for the test.
 	cert, err := generateSelfSignedCert(t)
 	if err != nil {
@@ -772,6 +809,7 @@ func TestNewServer_WithTLS(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestWithClientUnaryInterceptors_NonNilAppended(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	noop := func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
@@ -787,6 +825,7 @@ func TestWithClientUnaryInterceptors_NonNilAppended(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestWithClientStreamInterceptors_NonNilAppended(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	noop := func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		return streamer(ctx, desc, cc, method, opts...)
 	}
@@ -802,6 +841,7 @@ func TestWithClientStreamInterceptors_NonNilAppended(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	unaryCalled := false
 	unaryInterceptor := func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		unaryCalled = true
@@ -868,6 +908,7 @@ func TestNewClient_WithUnaryAndStreamInterceptors(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewClient_WithTLS(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	// Generate a self-signed cert and parse its DER bytes for the client pool.
 	cert, err := generateSelfSignedCert(t)
 	if err != nil {
@@ -927,6 +968,7 @@ func TestNewClient_WithTLS(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestLoggingStreamInterceptor_Error(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	interceptor := LoggingStreamInterceptor(silentLogger())
 	info := &grpc.StreamServerInfo{FullMethod: "/test.Service/StreamError"}
 	wantErr := status.Error(codes.Unavailable, "stream unavailable")
@@ -946,6 +988,7 @@ func TestLoggingStreamInterceptor_Error(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestNewServer_WithCustomStreamInterceptor(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"))
 	called := false
 	customStream := func(_ any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		called = true

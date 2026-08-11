@@ -1,6 +1,7 @@
 package dbkit
 
 import (
+	"go.uber.org/goleak"
 	"errors"
 	"os"
 	"path/filepath"
@@ -101,6 +102,7 @@ func getSourceURLs(t *testing.T) (string, string) {
 }
 
 func TestRunMigrations_CloseErrors(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	sourceURL, errSourceURL := getSourceURLs(t)
 
@@ -148,6 +150,7 @@ func TestRunMigrations_CloseErrors(t *testing.T) {
 }
 
 func TestRollbackMigrations_CloseErrors(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	sourceURL, errSourceURL := getSourceURLs(t)
 
@@ -204,6 +207,7 @@ func TestRollbackMigrations_CloseErrors(t *testing.T) {
 }
 
 func TestGetMigrationVersion_CloseErrors(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	sourceURL, errSourceURL := getSourceURLs(t)
 

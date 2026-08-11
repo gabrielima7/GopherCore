@@ -1,6 +1,7 @@
 package otelkit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"testing"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestInitSDK(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"), goleak.IgnoreTopFunction("go.opentelemetry.io/otel/sdk/trace.(*batchSpanProcessor).processQueue"))
 	tests := []struct {
 		name        string
 		serviceName string
