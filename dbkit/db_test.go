@@ -1,6 +1,7 @@
 package dbkit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"os"
 	"path/filepath"
@@ -31,6 +32,7 @@ func newTestDB(t *testing.T) *sqlx.DB {
 }
 
 func TestConnectEmptyDriver(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	ctx := context.Background()
 	_, err := Connect(ctx, "", "some-dsn")
 	if err == nil {
@@ -42,6 +44,7 @@ func TestConnectEmptyDriver(t *testing.T) {
 }
 
 func TestConnectEmptyDSN(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	ctx := context.Background()
 	_, err := Connect(ctx, "sqlite3", "")
 	if err == nil {
@@ -53,6 +56,7 @@ func TestConnectEmptyDSN(t *testing.T) {
 }
 
 func TestConnectSuccess(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "connect_test.db")
 	ctx := context.Background()
 	db, err := Connect(ctx, "sqlite3", dbPath,
@@ -73,6 +77,7 @@ func TestConnectSuccess(t *testing.T) {
 }
 
 func TestConnectInvalidDriver(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	ctx := context.Background()
 	_, err := Connect(ctx, "nonexistent_driver", "some-dsn")
 	if err == nil {
@@ -81,6 +86,7 @@ func TestConnectInvalidDriver(t *testing.T) {
 }
 
 func TestConnectWithOptions(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "options_test.db")
 	ctx := context.Background()
 	db, err := Connect(ctx, "sqlite3", dbPath,
@@ -102,6 +108,7 @@ func TestConnectWithOptions(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	cfg := DefaultConfig("sqlite3", "test.db")
 	if cfg.Driver != "sqlite3" {
 		t.Fatalf("expected 'sqlite3', got %q", cfg.Driver)
@@ -124,6 +131,7 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestConfigOptions_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	tests := []struct {
 		name     string
 		opts     []Option
@@ -179,6 +187,7 @@ func TestConfigOptions_TableDriven(t *testing.T) {
 }
 
 func TestMustConnectSuccess(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "must_connect_test.db")
 	ctx := context.Background()
 	db := MustConnect(ctx, "sqlite3", dbPath)
@@ -190,6 +199,7 @@ func TestMustConnectSuccess(t *testing.T) {
 }
 
 func TestMustConnectPanicsOnEmptyDriver(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -207,6 +217,7 @@ func TestMustConnectPanicsOnEmptyDriver(t *testing.T) {
 }
 
 func TestMustConnectPanicsOnInvalidDriver(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	defer func() {
 		if r := recover(); r == nil {
 			t.Fatal("expected panic from MustConnect with invalid driver")
@@ -216,6 +227,7 @@ func TestMustConnectPanicsOnInvalidDriver(t *testing.T) {
 }
 
 func TestHealthCheck_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	tests := []struct {
 		name      string
 		setup     func(t *testing.T) (*sqlx.DB, context.Context, context.CancelFunc)
@@ -274,6 +286,7 @@ func TestHealthCheck_TableDriven(t *testing.T) {
 }
 
 func TestConnectWithPreparedStatements(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "prepared_test.db")
 	ctx := context.Background()
 	db, err := Connect(ctx, "sqlite3", dbPath)
@@ -312,6 +325,7 @@ func TestConnectWithPreparedStatements(t *testing.T) {
 }
 
 func TestConnectWithSQLInjectionPrevention(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "injection_test.db")
 	ctx := context.Background()
 	db, err := Connect(ctx, "sqlite3", dbPath)
@@ -344,6 +358,7 @@ func TestConnectWithSQLInjectionPrevention(t *testing.T) {
 // TestConnectCancelledContext verifies that Connect returns an error
 // when the context is already cancelled.
 func TestConnectCancelledContext(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "cancelled.db")
 	// Create the file first so driver doesn't fail on missing file.
 	f, err := os.Create(filepath.Clean(dbPath))
@@ -362,6 +377,7 @@ func TestConnectCancelledContext(t *testing.T) {
 }
 
 func TestConnect_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "tdt_connect_test.db")
 
 	tests := []struct {
@@ -462,6 +478,7 @@ func TestConnect_TableDriven(t *testing.T) {
 }
 
 func TestMustConnect_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := filepath.Join(t.TempDir(), "tdt_must_connect_test.db")
 
 	tests := []struct {

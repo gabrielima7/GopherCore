@@ -15,9 +15,11 @@ import (
 	"github.com/gabrielima7/GopherCore/httpkit"
 	"github.com/gabrielima7/GopherCore/result"
 	"github.com/gabrielima7/GopherCore/retry"
+	"go.uber.org/goleak"
 )
 
 func TestMassiveConcurrencyLoad(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// 1. Setup simulated backend
 	router := httpkit.NewRouter(
 		httpkit.WithRateLimit(100000, 200000), // Huge rate limit

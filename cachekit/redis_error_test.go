@@ -1,6 +1,7 @@
 package cachekit_test
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 )
 
 func TestRedisCache_Errors(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
