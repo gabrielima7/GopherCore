@@ -1,6 +1,7 @@
 package httpkit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"net"
@@ -21,6 +22,7 @@ func mustCloseRouterTest(t *testing.T, closer interface{ Close() error }) {
 }
 
 func TestNewRouter(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	r := NewRouter(
 		WithCORS("https://example.com"),
 		WithRateLimit(1000, 2000),
@@ -50,6 +52,7 @@ func TestNewRouter(t *testing.T) {
 }
 
 func TestNewRouter_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name string
 		opts []RouterOption
@@ -68,6 +71,7 @@ func TestNewRouter_TableDriven(t *testing.T) {
 }
 
 func TestRouterMetricsRegistration(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name         string
 		metricsPath  string
@@ -107,6 +111,7 @@ func TestRouterMetricsRegistration(t *testing.T) {
 }
 
 func TestRouterOptions(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name     string
 		opts     []RouterOption
@@ -179,6 +184,7 @@ func TestRouterOptions(t *testing.T) {
 }
 
 func TestNewRouterWithDisabledRateLimit(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	r := NewRouter(
 		WithRateLimit(0, 0), // Disabled
 		WithLogger(false),
@@ -202,6 +208,7 @@ func TestNewRouterWithDisabledRateLimit(t *testing.T) {
 }
 
 func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// RateLimit > 0 but RateBurst <= 0 → burst defaults to int(RateLimit).
 	r := NewRouter(
 		WithRateLimit(10, 0),
@@ -213,6 +220,7 @@ func TestNewRouterRateBurstZeroDefaultsToBurst(t *testing.T) {
 }
 
 func TestNewServer_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name string
 		opts []RouterOption
@@ -232,6 +240,7 @@ func TestNewServer_TableDriven(t *testing.T) {
 }
 
 func TestNewServer(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	r := NewRouter(WithLogger(false))
 	srv := NewServer(":8080", r, WithReadTimeout(5*time.Second), WithReadHeaderTimeout(2*time.Second), WithWriteTimeout(5*time.Second), WithIdleTimeout(10*time.Second))
 	if srv.Addr != ":8080" {
@@ -252,6 +261,7 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestDefaultRouterConfig(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	cfg := DefaultRouterConfig()
 	if cfg.RateLimit != 100 {
 		t.Fatalf("expected 100, got %f", cfg.RateLimit)
@@ -277,6 +287,7 @@ func TestDefaultRouterConfig(t *testing.T) {
 }
 
 func TestGracefulShutdown_Signal(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	if runtime.GOOS == "windows" {
 		return
 	}
@@ -343,6 +354,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 }
 
 func TestGracefulShutdown_ServerError(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Start a dummy server to occupy a port
 	dummy := &http.Server{Addr: "127.0.0.1:0", ReadHeaderTimeout: 5 * time.Second}
 	ln, err := net.Listen("tcp", dummy.Addr)
@@ -384,6 +396,7 @@ func TestGracefulShutdown_ServerError(t *testing.T) {
 }
 
 func TestGracefulShutdown_ServerClosed(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name    string
 		timeout time.Duration
@@ -443,6 +456,7 @@ func (m *mockRateLimiter) Allow() bool {
 }
 
 func TestWithCustomRateLimiter(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLimiter := &mockRateLimiter{allowVal: true}
 	r := NewRouter(WithCustomRateLimiter(mockLimiter))
 	if r == nil {
@@ -480,6 +494,7 @@ func TestWithCustomRateLimiter(t *testing.T) {
 }
 
 func TestRateLimitMiddleware_NilLimiter(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// Should not panic, should just pass through
 	handler := RateLimitMiddleware(nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

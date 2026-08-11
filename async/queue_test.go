@@ -1,6 +1,7 @@
 package async
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"testing"
@@ -11,6 +12,7 @@ import (
 )
 
 func TestQueueLifecycle(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
@@ -59,6 +61,7 @@ func TestQueueLifecycle(t *testing.T) {
 }
 
 func TestQueueServerStopBackwardCompatibility(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
@@ -78,6 +81,7 @@ func TestQueueServerStopBackwardCompatibility(t *testing.T) {
 }
 
 func TestQueuePanicRecovery(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
@@ -133,6 +137,7 @@ func TestQueuePanicRecovery(t *testing.T) {
 }
 
 func TestQueueClientEnqueueContext(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
@@ -154,6 +159,7 @@ func TestQueueClientEnqueueContext(t *testing.T) {
 }
 
 func TestQueueClientCloseUninitialized(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var c *QueueClient
 	err := c.Close()
 	if !errors.Is(err, ErrClientNotInitialized) {
@@ -168,6 +174,7 @@ func TestQueueClientCloseUninitialized(t *testing.T) {
 }
 
 func TestQueueServerRegisterAfterStart(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)
@@ -195,6 +202,7 @@ func TestQueueServerRegisterAfterStart(t *testing.T) {
 }
 
 func TestQueueClientUninitializedMethods(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name   string
 		client *QueueClient
@@ -230,6 +238,7 @@ func TestQueueClientUninitializedMethods(t *testing.T) {
 }
 
 func TestQueueClientEnqueueOptions(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("failed to start miniredis: %v", err)

@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"go.uber.org/goleak"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ type AppConfig struct {
 }
 
 func TestLoad_Success(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	t.Setenv("DB_USER", "admin")
 	t.Setenv("DB_PASSWORD", "secret")
 	t.Setenv("PORT", "9090")
@@ -64,6 +66,7 @@ func TestLoad_Success(t *testing.T) {
 }
 
 func TestLoad_Defaults(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	t.Setenv("DB_USER", "admin")
 	t.Setenv("DB_PASSWORD", "secret")
 
@@ -93,6 +96,7 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_ValidationFails(t *testing.T) {
+	defer goleak.VerifyNone(t)
 
 	var cfg AppConfig
 	err := config.Load(&cfg)
@@ -108,6 +112,7 @@ func TestLoad_ValidationFails(t *testing.T) {
 }
 
 func TestLoad_InvalidType(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	var cfg AppConfig
 	err := config.Load(cfg) // Passing by value instead of pointer
 	if err == nil || err.Error() != "cfg must be a non-nil pointer to a struct" {
@@ -122,6 +127,7 @@ func TestLoad_InvalidType(t *testing.T) {
 }
 
 func TestLoad_NestedPtr(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	type PtrConfig struct {
 		DB *DatabaseConfig
 	}
@@ -146,6 +152,7 @@ func TestLoad_NestedPtr(t *testing.T) {
 }
 
 func TestLoad_SetFieldErrors(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name    string
 		envKey  string
@@ -264,6 +271,7 @@ func TestLoad_SetFieldErrors(t *testing.T) {
 }
 
 func TestLoad_NestedErrors(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	type Inner struct {
 		Val int `env:"ERR_NESTED"`
 	}
@@ -310,6 +318,7 @@ func TestLoad_NestedErrors(t *testing.T) {
 }
 
 func TestLoad_Coverage(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	// struct with unexported field, no env tag, uint, float, and slice with empty element
 	type CoverageConfig struct {
 		unexported string

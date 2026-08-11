@@ -1,6 +1,7 @@
 package httpkit
 
 import (
+	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"log/slog"
@@ -26,6 +27,7 @@ func (h *testSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler { return h }
 func (h *testSlogHandler) WithGroup(name string) slog.Handler       { return h }
 
 func TestJSONResponse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	JSON(rr, http.StatusOK, map[string]string{"hello": "world"})
 
@@ -42,6 +44,7 @@ func TestJSONResponse(t *testing.T) {
 }
 
 func TestErrorResponse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	Error(rr, http.StatusNotFound, "resource not found")
 
@@ -55,6 +58,7 @@ func TestErrorResponse(t *testing.T) {
 }
 
 func TestOkResponse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	Ok(rr, map[string]int{"count": 42})
 
@@ -64,6 +68,7 @@ func TestOkResponse(t *testing.T) {
 }
 
 func TestCreatedResponse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	Created(rr, map[string]string{"id": "abc-123"})
 
@@ -73,6 +78,7 @@ func TestCreatedResponse(t *testing.T) {
 }
 
 func TestNoContentResponse(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	NoContent(rr)
 
@@ -85,6 +91,7 @@ func TestNoContentResponse(t *testing.T) {
 }
 
 func TestJSONMarshalError(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	rr := httptest.NewRecorder()
 	// Channels cannot be marshaled to JSON.
 	JSON(rr, http.StatusOK, make(chan int))
@@ -95,6 +102,7 @@ func TestJSONMarshalError(t *testing.T) {
 }
 
 func TestResponses_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	tests := []struct {
 		name           string
 		fn             func(http.ResponseWriter)
@@ -207,6 +215,7 @@ func TestResponses_TableDriven(t *testing.T) {
 }
 
 func TestResponse_Concurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	const numGoroutines = 100
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines * 3)
@@ -272,6 +281,7 @@ func (e *errorResponseWriter) Write(b []byte) (int, error) {
 func (e *errorResponseWriter) WriteHeader(statusCode int) {}
 
 func TestJSONWriteError(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	originalLogger := slog.Default()
 	defer slog.SetDefault(originalLogger)
 

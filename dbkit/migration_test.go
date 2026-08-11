@@ -1,6 +1,7 @@
 package dbkit
 
 import (
+	"go.uber.org/goleak"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -62,6 +63,7 @@ func newDriver(t *testing.T, db *sql.DB) database.Driver {
 }
 
 func TestRunMigrations(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Run migrations.
@@ -101,6 +103,7 @@ func TestRunMigrations(t *testing.T) {
 }
 
 func TestRunMigrationsNoChange(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Run first time.
@@ -121,6 +124,7 @@ func TestRunMigrationsNoChange(t *testing.T) {
 }
 
 func TestRunMigrationsInvalidSource(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
 	defer mustCloseMigration(t, db)
@@ -133,6 +137,7 @@ func TestRunMigrationsInvalidSource(t *testing.T) {
 }
 
 func TestRollbackMigrationsAll(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Apply all migrations.
@@ -169,6 +174,7 @@ func TestRollbackMigrationsAll(t *testing.T) {
 }
 
 func TestRollbackMigrationsSteps(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Apply all migrations.
@@ -214,6 +220,7 @@ func TestRollbackMigrationsSteps(t *testing.T) {
 }
 
 func TestRollbackMigrationsInvalidSource(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
 	defer mustCloseMigration(t, db)
@@ -226,6 +233,7 @@ func TestRollbackMigrationsInvalidSource(t *testing.T) {
 }
 
 func TestGetMigrationVersion(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Apply all migrations.
@@ -252,6 +260,7 @@ func TestGetMigrationVersion(t *testing.T) {
 }
 
 func TestGetMigrationVersionNoMigrations(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
 	driver := newDriver(t, db)
@@ -270,6 +279,7 @@ func TestGetMigrationVersionNoMigrations(t *testing.T) {
 }
 
 func TestGetMigrationVersionInvalidSource(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
 	defer mustCloseMigration(t, db)
@@ -282,6 +292,7 @@ func TestGetMigrationVersionInvalidSource(t *testing.T) {
 }
 
 func TestMigrationVersionStruct(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	mv := MigrationVersion{Version: 1, Dirty: false}
 	if mv.Version != 1 {
 		t.Fatalf("expected version 1, got %d", mv.Version)
@@ -292,6 +303,7 @@ func TestMigrationVersionStruct(t *testing.T) {
 }
 
 func TestMigrationConfigStruct(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	cfg := MigrationConfig{
 		SourceURL:    "file://./migrations",
 		DatabaseName: "sqlite3",
@@ -305,6 +317,7 @@ func TestMigrationConfigStruct(t *testing.T) {
 }
 
 func TestRunMigrationsBadSQL(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
 	driver := newDriver(t, db)
@@ -322,6 +335,7 @@ func TestRunMigrationsBadSQL(t *testing.T) {
 }
 
 func TestRollbackMigrationsAllNoChange(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// Rollback on a fresh DB with no migrations applied — triggers ErrNoChange on Down.
 	dbPath := newTestMigrationEnv(t)
 	db := openDB(t, dbPath)
@@ -334,6 +348,7 @@ func TestRollbackMigrationsAllNoChange(t *testing.T) {
 }
 
 func TestRollbackMigrationsStepsNoChange(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// Steps rollback on a fresh DB — Steps returns an error since there's
 	// no migration state. This covers the Steps error branch.
 	dbPath := newTestMigrationEnv(t)
@@ -347,6 +362,7 @@ func TestRollbackMigrationsStepsNoChange(t *testing.T) {
 }
 
 func TestRollbackMigrationsStepsWithData(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	dbPath := newTestMigrationEnv(t)
 
 	// Apply all migrations first.
@@ -375,6 +391,7 @@ func TestRollbackMigrationsStepsWithData(t *testing.T) {
 }
 
 func TestRollbackMigrationsDownError(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// Apply a migration with bad DOWN SQL, then try rollback all — triggers Down() error.
 	dbPath := newTestMigrationEnv(t)
 
@@ -394,6 +411,7 @@ func TestRollbackMigrationsDownError(t *testing.T) {
 }
 
 func TestRollbackMigrationsStepsError(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// Apply a migration with bad DOWN SQL, then try Steps rollback — triggers Steps() error.
 	dbPath := newTestMigrationEnv(t)
 
@@ -413,6 +431,7 @@ func TestRollbackMigrationsStepsError(t *testing.T) {
 }
 
 func TestGetMigrationVersionDirtyDB(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// Create a scenario where m.Version() returns an error (not ErrNilVersion).
 	// We simulate this by making the schema_migrations table have dirty state via
 	// a failed migration.
@@ -450,6 +469,7 @@ func TestGetMigrationVersionDirtyDB(t *testing.T) {
 }
 
 func TestGetMigrationVersionDBError(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	// The non-ErrNilVersion error path in GetMigrationVersion (line 83) is a
 	// defensive check for database drivers that can return errors from Version().
 	// SQLite3's driver never triggers this, so we use an errVersionDriver wrapper
