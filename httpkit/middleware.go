@@ -1,3 +1,7 @@
+// Package httpkit provides utilities.
+// Purpose: httpkit provides HTTP routing, middleware, and structured JSON responses.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package httpkit
 
 import (

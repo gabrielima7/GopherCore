@@ -1,9 +1,9 @@
 package cachekit_test
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"errors"
+	"go.uber.org/goleak"
 	"sync"
 	"testing"
 	"time"

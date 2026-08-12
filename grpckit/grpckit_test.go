@@ -1,7 +1,6 @@
 package grpckit
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -11,6 +10,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"go.uber.org/goleak"
 	"log/slog"
 	"math/big"
 	"net"

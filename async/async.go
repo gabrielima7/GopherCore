@@ -1,3 +1,7 @@
+// Package async provides utilities.
+// Purpose: async provides asynchronous job queuing and worker management with bounded concurrency.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package async
 
 import (

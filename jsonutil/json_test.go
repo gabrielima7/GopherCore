@@ -1,9 +1,9 @@
 package jsonutil
 
 import (
-	"go.uber.org/goleak"
 	"bytes"
 	"errors"
+	"go.uber.org/goleak"
 	"strings"
 	"sync"
 	"testing"
