@@ -1,9 +1,9 @@
 package guard
 
 import (
-	"go.uber.org/goleak"
 	"errors"
 	"fmt"
+	"go.uber.org/goleak"
 	"testing"
 
 	"github.com/go-playground/validator/v10"

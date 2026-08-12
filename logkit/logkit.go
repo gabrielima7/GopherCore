@@ -1,3 +1,7 @@
+// Package logkit provides utilities.
+// Purpose: logkit provides a minimal, structured logging abstraction.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package logkit
 
 import (

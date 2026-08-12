@@ -1,3 +1,7 @@
+// Package retry provides utilities.
+// Purpose: retry provides backoff and retry mechanisms for transient failures.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package retry
 
 import (
