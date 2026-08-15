@@ -1,9 +1,9 @@
 package dbkit
 
 import (
-	"go.uber.org/goleak"
 	"database/sql"
 	"errors"
+	"go.uber.org/goleak"
 	"path/filepath"
 	"testing"
 

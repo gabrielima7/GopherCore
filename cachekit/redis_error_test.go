@@ -1,8 +1,8 @@
 package cachekit_test
 
 import (
-	"go.uber.org/goleak"
 	"context"
+	"go.uber.org/goleak"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"

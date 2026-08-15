@@ -1,9 +1,9 @@
 package retry
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"errors"
+	"go.uber.org/goleak"
 	"math"
 	"sync/atomic"
 	"testing"

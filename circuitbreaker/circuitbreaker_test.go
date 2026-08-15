@@ -1,8 +1,8 @@
 package circuitbreaker
 
 import (
-	"go.uber.org/goleak"
 	"errors"
+	"go.uber.org/goleak"
 	"sync"
 	"testing"
 	"time"

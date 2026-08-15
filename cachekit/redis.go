@@ -1,3 +1,7 @@
+// Package cachekit provides utilities.
+// Purpose: cachekit offers in-memory and Redis-backed caching mechanisms with strict serialization rules.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package cachekit
 
 import (

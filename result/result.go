@@ -1,3 +1,7 @@
+// Package result provides utilities.
+// Purpose: result provides a functional Result type for safer error handling without panics.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package result
 
 import "fmt"

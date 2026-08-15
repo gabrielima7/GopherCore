@@ -1,3 +1,7 @@
+// Package dbkit provides utilities.
+// Purpose: dbkit provides database connection management and migration utilities.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package dbkit
 
 import (
