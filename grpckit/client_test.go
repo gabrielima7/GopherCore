@@ -1,9 +1,9 @@
 package grpckit
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"crypto/tls"
+	"go.uber.org/goleak"
 	"net"
 	"testing"
 	"time"

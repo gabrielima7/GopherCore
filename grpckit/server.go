@@ -1,3 +1,7 @@
+// Package grpckit provides utilities.
+// Purpose: grpckit provides gRPC client/server bootstrapping and standardized interceptors.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package grpckit
 
 import (

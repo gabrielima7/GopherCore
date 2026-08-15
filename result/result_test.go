@@ -1,9 +1,9 @@
 package result
 
 import (
-	"go.uber.org/goleak"
 	"errors"
 	"fmt"
+	"go.uber.org/goleak"
 	"strconv"
 	"testing"
 )

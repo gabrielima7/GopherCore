@@ -1,9 +1,9 @@
 package async
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"errors"
+	"go.uber.org/goleak"
 	"testing"
 	"time"
 

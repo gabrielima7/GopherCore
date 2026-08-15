@@ -1,9 +1,9 @@
 package logkit
 
 import (
-	"go.uber.org/goleak"
 	"bytes"
 	"encoding/json"
+	"go.uber.org/goleak"
 	"log/slog"
 	"testing"
 )

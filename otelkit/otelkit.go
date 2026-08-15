@@ -1,3 +1,7 @@
+// Package otelkit provides utilities.
+// Purpose: otelkit provides OpenTelemetry tracing and metrics bootstrapping.
+// Constraints: Internal package.
+// Thread-safety: Varies by component.
 package otelkit
 
 import (

@@ -1,10 +1,10 @@
 package httpkit
 
 import (
-	"go.uber.org/goleak"
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/goleak"
 	"net/http"
 	"net/http/httptest"
 	"testing"
