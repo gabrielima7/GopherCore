@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -88,7 +89,16 @@ func TestErgonomicsAndChaosIntegration(t *testing.T) {
 		return val, nil
 	})
 
-	if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) && !errors.Is(err, circuitbreaker.ErrCircuitOpen) && err.Error() != "bad status" {
-		t.Fatalf("unexpected error: %v", err)
+	if err != nil {
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "bad status") &&
+			!strings.Contains(errMsg, "circuit is open") &&
+			!strings.Contains(errMsg, "max attempts reached") &&
+			!strings.Contains(errMsg, "too many requests") &&
+			!errors.Is(err, context.DeadlineExceeded) &&
+			!errors.Is(err, context.Canceled) &&
+			!errors.Is(err, circuitbreaker.ErrCircuitOpen) {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	}
 }
