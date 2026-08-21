@@ -338,6 +338,14 @@ func TestResponses_InvalidStatusPanics(t *testing.T) {
 			name: "Error invalid status -1",
 			fn:   func(w http.ResponseWriter) { Error(w, -1, "test") },
 		},
+		{
+			name: "Error invalid status 0",
+			fn:   func(w http.ResponseWriter) { Error(w, 0, "test") },
+		},
+		{
+			name: "Error invalid status 1000",
+			fn:   func(w http.ResponseWriter) { Error(w, 1000, "test") },
+		},
 	}
 
 	for _, tt := range tests {
