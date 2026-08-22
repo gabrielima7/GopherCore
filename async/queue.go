@@ -25,10 +25,10 @@ var ErrClientNotInitialized = errors.New("async: queue client is not initialized
 // Constraints: Must be initialized with valid Redis connection options and Asynq configuration.
 // Thread-safety: Thread-safe for concurrent handler registration via internal mutex lock.
 type QueueServer struct {
-	server  *asynq.Server
-	mux     *asynq.ServeMux
-	mu      sync.Mutex
-	started bool
+	server	*asynq.Server
+	mux	*asynq.ServeMux
+	mu	sync.Mutex
+	started	bool
 }
 
 // NewQueueServer initializes a new QueueServer.
@@ -37,8 +37,8 @@ type QueueServer struct {
 // Thread-safety: Returns a new struct pointer, safe to share across goroutines.
 func NewQueueServer(redisOpt asynq.RedisConnOpt, cfg asynq.Config) *QueueServer {
 	return &QueueServer{
-		server: asynq.NewServer(redisOpt, cfg),
-		mux:    asynq.NewServeMux(),
+		server:	asynq.NewServer(redisOpt, cfg),
+		mux:	asynq.NewServeMux(),
 	}
 }
 
@@ -63,8 +63,8 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 		defer func() {
 			if r := recover(); r != nil {
 				err = &PanicError{
-					Value: r,
-					Stack: string(debug.Stack()),
+					Value:	r,
+					Stack:	string(debug.Stack()),
 				}
 			}
 		}()
@@ -121,6 +121,7 @@ func NewQueueClient(redisOpt asynq.RedisConnOpt) *QueueClient {
 // Purpose: Queues a job for immediate or scheduled processing depending on options.
 // Constraints: Returns an error if the task cannot be encoded or the queue is unreachable.
 // Thread-safety: Can be invoked concurrently across varying HTTP handlers or RPCs.
+// Internal Logic Deep-Dive: We offload the task persistence layer to Redis via asynq, ensuring tasks survive application restarts. The enqueue operation blocks only network round-trip time, keeping the caller thread lightweight.
 func (c *QueueClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
 	if c == nil || c.client == nil {
 		return nil, ErrClientNotInitialized

@@ -37,7 +37,7 @@ const (
 	// Purpose: Provides stable looping gaps without degradation.
 	// Constraints: Best for predictable internal operations.
 	// Thread-safety: Constant value.
-	StrategyConstant Strategy = iota
+	StrategyConstant	Strategy	= iota
 
 	// StrategyExponential uses exponential backoff between retries.
 	// Purpose: Helps gracefully de-escalate resource usage while down.
@@ -55,32 +55,32 @@ type Config struct {
 	// Purpose: Provides a hard upper bound on retry loops.
 	// Constraints: Should be > 0.
 	// Thread-safety: Read-only integer.
-	MaxAttempts int
+	MaxAttempts	int
 	// InitialDelay is the starting sleep duration used by backoff strategies after the first failure.
 	// Purpose: Determines the baseline sleep time.
 	// Constraints: Should be >= 0.
 	// Thread-safety: Read-only duration.
-	InitialDelay time.Duration
+	InitialDelay	time.Duration
 	// MaxDelay aggressively caps the exponentially growing sleep duration to prevent infinitely increasing wait times.
 	// Purpose: Limits how long a single backoff sleep can take.
 	// Constraints: Should be >= InitialDelay.
 	// Thread-safety: Read-only duration.
-	MaxDelay time.Duration
+	MaxDelay	time.Duration
 	// Strategy determines the mathematical decay mechanism applied between subsequent retries.
 	// Purpose: Chooses the backoff algorithm (e.g. constant vs exponential).
 	// Constraints: Should be a valid Strategy enum.
 	// Thread-safety: Read-only enum.
-	Strategy Strategy
+	Strategy	Strategy
 	// Jitter enables the injection of cryptographic randomness into sleep durations to thwart thundering herd bottlenecks.
 	// Purpose: Prevents synchronized retries from overwhelming dependencies.
 	// Constraints: Boolean flag.
 	// Thread-safety: Read-only boolean.
-	Jitter bool
+	Jitter	bool
 	// RetryIf acts as a custom predicate interceptor, allowing the system to selectively abort retries for non-recoverable errors.
 	// Purpose: Allows short-circuiting the retry loop for fatal errors.
 	// Constraints: If nil, all errors are retried.
 	// Thread-safety: Executed synchronously by the caller goroutine.
-	RetryIf func(error) bool
+	RetryIf	func(error) bool
 }
 
 // Option establishes a localized mutator function signature, cleanly encapsulating specific parameter overrides targeted at customizing the resilient retry configuration map.
@@ -99,12 +99,12 @@ func defaultConfig() Config {
 	// This specific combination guarantees that widespread transient failures don't
 	// accidentally synchronize massive waves of retries that could crush external services.
 	return Config{
-		MaxAttempts:  3,
-		InitialDelay: 100 * time.Millisecond,
-		MaxDelay:     10 * time.Second,
-		Strategy:     StrategyExponential,
-		Jitter:       true,
-		RetryIf:      func(_ error) bool { return true },
+		MaxAttempts:	3,
+		InitialDelay:	100 * time.Millisecond,
+		MaxDelay:	10 * time.Second,
+		Strategy:	StrategyExponential,
+		Jitter:		true,
+		RetryIf:	func(_ error) bool { return true },
 	}
 }
 
@@ -175,6 +175,7 @@ func WithRetryIf(fn func(error) bool) Option {
 // Constraints: It applies the configured backoff strategy between attempts.
 // Thread-safety: Safe for concurrent execution, maintaining local state loop
 // variables per individual invocation.
+// Internal Logic Deep-Dive: The backoff loop utilizes `time.Timer` rather than `time.Sleep` to ensure it can be safely interrupted by a context cancellation, preventing goroutine leaks during prolonged retries.
 func Do(ctx context.Context, fn func(ctx context.Context) error, opts ...Option) error {
 	if len(opts) == 0 {
 		return doWithConfig(ctx, fn, defaultConfig())
@@ -263,8 +264,8 @@ func DoWithValue[T any](ctx context.Context, fn func(ctx context.Context) (T, er
 // when no options are dynamically evaluated.
 func doWithValueWithConfig[T any](ctx context.Context, fn func(ctx context.Context) (T, error), cfg Config) (T, error) {
 	var (
-		lastErr error
-		zero    T
+		lastErr	error
+		zero	T
 	)
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
