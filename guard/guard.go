@@ -37,22 +37,22 @@ type ValidationError struct {
 	// Purpose: Identifies which specific input parameter was invalid.
 	// Constraints: Maps to the struct field's defined name or JSON tag.
 	// Thread-safety: Read-only string.
-	Field string `json:"field"`
+	Field	string	`json:"field"`
 	// Tag is the specific validation rule that triggered the failure.
 	// Purpose: Identifies the exact rule (e.g., 'required', 'email') that was violated.
 	// Constraints: Maps to go-playground/validator tag names.
 	// Thread-safety: Read-only string.
-	Tag string `json:"tag"`
+	Tag	string	`json:"tag"`
 	// Value is the actual input value that was rejected, formatted as a string.
 	// Purpose: Shows the invalid input for debugging and logging.
 	// Constraints: Should be sanitized if logging sensitive PII.
 	// Thread-safety: Read-only string.
-	Value string `json:"value"`
+	Value	string	`json:"value"`
 	// Message is a human-readable explanation of why the validation failed.
 	// Purpose: Provides a client-friendly error message.
 	// Constraints: Safe for external exposure via API responses.
 	// Thread-safety: Read-only string.
-	Message string `json:"message"`
+	Message	string	`json:"message"`
 }
 
 // Error fulfills the standard Go error interface for ValidationError, yielding a pre-formatted, user-safe description of the exact constraint violation.
@@ -88,6 +88,7 @@ func (ve ValidationErrors) Error() string {
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely
 // thread-safe for concurrent use.
+// Internal Logic Deep-Dive: We use `make(ValidationErrors, 0, len(validationErrors))` to initialize the slice with an exact capacity. During a volumetric payload attack, dynamically appending to a zero-capacity slice would cause repeated memory allocations.
 func Validate(s any) error {
 	err := validate.Struct(s)
 	// Fast path: if the payload fully complies, avoid further reflection or allocations.
@@ -108,10 +109,10 @@ func Validate(s any) error {
 	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{
-			Field:   fe.Field(),
-			Tag:     fe.Tag(),
-			Value:   fmt.Sprintf("%v", fe.Value()),
-			Message: formatValidationError(fe),
+			Field:		fe.Field(),
+			Tag:		fe.Tag(),
+			Value:		fmt.Sprintf("%v", fe.Value()),
+			Message:	formatValidationError(fe),
 		})
 	}
 	return errs
@@ -134,6 +135,7 @@ func RegisterValidation(tag string, fn validator.Func) error {
 // Thread-safety: Pure function, safe for concurrent use.
 //
 // Security Warning: Context-aware escaping at the respective boundaries is still strictly required.
+// Internal Logic Deep-Dive: We iteratively filter out invisible Unicode control characters while explicitly allowing whitespace and newlines, mitigating basic injection paths before data hits the deeper validation layers.
 func SanitizeString(s string) string {
 	var b strings.Builder
 	// Preallocate buffer to the exact length of the input string to avoid reallocation

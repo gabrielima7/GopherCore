@@ -35,7 +35,7 @@ const (
 	// Purpose: Denotes the baseline healthy state.
 	// Constraints: Must be returned exclusively when the breaker is untripped.
 	// Thread-safety: Constant value.
-	StateClosed State = iota
+	StateClosed	State	= iota
 
 	// StateOpen represents the tripped state. All requests are immediately rejected
 	// with ErrCircuitOpen until the configured timeout duration expires.
@@ -82,34 +82,34 @@ type Config struct {
 	// Purpose: Determines how many consecutive failures trip the breaker.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	FailureThreshold int
+	FailureThreshold	int
 
 	// SuccessThreshold is the number of consecutive successes in
 	// HalfOpen state required to transition back to Closed.
 	// Purpose: Determines how many consecutive successes reset the breaker.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	SuccessThreshold int
+	SuccessThreshold	int
 
 	// Timeout is the duration the circuit stays in the Open state
 	// before transitioning to HalfOpen.
 	// Purpose: Determines the cooldown period before probing the service again.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	Timeout time.Duration
+	Timeout	time.Duration
 
 	// MaxHalfOpenRequests is the maximum number of requests allowed
 	// in the HalfOpen state. Defaults to 1.
 	// Purpose: Limits concurrent probes to the recovering service.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	MaxHalfOpenRequests int
+	MaxHalfOpenRequests	int
 
 	// OnStateChange is called when the circuit breaker transitions state.
 	// Purpose: Allows observing internal circuit breaker state changes.
 	// Constraints: Can be nil. If provided, it blocks state transitions.
 	// Thread-safety: Called synchronously under the breaker's mutex lock.
-	OnStateChange func(from, to State)
+	OnStateChange	func(from, to State)
 }
 
 // DefaultConfig establishes a highly battle-tested, conservative tolerance foundation designed to safely protect the majority of standard microservice architectures against cascading network death.
@@ -118,10 +118,10 @@ type Config struct {
 // Thread-safety: Returns a new instance.
 func DefaultConfig() Config {
 	return Config{
-		FailureThreshold:    5,
-		SuccessThreshold:    2,
-		Timeout:             30 * time.Second,
-		MaxHalfOpenRequests: 1,
+		FailureThreshold:	5,
+		SuccessThreshold:	2,
+		Timeout:		30 * time.Second,
+		MaxHalfOpenRequests:	1,
 	}
 }
 
@@ -130,14 +130,14 @@ func DefaultConfig() Config {
 // Constraints: Must be created using New() and never copied by value after initialization.
 // Thread-safety: Mutex-guarded and safe for concurrent use.
 type Breaker struct {
-	mu     sync.Mutex
-	config Config
+	mu	sync.Mutex
+	config	Config
 
-	state            State
-	failureCount     int
-	successCount     int
-	halfOpenRequests int
-	lastFailureTime  time.Time
+	state			State
+	failureCount		int
+	successCount		int
+	halfOpenRequests	int
+	lastFailureTime		time.Time
 }
 
 // New creates a new Breaker instance with the provided Config.
@@ -178,6 +178,7 @@ func (b *Breaker) State() State {
 // Purpose: Rejects requests when the circuit is Open or too busy in HalfOpen, otherwise runs fn and tracks outcomes.
 // Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached.
 // Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.
+// Internal Logic Deep-Dive: The state machine transitions atomically. If the circuit is open, we fast-fail returning ErrCircuitOpen to prevent cascading failure pressure on the downstream service.
 func (b *Breaker) Execute(fn func() error) error {
 	b.mu.Lock()
 
@@ -327,7 +328,7 @@ func (b *Breaker) transitionTo(newState State) {
 // Purpose: It is used to bypass variable shadowing issues in closure contexts.
 // Constraints: Must only be used internally.
 // Thread-safety: Pure function.
-func to(s State) State { return s }
+func to(s State) State	{ return s }
 
 // Reset restores the circuit breaker to its closed state, clearing all statistics.
 // Purpose: Manually clears any failure conditions.
