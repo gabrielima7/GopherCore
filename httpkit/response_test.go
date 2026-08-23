@@ -315,3 +315,41 @@ func TestJSONWriteError(t *testing.T) {
 		t.Fatal("expected specific slog warning 'failed to write response body' with 'simulated write error', but it was not logged")
 	}
 }
+
+func TestResponses_InvalidStatusPanics(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	tests := []struct {
+		name string
+		fn   func(http.ResponseWriter)
+	}{
+		{
+			name: "JSON invalid status -1",
+			fn:   func(w http.ResponseWriter) { JSON(w, -1, map[string]string{}) },
+		},
+		{
+			name: "JSON invalid status 0",
+			fn:   func(w http.ResponseWriter) { JSON(w, 0, map[string]string{}) },
+		},
+		{
+			name: "JSON invalid status 1000",
+			fn:   func(w http.ResponseWriter) { JSON(w, 1000, map[string]string{}) },
+		},
+		{
+			name: "Error invalid status -1",
+			fn:   func(w http.ResponseWriter) { Error(w, -1, "test") },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Errorf("expected panic for invalid status code, but did not panic")
+				}
+			}()
+			rr := httptest.NewRecorder()
+			tt.fn(rr)
+		})
+	}
+}
