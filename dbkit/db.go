@@ -22,32 +22,32 @@ type Config struct {
 	// Purpose: Specifies which underlying driver sqlx should initialize.
 	// Constraints: Must be a registered database driver name.
 	// Thread-safety: Read-only string.
-	Driver string
+	Driver	string
 	// DSN is the data source name / connection string.
 	// Purpose: Contains connection credentials and routing information.
 	// Constraints: Format strictly depends on the specified Driver.
 	// Thread-safety: Read-only string.
-	DSN string
+	DSN	string
 	// MaxOpenConns is the maximum number of open connections.
 	// Purpose: Throttles the maximum physical connections to the database.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	MaxOpenConns int
+	MaxOpenConns	int
 	// MaxIdleConns is the maximum number of idle connections.
 	// Purpose: Caps the number of inactive connections kept alive in the pool.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	MaxIdleConns int
+	MaxIdleConns	int
 	// ConnMaxLifetime is the maximum duration a connection can be reused.
 	// Purpose: Forces recycling of old connections to prevent stale socket issues.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	ConnMaxLifetime time.Duration
+	ConnMaxLifetime	time.Duration
 	// ConnMaxIdleTime is the maximum duration a connection can be idle.
 	// Purpose: Trims connections that have been inactive for too long.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	ConnMaxIdleTime time.Duration
+	ConnMaxIdleTime	time.Duration
 }
 
 // DefaultConfig constructs a highly resilient network baseline, pre-populating safe connection thresholds that protect against arbitrary socket exhaustion in production.
@@ -59,12 +59,12 @@ func DefaultConfig(driver, dsn string) Config {
 	// exhausting the upstream database's connection limits, balancing active capacity
 	// against the memory overhead of maintaining stale idle sockets.
 	return Config{
-		Driver:          driver,
-		DSN:             dsn,
-		MaxOpenConns:    25,
-		MaxIdleConns:    5,
-		ConnMaxLifetime: 5 * time.Minute,
-		ConnMaxIdleTime: 1 * time.Minute,
+		Driver:			driver,
+		DSN:			dsn,
+		MaxOpenConns:		25,
+		MaxIdleConns:		5,
+		ConnMaxLifetime:	5 * time.Minute,
+		ConnMaxIdleTime:	1 * time.Minute,
 	}
 }
 
@@ -119,6 +119,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 // Constraints: It fully respects the provided context for timeout/cancellation
 // during connection and subsequent connectivity verification (PingContext).
 // Thread-safety: The returned *sqlx.DB is inherently safe for concurrent access across multiple goroutines.
+// Internal Logic Deep-Dive: Connection parameters are aggressively checked at startup. We immediately send a Ping to establish at least one valid TCP connection, ensuring configuration correctness before returning.
 func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) {
 	if driver == "" {
 		return nil, errors.New("dbkit: driver is required")

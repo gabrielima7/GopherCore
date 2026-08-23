@@ -15,6 +15,7 @@ import (
 // for significantly improved encoding performance.
 // Constraints: Can fail if standard data structures are not encodable.
 // Thread-safety: Completely stateless and safe for concurrent use across multiple goroutines.
+// Internal Logic Deep-Dive: This wrapper forces the application to use our centrally designated JSON encoder, preventing fragmentation and allowing us to transparently swap the backend engine for performance gains later.
 func Marshal(v any) ([]byte, error) {
 	return gojson.Marshal(v)
 }

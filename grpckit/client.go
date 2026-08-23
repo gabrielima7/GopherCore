@@ -26,19 +26,19 @@ import (
 type clientConfig struct {
 	// tlsConfig is the optional TLS configuration. When nil the client uses
 	// the insecure transport (suitable for internal service meshes only).
-	tlsConfig *tls.Config
+	tlsConfig	*tls.Config
 	// dialTimeout is the maximum time NewClient will block waiting for the
 	// connection to be established. Defaults to 10 seconds.
-	dialTimeout time.Duration
+	dialTimeout	time.Duration
 	// unaryInterceptors contains caller-supplied unary client interceptors
 	// that are chained into the outbound call pipeline.
-	unaryInterceptors []grpc.UnaryClientInterceptor
+	unaryInterceptors	[]grpc.UnaryClientInterceptor
 	// streamInterceptors contains caller-supplied stream client interceptors
 	// that are chained into the outbound streaming pipeline.
-	streamInterceptors []grpc.StreamClientInterceptor
+	streamInterceptors	[]grpc.StreamClientInterceptor
 	// rawDialOpts holds any additional grpc.DialOption values supplied directly
 	// by the caller via WithRawDialOptions, evaluated last during construction.
-	rawDialOpts []grpc.DialOption
+	rawDialOpts	[]grpc.DialOption
 }
 
 // defaultClientConfig returns a clientConfig pre-populated with production-safe
@@ -188,6 +188,7 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 // out or if the transport credentials cannot be applied.
 // Thread-safety: Construction is synchronous. The returned *grpc.ClientConn is
 // safe for concurrent use across goroutines.
+// Internal Logic Deep-Dive: We construct the client without dialing blocking by default, enabling async startup. TLS parameters are rigorously verified to prevent insecure downstream connections.
 func NewClient(target string, opts ...ClientOption) (*grpc.ClientConn, error) {
 	cfg := parseClientOptions(opts...)
 

@@ -38,6 +38,7 @@ import (
 // Thread-safety: The returned interceptor is safe for concurrent invocation
 // across thousands of simultaneous RPCs. logger must be safe for concurrent
 // use (all *slog.Logger implementations satisfy this).
+// Internal Logic Deep-Dive: The interceptor leverages `recover()` to gracefully capture panics, logging the stack trace and returning a canonical gRPC `codes.Internal` to prevent the raw panic from breaking the connection or leaking server internals.
 func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,

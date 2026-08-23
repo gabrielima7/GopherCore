@@ -21,12 +21,12 @@ type PanicError struct {
 	// Purpose: Holds the raw value recovered from the panic.
 	// Constraints: Can be of any type, typically an error or string.
 	// Thread-safety: Read-only struct field.
-	Value any
+	Value	any
 	// Stack holds the runtime stack trace captured immediately at the panic site.
 	// Purpose: Provides debugging context for where the panic originated.
 	// Constraints: Automatically captured via runtime/debug.
 	// Thread-safety: Read-only string.
-	Stack string
+	Stack	string
 }
 
 // Error maps the natively intercepted crash object back into the standard Go error ecosystem, outputting a completely formatted summary block to facilitate unified log processing.
@@ -52,8 +52,8 @@ func Go(fn func(), onPanic ...func(err error)) {
 		defer func() {
 			if r := recover(); r != nil {
 				panicErr := &PanicError{
-					Value: r,
-					Stack: string(debug.Stack()),
+					Value:	r,
+					Stack:	string(debug.Stack()),
 				}
 				if len(onPanic) > 0 && onPanic[0] != nil {
 					onPanic[0](panicErr)
@@ -93,9 +93,9 @@ func GoErr(fn func() error) <-chan error {
 // Thread-safety: It uses internal sync primitives to be entirely safe for concurrent
 // execution and error collection from multiple workers.
 type Group struct {
-	wg   sync.WaitGroup
-	mu   sync.Mutex
-	errs []error
+	wg	sync.WaitGroup
+	mu	sync.Mutex
+	errs	[]error
 }
 
 // NewGroup builds a pristine goroutine management harness equipped with all necessary blocking primitives to coordinate concurrent operations immediately upon creation.
@@ -112,6 +112,7 @@ func NewGroup() *Group {
 // Constraints: Expected to be called before Wait.
 // Thread-safety: All concurrent accesses to the internal error slice are safely
 // synchronized via a mutex lock to strictly prevent data races.
+// Internal Logic Deep-Dive: By injecting a strict recovery block at the root of the dispatched goroutine, we prevent localized algorithmic faults from escalating into full application crashes, preserving system availability even if background tasks fail unexpectedly.
 func (g *Group) Go(fn func() error) {
 	g.wg.Add(1)
 	go func() {
@@ -140,6 +141,7 @@ func (g *Group) Go(fn func() error) {
 // If no errors occurred, it returns nil.
 // Thread-safety: It safely accesses the internal error slice protected by a mutex lock.
 // Safe for concurrent calls, though typically called once by a single coordinator goroutine.
+// Internal Logic Deep-Dive: Ensure that readers of the error array view fully synchronized state across all completed goroutines. Without locking here, the caller could read stale cache lines on multi-core machines.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
 
@@ -162,6 +164,7 @@ func (g *Group) Wait() []error {
 // Thread-safety: It uses a buffered channel as a counting semaphore to restrict the number of
 // concurrently active goroutines. Panics within workers are gracefully recovered.
 // Each worker writes its result to its own unique pre-allocated slice index, avoiding race conditions entirely.
+// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load.
 func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -247,11 +250,12 @@ Loop:
 // For bounded concurrency, prefer using Map.
 // Thread-safety: It uses a sync.WaitGroup to coordinate completion and a sync.Mutex to
 // safely collect any errors encountered without data races.
+// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
-		wg   sync.WaitGroup
-		mu   sync.Mutex
-		errs []error
+		wg	sync.WaitGroup
+		mu	sync.Mutex
+		errs	[]error
 	)
 
 	// Iterate through the items and launch a goroutine for each.

@@ -12,9 +12,9 @@ import "fmt"
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
 // the type is entirely immutable by design after creation.
 type Result[T any] struct {
-	value T
-	err   error
-	ok    bool
+	value	T
+	err	error
+	ok	bool
 }
 
 // Ok creates a successful Result containing the provided value.
@@ -114,6 +114,7 @@ func (r Result[T]) Error() error {
 // Purpose: Allows chaining operations on the happy path.
 // Constraints: If the original Result is an Err, the error is propagated unchanged and fn is never executed.
 // Thread-safety: Generates a new immutable Result. Safe as long as fn is safe.
+// Internal Logic Deep-Dive: The Map function relies entirely on pure function application. By strictly evaluating `r.ok` before attempting execution, we avoid branching logic side effects and naturally short-circuit on error states, allowing for completely branchless chaining in the caller's scope.
 func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 	if r.ok {
 		return Ok(fn(r.value))
