@@ -549,3 +549,23 @@ func TestMustConnect_TableDriven(t *testing.T) {
 		})
 	}
 }
+
+func TestHealthCheck_BoundaryConditions(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
+
+	// Test that HealthCheck returns an error with a cancelled context, even if the DB is healthy
+	dbPath := filepath.Join(t.TempDir(), "healthcheck_boundary.db")
+	db, err := sqlx.Connect("sqlite3", dbPath)
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	defer mustClose(t, db)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // instantly cancel context
+
+	err = HealthCheck(ctx, db)
+	if err == nil {
+		t.Fatal("expected HealthCheck to return an error when context is cancelled, got nil")
+	}
+}
