@@ -23,19 +23,19 @@ var (
 	// Purpose: Allows mocking OpenTelemetry resource merging in unit tests.
 	// Constraints: Should only be reassigned during test setup.
 	// Thread-safety: Unsafe to modify concurrently.
-	resourceMerge = resource.Merge
+	resourceMerge	= resource.Merge
 
 	// newTraceExporter is an internal override hook.
 	// Purpose: Allows mocking the OTLP trace exporter in unit tests.
 	// Constraints: Should only be reassigned during test setup.
 	// Thread-safety: Unsafe to modify concurrently.
-	newTraceExporter = otlptracegrpc.New
+	newTraceExporter	= otlptracegrpc.New
 
 	// newMetricExporter is an internal override hook.
 	// Purpose: Allows mocking the Prometheus metric exporter in unit tests.
 	// Constraints: Should only be reassigned during test setup.
 	// Thread-safety: Unsafe to modify concurrently.
-	newMetricExporter = prometheus.New
+	newMetricExporter	= prometheus.New
 )
 
 // InitSDK configures the OpenTelemetry SDK with an OTLP gRPC trace exporter and a Prometheus metric exporter.
@@ -43,6 +43,7 @@ var (
 // Purpose: Configures OpenTelemetry SDK for the application.
 // Constraints: Must be invoked at application launch.
 // Thread-safety: Global configuration should only happen once sequentially at startup.
+// Internal Logic Deep-Dive: We rigorously initialize the trace exporter and provider, registering them as globals. This guarantees all downstream packages immediately emit telemetry data without needing direct reference to the SDK.
 func InitSDK(ctx context.Context, serviceName string) (func(context.Context) error, error) {
 	// Early context cancellation check
 	if err := ctx.Err(); err != nil {

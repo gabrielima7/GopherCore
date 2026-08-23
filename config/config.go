@@ -33,6 +33,7 @@ var validate = validator.New()
 //   - `env:"NAME"`: Binds the struct field to the environment variable NAME.
 //   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
 //   - `validate:"rule"`: Applies standard go-playground validation rules.
+// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic.
 func Load(cfg any) error {
 	// Dynamically introspect the target struct and enforce it is a valid pointer.
 	// This is required to ensure we can assign values back to the original fields.

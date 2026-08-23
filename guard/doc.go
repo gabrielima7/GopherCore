@@ -4,4 +4,5 @@
 // Purpose: Implements unified input sanitization and struct validation routines.
 // Constraints: Relies on the go-playground/validator library for the heavy lifting.
 // Thread-safety: Pure and concurrent-safe string operations, globally synchronized validator instance.
+// Internal Logic Deep-Dive: The validation pipeline avoids complex reflection caching intentionally to remain strictly isolated, preventing massive GC pressure during volumetric payload attacks on our public endpoints.
 package guard

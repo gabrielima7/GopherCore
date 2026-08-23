@@ -6,4 +6,5 @@
 // Purpose: Automatically reads and validates configuration from the environment.
 // Constraints: Relies heavily on accurate reflection tags (env, envDefault, validate).
 // Thread-safety: Internally thread-safe for reading configurations during the application boot phase.
+// Internal Logic Deep-Dive: The reflection engine traverses arbitrary structs recursively, pre-allocating slices and utilizing fast-path type assertions for primitive fields to minimize the startup boot penalty common in 12-factor apps.
 package config

@@ -19,12 +19,12 @@ type Config struct {
 	// Purpose: Sets the noise threshold (e.g., Info vs Debug).
 	// Constraints: Must be a valid slog.Level.
 	// Thread-safety: Read-only during execution.
-	Level slog.Level
+	Level	slog.Level
 	// Writer explicitly overrides the default logging output destination (os.Stdout) for capturing logs elsewhere.
 	// Purpose: Directs log bytes to a specified sink.
 	// Constraints: Must implement io.Writer and ideally handle concurrent writes safely.
 	// Thread-safety: Read-only interface pointer.
-	Writer io.Writer
+	Writer	io.Writer
 }
 
 // Option enforces a rigid functional type pattern, enabling developers to declaratively inject granular behavioral overrides when configuring the core application logger stack.
@@ -37,6 +37,7 @@ type Option func(*Config)
 // Purpose: Configure log verbosity.
 // Constraints: Rejects logs that don't pass the check.
 // Thread-safety: Synchronous struct mutation.
+// Internal Logic Deep-Dive: Configuration mutations are scoped to a functional options pattern, guaranteeing thread-safety and immutable configurations post-initialization.
 func WithLevel(level slog.Level) Option {
 	return func(c *Config) {
 		c.Level = level
@@ -60,8 +61,8 @@ func WithWriter(w io.Writer) Option {
 // write state, making it inherently safe for concurrent use.
 func NewLogger(opts ...Option) *slog.Logger {
 	config := Config{
-		Level:  slog.LevelInfo, // Default level
-		Writer: os.Stdout,      // Default writer
+		Level:	slog.LevelInfo,	// Default level
+		Writer:	os.Stdout,	// Default writer
 	}
 
 	for _, opt := range opts {

@@ -29,85 +29,86 @@ type RouterConfig struct {
 	// Purpose: Provide custom rate limiter, e.g. for horizontal scaling.
 	// Constraints: Takes precedence over RateLimit/RateBurst if set.
 	// Thread-safety: Read-only interface.
-	RateLimiter RateLimiter
+	RateLimiter	RateLimiter
 	// AllowedOrigins for CORS. Empty means no CORS middleware.
 	// Purpose: Configures CORS Access-Control-Allow-Origin dynamically.
 	// Constraints: Can be empty to bypass CORS entirely.
 	// Thread-safety: Read-only slice.
-	AllowedOrigins []string
+	AllowedOrigins	[]string
 	// AllowedMethods for CORS. Defaults to GET, POST, PUT, DELETE, OPTIONS.
 	// Purpose: Configures CORS Access-Control-Allow-Methods dynamically.
 	// Constraints: Read-only, pre-joined during initialization.
 	// Thread-safety: Read-only slice.
-	AllowedMethods []string
+	AllowedMethods	[]string
 	// AllowedHeaders for CORS. Defaults to Accept, Authorization, Content-Type.
 	// Purpose: Configures CORS Access-Control-Allow-Headers dynamically.
 	// Constraints: Read-only, pre-joined during initialization.
 	// Thread-safety: Read-only slice.
-	AllowedHeaders []string
+	AllowedHeaders	[]string
 	// RateLimit is the maximum requests per second. 0 disables rate limiting.
 	// Purpose: Limits incoming traffic rates to prevent resource exhaustion.
 	// Constraints: Ignored if set to 0.
 	// Thread-safety: Read-only float64.
-	RateLimit float64
+	RateLimit	float64
 	// RateBurst is the maximum burst size for rate limiting. Defaults to RateLimit.
 	// Purpose: Configures the burst tolerance over the rate limit.
 	// Constraints: Ignored if RateLimit is 0.
 	// Thread-safety: Read-only int.
-	RateBurst int
+	RateBurst	int
 	// ReadTimeout for the HTTP server.
 	// Purpose: Time allowed to read the entire request, including the body.
 	// Constraints: Protects against slowloris attacks.
 	// Thread-safety: Read-only duration.
-	ReadTimeout time.Duration
+	ReadTimeout	time.Duration
 	// ReadHeaderTimeout for the HTTP server.
 	// Purpose: Time allowed to read request headers.
 	// Constraints: Protects against slowloris attacks targeting headers.
 	// Thread-safety: Read-only duration.
-	ReadHeaderTimeout time.Duration
+	ReadHeaderTimeout	time.Duration
 	// WriteTimeout for the HTTP server.
 	// Purpose: Time allowed to write the response.
 	// Constraints: Protects against slow clients.
 	// Thread-safety: Read-only duration.
-	WriteTimeout time.Duration
+	WriteTimeout	time.Duration
 	// IdleTimeout for the HTTP server.
 	// Purpose: Time allowed for idle keep-alive connections.
 	// Constraints: Determines how aggressively idle sockets are closed.
 	// Thread-safety: Read-only duration.
-	IdleTimeout time.Duration
+	IdleTimeout	time.Duration
 	// EnableLogger enables the chi request logger middleware.
 	// Purpose: Toggles basic HTTP request logging automatically.
 	// Constraints: Boolean flag.
 	// Thread-safety: Read-only boolean.
-	EnableLogger bool
+	EnableLogger	bool
 	// MetricsPath specifies the HTTP path where Prometheus metrics are exposed.
 	// If empty, metrics are not registered on the router.
 	// Purpose: Configures the metrics path dynamically.
 	// Constraints: Read-only string.
 	// Thread-safety: Read-only string.
-	MetricsPath string
+	MetricsPath	string
 }
 
 // DefaultRouterConfig allocates a predefined, highly opinionated configuration structure optimized to aggressively clamp down on network abuse without requiring manual developer tuning.
 // Purpose: Bootstraps a secure starting configuration.
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
+// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. The standard `http.Server` explicitly defaults to infinite wait times if left unconfigured.
 func DefaultRouterConfig() RouterConfig {
 	// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. In Go, the `http.Server` explicitly defaults to infinite wait times if left unconfigured, which is a dangerous anti-pattern in production environments.
 	// These default parameters are strictly tuned for production defensive posture.
 	// We mandate conservative ReadHeaderTimeout and WriteTimeout values specifically
 	// to sever stalling connections, neutralizing Slowloris and other resource-exhaustion vectors.
 	return RouterConfig{
-		AllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowedHeaders:    []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
-		RateLimit:         100,
-		RateBurst:         200,
-		ReadTimeout:       15 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       120 * time.Second,
-		EnableLogger:      true,
-		MetricsPath:       "/metrics",
+		AllowedMethods:		[]string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowedHeaders:		[]string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		RateLimit:		100,
+		RateBurst:		200,
+		ReadTimeout:		15 * time.Second,
+		ReadHeaderTimeout:	5 * time.Second,
+		WriteTimeout:		15 * time.Second,
+		IdleTimeout:		120 * time.Second,
+		EnableLogger:		true,
+		MetricsPath:		"/metrics",
 	}
 }
 
@@ -299,12 +300,12 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 	// that even standard library vulnerabilities related to connection stalling are
 	// forcefully mitigated at the lowest possible networking tier.
 	return &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		ReadTimeout:       cfg.ReadTimeout,
-		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
-		WriteTimeout:      cfg.WriteTimeout,
-		IdleTimeout:       cfg.IdleTimeout,
+		Addr:			addr,
+		Handler:		handler,
+		ReadTimeout:		cfg.ReadTimeout,
+		ReadHeaderTimeout:	cfg.ReadHeaderTimeout,
+		WriteTimeout:		cfg.WriteTimeout,
+		IdleTimeout:		cfg.IdleTimeout,
 	}
 }
 
