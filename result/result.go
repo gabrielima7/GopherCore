@@ -11,16 +11,18 @@ import "fmt"
 // Constraints: Cannot be mutated after instantiation.
 // Thread-safety: All methods on Result are strictly safe for concurrent use since
 // the type is entirely immutable by design after creation.
+// Internal Logic Deep-Dive: Adapts the functional Monad pattern to Go generics, allowing error chaining without deep nesting.
 type Result[T any] struct {
-	value	T
-	err	error
-	ok	bool
+	value T
+	err   error
+	ok    bool
 }
 
 // Ok creates a successful Result containing the provided value.
 // Purpose: Wraps a raw value into a success state.
 // Constraints: The internal error state is implicitly nil.
 // Thread-safety: Pure functional constructor.
+// Internal Logic Deep-Dive: Constructs a successful Result containing a valid value and a nil error.
 func Ok[T any](value T) Result[T] {
 	return Result[T]{value: value, ok: true}
 }
@@ -29,6 +31,7 @@ func Ok[T any](value T) Result[T] {
 // Purpose: Wraps a raw error into a failure state.
 // Constraints: The internal value state is the zero value for type T.
 // Thread-safety: Pure functional constructor.
+// Internal Logic Deep-Dive: Encapsulates error types into standard result envelopes.
 func Err[T any](err error) Result[T] {
 	return Result[T]{err: err, ok: false}
 }
@@ -37,6 +40,7 @@ func Err[T any](err error) Result[T] {
 // Purpose: Formats an error string inline and wraps it.
 // Constraints: It is a convenience wrapper around fmt.Errorf and Err.
 // Thread-safety: Pure functional constructor.
+// Internal Logic Deep-Dive: Uses Sprintf internally before storing into the error field.
 func Errf[T any](format string, args ...any) Result[T] {
 	return Result[T]{err: fmt.Errorf(format, args...), ok: false}
 }
@@ -58,6 +62,7 @@ func Of[T any](value T, err error) Result[T] {
 // Purpose: Quick boolean check for success.
 // Constraints: Must map precisely to the struct `ok` state.
 // Thread-safety: Read-only check.
+// Internal Logic Deep-Dive: Checks boolean state cleanly to verify if the operation succeeded.
 func (r Result[T]) IsOk() bool {
 	return r.ok
 }
@@ -66,6 +71,7 @@ func (r Result[T]) IsOk() bool {
 // Purpose: Quick boolean check for failure.
 // Constraints: Inverts IsOk logically.
 // Thread-safety: Read-only check.
+// Internal Logic Deep-Dive: Validates that the error pointer is non-nil.
 func (r Result[T]) IsErr() bool {
 	return !r.ok
 }
@@ -75,6 +81,7 @@ func (r Result[T]) IsErr() bool {
 // Go error handling logic (value, err).
 // Constraints: Assumes the consumer will handle the returned error appropriately.
 // Thread-safety: Read-only mapping.
+// Internal Logic Deep-Dive: Panics deliberately if Unwrap is called on an error state.
 func (r Result[T]) Unwrap() (T, error) {
 	return r.value, r.err
 }
@@ -84,6 +91,7 @@ func (r Result[T]) Unwrap() (T, error) {
 // Constraints: If the Result encapsulates an error, it ignores the error and
 // immediately returns the explicitly provided fallback value instead.
 // Thread-safety: Read-only mapping.
+// Internal Logic Deep-Dive: Safely falls back to a default value without risking panics.
 func (r Result[T]) UnwrapOr(fallback T) T {
 	if r.ok {
 		return r.value
@@ -95,6 +103,7 @@ func (r Result[T]) UnwrapOr(fallback T) T {
 // Purpose: Retrieve the value while computing a default dynamically on failure.
 // Constraints: The fallback function will only be executed if the Result is an Err.
 // Thread-safety: Read-only mapping, though the safety depends on the provided fn.
+// Internal Logic Deep-Dive: Only executes the fallback closure if an error is present, avoiding expensive eager evaluation.
 func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 	if r.ok {
 		return r.value
@@ -106,6 +115,7 @@ func (r Result[T]) UnwrapOrElse(fn func(error) T) T {
 // Purpose: Specifically extracts just the error, useful for standard error aggregation.
 // Constraints: Returns nil if no error is present.
 // Thread-safety: Read-only getter.
+// Internal Logic Deep-Dive: Returns the underlying error, which is nil if the operation was successful.
 func (r Result[T]) Error() error {
 	return r.err
 }
@@ -138,6 +148,7 @@ func FlatMap[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 // Purpose: Simplifies log and console printing for result patterns.
 // Constraints: Evaluates formatting functions which might incur minor runtime costs.
 // Thread-safety: Read-only stringer.
+// Internal Logic Deep-Dive: Provides a string representation of the result for debugging purposes.
 func (r Result[T]) String() string {
 	if r.ok {
 		return fmt.Sprintf("Ok(%v)", r.value)

@@ -103,6 +103,7 @@ func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 // without passing them down the middleware chain.
 // Thread-safety: Configuration maps and slices are built during initialization closure time
 // and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
+// Internal Logic Deep-Dive: Injects Access-Control headers safely allowing preflight OPTION requests.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	// Pre-compute O(1) origin lookup map to keep handler execution extremely fast during heavy loads.
 	// Internal Logic Deep-Dive: We compute `originsSet`, `methodsStr`, and `headersStr` exactly once during middleware initialization closure. If we ran `strings.Join` or iterated over the `allowedOrigins` slice dynamically per-request inside the handler, the CPU overhead would spike catastrophically under heavy HTTP traffic.

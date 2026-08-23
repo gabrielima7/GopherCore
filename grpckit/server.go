@@ -70,6 +70,7 @@ type ServerOption func(*serverConfig)
 // Constraints: The address must be a valid TCP host:port string. An empty value
 // falls back to the system-chosen port.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Overrides the bind address for gRPC socket listeners.
 func WithServerAddress(addr string) ServerOption {
 	return func(c *serverConfig) {
 		c.addr = addr
@@ -83,6 +84,7 @@ func WithServerAddress(addr string) ServerOption {
 // Constraints: cfg must not be nil; pass a properly configured *tls.Config
 // loaded from your certificate files.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Replaces standard net.Listeners with crypto/tls wrapped listeners.
 func WithServerTLS(cfg *tls.Config) ServerOption {
 	return func(c *serverConfig) {
 		if cfg != nil {
@@ -97,6 +99,7 @@ func WithServerTLS(cfg *tls.Config) ServerOption {
 // Constraints: logger must not be nil. A nil value is silently ignored and
 // the existing logger is preserved.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Injects a custom structured logger instance.
 func WithServerLogger(logger *slog.Logger) ServerOption {
 	return func(c *serverConfig) {
 		if logger != nil {
@@ -112,6 +115,7 @@ func WithServerLogger(logger *slog.Logger) ServerOption {
 // such as authentication, tracing, or metrics.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Chains interceptors via gRPC native middleware constructs.
 func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
 		// Filter out nil interceptors gracefully, ensuring the downstream
@@ -129,6 +133,7 @@ func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOp
 // Purpose: Allows callers to extend the streaming middleware chain with custom logic.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Connects stream middleware seamlessly.
 func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
 		// Like unary interceptors, we filter out nils to maintain safety
@@ -175,6 +180,7 @@ func parseServerOptions(opts ...ServerOption) serverConfig {
 // caller is responsible for calling Serve(net.Listener) on the returned value.
 // Thread-safety: Construction is synchronous. The returned *grpc.Server is safe
 // for concurrent use via its exported API.
+// Internal Logic Deep-Dive: Orchestrates the listener, gRPC interceptors, and transport layer security.
 func NewServer(opts ...ServerOption) *grpc.Server {
 	cfg := parseServerOptions(opts...)
 

@@ -18,6 +18,7 @@ import (
 // Purpose: Bundles migration source and database driver configs.
 // Constraints: Must point to a valid driver and source URL.
 // Thread-safety: Read-only after instantiation.
+// Internal Logic Deep-Dive: Encapsulates folder paths and driver bindings for isolated migration execution.
 type MigrationConfig struct {
 	// SourceURL is the source URL for migration files (e.g., "file://migrations").
 	// Purpose: Identifies where the migration files are located.
@@ -68,6 +69,7 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 // Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
 // rolling back these types of operations transactionally.
 // Thread-safety: Concurrent execution relies on the underlying golang-migrate advisory locks on the DB.
+// Internal Logic Deep-Dive: Interacts sequentially with the migrations table to revert exactly one step at a time.
 func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -103,6 +105,7 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 // Purpose: Models the version and dirty state flag.
 // Constraints: A dirty flag typically blocks further migrations until manually resolved.
 // Thread-safety: Struct data.
+// Internal Logic Deep-Dive: Exposes internal database state to telemetry and auditing systems.
 type MigrationVersion struct {
 	// Version is the current numeric version of the database schema.
 	// Purpose: Represents the currently applied migration step.
@@ -121,6 +124,7 @@ type MigrationVersion struct {
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
 // Thread-safety: Safe for concurrent queries across multiple nodes reading state.
+// Internal Logic Deep-Dive: Scans the schema_migrations table, ignoring unapplied files.
 func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (mv MigrationVersion, err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {

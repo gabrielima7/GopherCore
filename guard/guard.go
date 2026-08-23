@@ -32,33 +32,35 @@ var htmlPolicy = bluemonday.StrictPolicy()
 // Thread-safety: Safe for concurrent access when not mutated.
 // It structurally maps the field name, failed validation tag, rejected value, and a
 // generated human-readable message.
+// Internal Logic Deep-Dive: Accumulates multiple independent validation failures into a unified payload for APIs.
 type ValidationError struct {
 	// Field is the struct property name that failed validation.
 	// Purpose: Identifies which specific input parameter was invalid.
 	// Constraints: Maps to the struct field's defined name or JSON tag.
 	// Thread-safety: Read-only string.
-	Field	string	`json:"field"`
+	Field string `json:"field"`
 	// Tag is the specific validation rule that triggered the failure.
 	// Purpose: Identifies the exact rule (e.g., 'required', 'email') that was violated.
 	// Constraints: Maps to go-playground/validator tag names.
 	// Thread-safety: Read-only string.
-	Tag	string	`json:"tag"`
+	Tag string `json:"tag"`
 	// Value is the actual input value that was rejected, formatted as a string.
 	// Purpose: Shows the invalid input for debugging and logging.
 	// Constraints: Should be sanitized if logging sensitive PII.
 	// Thread-safety: Read-only string.
-	Value	string	`json:"value"`
+	Value string `json:"value"`
 	// Message is a human-readable explanation of why the validation failed.
 	// Purpose: Provides a client-friendly error message.
 	// Constraints: Safe for external exposure via API responses.
 	// Thread-safety: Read-only string.
-	Message	string	`json:"message"`
+	Message string `json:"message"`
 }
 
 // Error fulfills the standard Go error interface for ValidationError, yielding a pre-formatted, user-safe description of the exact constraint violation.
 // Purpose: Allows treating a ValidationError strictly as an error interface.
 // Constraints: Standard interface constraint.
 // Thread-safety: Pure method on value receiver.
+// Internal Logic Deep-Dive: Concatenates all captured field validation errors into a single diagnostic string.
 func (v ValidationError) Error() string {
 	return v.Message
 }
@@ -109,10 +111,10 @@ func Validate(s any) error {
 	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{
-			Field:		fe.Field(),
-			Tag:		fe.Tag(),
-			Value:		fmt.Sprintf("%v", fe.Value()),
-			Message:	formatValidationError(fe),
+			Field:   fe.Field(),
+			Tag:     fe.Tag(),
+			Value:   fmt.Sprintf("%v", fe.Value()),
+			Message: formatValidationError(fe),
 		})
 	}
 	return errs
@@ -124,6 +126,7 @@ func Validate(s any) error {
 // Thread-safety: This function modifies the global validator instance and is NOT thread-safe
 // to call concurrently with active `Validate` calls. It MUST be invoked strictly
 // during application startup initialization to prevent data races.
+// Internal Logic Deep-Dive: Binds a custom tag string to a specific validation function for struct tags.
 func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
@@ -157,6 +160,7 @@ func SanitizeString(s string) string {
 // Constraints: Destroys markup, not meant for HTML manipulation where structure should be retained.
 // Thread-safety: It leverages a globally instantiated policy and is fully
 // safe for concurrent execution across multiple goroutines.
+// Internal Logic Deep-Dive: Uses strict bluemonday HTML sanitization policies to neutralize XSS vectors.
 func StripHTML(s string) string {
 	return htmlPolicy.Sanitize(s)
 }

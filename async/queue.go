@@ -24,21 +24,23 @@ var ErrClientNotInitialized = errors.New("async: queue client is not initialized
 // Purpose: To manage persistent background jobs using Redis while preventing application crashes from panicking tasks.
 // Constraints: Must be initialized with valid Redis connection options and Asynq configuration.
 // Thread-safety: Thread-safe for concurrent handler registration via internal mutex lock.
+// Internal Logic Deep-Dive: Wraps the asynq Server to provide a simplified, pre-configured interface for queue consumption.
 type QueueServer struct {
-	server	*asynq.Server
-	mux	*asynq.ServeMux
-	mu	sync.Mutex
-	started	bool
+	server  *asynq.Server
+	mux     *asynq.ServeMux
+	mu      sync.Mutex
+	started bool
 }
 
 // NewQueueServer initializes a new QueueServer.
 // Purpose: Creates an instance of QueueServer ready for handler registration.
 // Constraints: redisOpt and cfg must be fully configured.
 // Thread-safety: Returns a new struct pointer, safe to share across goroutines.
+// Internal Logic Deep-Dive: Configures an underlying asynq server instance prioritizing deterministic throughput and memory limits.
 func NewQueueServer(redisOpt asynq.RedisConnOpt, cfg asynq.Config) *QueueServer {
 	return &QueueServer{
-		server:	asynq.NewServer(redisOpt, cfg),
-		mux:	asynq.NewServeMux(),
+		server: asynq.NewServer(redisOpt, cfg),
+		mux:    asynq.NewServeMux(),
 	}
 }
 
@@ -46,6 +48,7 @@ func NewQueueServer(redisOpt asynq.RedisConnOpt, cfg asynq.Config) *QueueServer 
 // Purpose: Registers a callback for specific task types with intrinsic panic isolation.
 // Constraints: pattern string must perfectly match the task type. Cannot be called after Start().
 // Thread-safety: Safely locks the internal mutex to prevent concurrent map writes inside the mux during initialization.
+// Internal Logic Deep-Dive: Defers the binding of task handlers to an internal mux, avoiding runtime races during queue initialization.
 func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *asynq.Task) error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -63,8 +66,8 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 		defer func() {
 			if r := recover(); r != nil {
 				err = &PanicError{
-					Value:	r,
-					Stack:	string(debug.Stack()),
+					Value: r,
+					Stack: string(debug.Stack()),
 				}
 			}
 		}()
@@ -76,6 +79,7 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 // Purpose: Spawns the underlying Asynq server listeners without blocking the caller.
 // Constraints: Handlers should be fully registered before calling Start.
 // Thread-safety: Handled internally by Asynq's server start mechanisms.
+// Internal Logic Deep-Dive: Spawns the underlying background workers for processing queue tasks, establishing connection multiplexing.
 func (q *QueueServer) Start() error {
 	q.mu.Lock()
 	q.started = true
@@ -87,6 +91,7 @@ func (q *QueueServer) Start() error {
 // Purpose: Provides a safe termination signal to halt job consumption and gracefully drain ongoing operations.
 // Constraints: Retained for backward compatibility. Invokes Shutdown() to gracefully drain tasks.
 // Thread-safety: Safe for concurrent invocation.
+// Internal Logic Deep-Dive: Sends a graceful termination signal allowing in-flight jobs to complete.
 func (q *QueueServer) Stop() {
 	q.Shutdown()
 }
@@ -95,6 +100,7 @@ func (q *QueueServer) Stop() {
 // Purpose: Provides a safe termination signal to halt job consumption and gracefully drain ongoing operations.
 // Constraints: Should be called during application teardown, typically via defer.
 // Thread-safety: Safe for concurrent invocation.
+// Internal Logic Deep-Dive: Uses the Shutdown mechanism to enforce graceful termination of background workers without dropping active connections.
 func (q *QueueServer) Shutdown() {
 	q.server.Shutdown()
 }
@@ -103,6 +109,7 @@ func (q *QueueServer) Shutdown() {
 // Purpose: To enqueue asynchronous jobs for background processing safely.
 // Constraints: Requires an active Redis connection.
 // Thread-safety: Safe for concurrent task enqueueing by multiple goroutines.
+// Internal Logic Deep-Dive: Acts as a thin wrapper around the asynq Client to enforce consistent enqueue patterns.
 type QueueClient struct {
 	client *asynq.Client
 }
@@ -111,6 +118,7 @@ type QueueClient struct {
 // Purpose: Initializes the client that submits new tasks to Redis.
 // Constraints: redisOpt must point to an active Redis instance.
 // Thread-safety: Returns a new struct pointer.
+// Internal Logic Deep-Dive: Uses connection pooling underneath to maintain a stable communication channel with the Redis broker.
 func NewQueueClient(redisOpt asynq.RedisConnOpt) *QueueClient {
 	return &QueueClient{
 		client: asynq.NewClient(redisOpt),
@@ -133,6 +141,7 @@ func (c *QueueClient) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.Ta
 // Purpose: Extends Enqueue by accepting a context to abort the enqueue operation if the deadline is exceeded.
 // Constraints: Context timeout primarily impacts the network roundtrip to Redis.
 // Thread-safety: Safe for simultaneous execution.
+// Internal Logic Deep-Dive: Respects context timeouts immediately on the client side before writing payloads to the wire.
 func (c *QueueClient) EnqueueContext(ctx context.Context, task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
 	if c == nil || c.client == nil {
 		return nil, ErrClientNotInitialized
@@ -144,6 +153,7 @@ func (c *QueueClient) EnqueueContext(ctx context.Context, task *asynq.Task, opts
 // Purpose: Cleans up network connections and prevents resource leaks.
 // Constraints: Should be deferred immediately after instantiation or called on shutdown.
 // Thread-safety: Returns ErrClientNotInitialized if the client is nil.
+// Internal Logic Deep-Dive: Ensures memory structures and connections to underlying caches/dbs are cleanly released avoiding port exhaustion.
 func (c *QueueClient) Close() error {
 	if c == nil {
 		return ErrClientNotInitialized

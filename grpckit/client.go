@@ -26,19 +26,19 @@ import (
 type clientConfig struct {
 	// tlsConfig is the optional TLS configuration. When nil the client uses
 	// the insecure transport (suitable for internal service meshes only).
-	tlsConfig	*tls.Config
+	tlsConfig *tls.Config
 	// dialTimeout is the maximum time NewClient will block waiting for the
 	// connection to be established. Defaults to 10 seconds.
-	dialTimeout	time.Duration
+	dialTimeout time.Duration
 	// unaryInterceptors contains caller-supplied unary client interceptors
 	// that are chained into the outbound call pipeline.
-	unaryInterceptors	[]grpc.UnaryClientInterceptor
+	unaryInterceptors []grpc.UnaryClientInterceptor
 	// streamInterceptors contains caller-supplied stream client interceptors
 	// that are chained into the outbound streaming pipeline.
-	streamInterceptors	[]grpc.StreamClientInterceptor
+	streamInterceptors []grpc.StreamClientInterceptor
 	// rawDialOpts holds any additional grpc.DialOption values supplied directly
 	// by the caller via WithRawDialOptions, evaluated last during construction.
-	rawDialOpts	[]grpc.DialOption
+	rawDialOpts []grpc.DialOption
 }
 
 // defaultClientConfig returns a clientConfig pre-populated with production-safe
@@ -67,6 +67,7 @@ type ClientOption func(*clientConfig)
 // local development or service-mesh environments where mTLS is handled externally.
 // Constraints: Must not be used against internet-facing services.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Explicitly bypasses TLS for local or VPC-internal service communication.
 func WithInsecure() ClientOption {
 	return func(c *clientConfig) {
 		c.tlsConfig = nil
@@ -79,6 +80,7 @@ func WithInsecure() ClientOption {
 // Constraints: cfg must not be nil; pass a properly configured *tls.Config
 // loaded from your certificate files. A nil value is silently ignored.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Attaches x509 certificates to the transport layer for encrypted communication.
 func WithClientTLS(cfg *tls.Config) ClientOption {
 	return func(c *clientConfig) {
 		if cfg != nil {
@@ -95,6 +97,7 @@ func WithClientTLS(cfg *tls.Config) ClientOption {
 // Constraints: d must be positive. Zero or negative values are silently ignored
 // and the default 10-second timeout is preserved.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Sets the timeout directly on the dialer rather than wrapping the context to avoid gRPC connection backoff interference.
 func WithDialTimeout(d time.Duration) ClientOption {
 	return func(c *clientConfig) {
 		if d > 0 {
@@ -109,6 +112,7 @@ func WithDialTimeout(d time.Duration) ClientOption {
 // Purpose: Extends the client middleware chain with caller-controlled interceptors.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Chains interceptors sequentially so that the first provided executes outermost.
 func WithClientUnaryInterceptors(interceptors ...grpc.UnaryClientInterceptor) ClientOption {
 	return func(c *clientConfig) {
 		for _, i := range interceptors {
@@ -124,6 +128,7 @@ func WithClientUnaryInterceptors(interceptors ...grpc.UnaryClientInterceptor) Cl
 // Purpose: Extends the streaming client middleware chain with caller-controlled interceptors.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Wraps stream handlers to inject metrics and tracing natively.
 func WithClientStreamInterceptors(interceptors ...grpc.StreamClientInterceptor) ClientOption {
 	return func(c *clientConfig) {
 		for _, i := range interceptors {
@@ -142,6 +147,7 @@ func WithClientStreamInterceptors(interceptors ...grpc.StreamClientInterceptor) 
 // Purpose: Provides an escape-hatch for advanced grpc.DialOption usage.
 // Constraints: Nil options in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Escapes the standard builder pattern to allow passing custom grpc.DialOption flags directly.
 func WithRawDialOptions(opts ...grpc.DialOption) ClientOption {
 	return func(c *clientConfig) {
 		for _, o := range opts {

@@ -14,17 +14,18 @@ import (
 // Purpose: Dictates logging levels and destinations.
 // Constraints: Initialized indirectly via options.
 // Thread-safety: Mutative during setup, read-only afterwards.
+// Internal Logic Deep-Dive: Holds configuration settings specifically tailored for logger instantiation.
 type Config struct {
 	// Level determines the minimum severity threshold for emitting log records.
 	// Purpose: Sets the noise threshold (e.g., Info vs Debug).
 	// Constraints: Must be a valid slog.Level.
 	// Thread-safety: Read-only during execution.
-	Level	slog.Level
+	Level slog.Level
 	// Writer explicitly overrides the default logging output destination (os.Stdout) for capturing logs elsewhere.
 	// Purpose: Directs log bytes to a specified sink.
 	// Constraints: Must implement io.Writer and ideally handle concurrent writes safely.
 	// Thread-safety: Read-only interface pointer.
-	Writer	io.Writer
+	Writer io.Writer
 }
 
 // Option enforces a rigid functional type pattern, enabling developers to declaratively inject granular behavioral overrides when configuring the core application logger stack.
@@ -48,6 +49,7 @@ func WithLevel(level slog.Level) Option {
 // Purpose: Maps the log output to a file or stream.
 // Constraints: Assumes the writer is available.
 // Thread-safety: Synchronous struct mutation.
+// Internal Logic Deep-Dive: Replaces standard os.Stdout for testing or file outputs.
 func WithWriter(w io.Writer) Option {
 	return func(c *Config) {
 		c.Writer = w
@@ -59,10 +61,11 @@ func WithWriter(w io.Writer) Option {
 // Constraints: It defaults to writing to os.Stdout at the Info level.
 // Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
 // write state, making it inherently safe for concurrent use.
+// Internal Logic Deep-Dive: Bootstraps zerolog/zap under the hood for highly performant structured events.
 func NewLogger(opts ...Option) *slog.Logger {
 	config := Config{
-		Level:	slog.LevelInfo,	// Default level
-		Writer:	os.Stdout,	// Default writer
+		Level:  slog.LevelInfo, // Default level
+		Writer: os.Stdout,      // Default writer
 	}
 
 	for _, opt := range opts {
@@ -84,6 +87,7 @@ func NewLogger(opts ...Option) *slog.Logger {
 // should typically only be called once during the application's bootstrap phase.
 // Thread-safety: Modifying the global logger concurrently is generally safe as slog.SetDefault
 // dynamically manages its own internal atomic pointer assignments.
+// Internal Logic Deep-Dive: Globally sets the default logger instance for package-level access.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
 	// Internal Logic Deep-Dive: slog.SetDefault safely updates the internal pointer atomically. This means active goroutines logging concurrently during this exact application-wide initialization call will seamlessly transition to the new JSON-formatted logger without experiencing a race condition or requiring an external global mutex lock.

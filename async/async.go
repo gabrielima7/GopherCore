@@ -16,17 +16,18 @@ import (
 // without terminating the entire application.
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
+// Internal Logic Deep-Dive: Structured to avoid dynamic interface dispatch during fatal recovery logging.
 type PanicError struct {
 	// Value holds the raw panic interface{} caught during execution.
 	// Purpose: Holds the raw value recovered from the panic.
 	// Constraints: Can be of any type, typically an error or string.
 	// Thread-safety: Read-only struct field.
-	Value	any
+	Value any
 	// Stack holds the runtime stack trace captured immediately at the panic site.
 	// Purpose: Provides debugging context for where the panic originated.
 	// Constraints: Automatically captured via runtime/debug.
 	// Thread-safety: Read-only string.
-	Stack	string
+	Stack string
 }
 
 // Error maps the natively intercepted crash object back into the standard Go error ecosystem, outputting a completely formatted summary block to facilitate unified log processing.
@@ -52,8 +53,8 @@ func Go(fn func(), onPanic ...func(err error)) {
 		defer func() {
 			if r := recover(); r != nil {
 				panicErr := &PanicError{
-					Value:	r,
-					Stack:	string(debug.Stack()),
+					Value: r,
+					Stack: string(debug.Stack()),
 				}
 				if len(onPanic) > 0 && onPanic[0] != nil {
 					onPanic[0](panicErr)
@@ -70,6 +71,7 @@ func Go(fn func(), onPanic ...func(err error)) {
 // goroutine leaks if the caller does not read from it immediately.
 // Thread-safety: If the goroutine panics, the panic is recovered and sent safely to the
 // channel as a PanicError. Channel access is inherently concurrent-safe.
+// Internal Logic Deep-Dive: We use a buffered channel of size 1 so the goroutine never leaks even if the receiver abandons it.
 func GoErr(fn func() error) <-chan error {
 	ch := make(chan error, 1)
 	go func() {
@@ -92,16 +94,18 @@ func GoErr(fn func() error) <-chan error {
 // Constraints: Must be instantiated using NewGroup to function correctly.
 // Thread-safety: It uses internal sync primitives to be entirely safe for concurrent
 // execution and error collection from multiple workers.
+// Internal Logic Deep-Dive: Maintains an internal mutex specifically to serialize append operations on the error slice across concurrent workers.
 type Group struct {
-	wg	sync.WaitGroup
-	mu	sync.Mutex
-	errs	[]error
+	wg   sync.WaitGroup
+	mu   sync.Mutex
+	errs []error
 }
 
 // NewGroup builds a pristine goroutine management harness equipped with all necessary blocking primitives to coordinate concurrent operations immediately upon creation.
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.
+// Internal Logic Deep-Dive: Initializes a pointer directly avoiding deep copies.
 func NewGroup() *Group {
 	return &Group{}
 }
@@ -253,9 +257,9 @@ Loop:
 // Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
-		wg	sync.WaitGroup
-		mu	sync.Mutex
-		errs	[]error
+		wg   sync.WaitGroup
+		mu   sync.Mutex
+		errs []error
 	)
 
 	// Iterate through the items and launch a goroutine for each.

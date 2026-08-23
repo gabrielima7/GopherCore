@@ -83,6 +83,7 @@ func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 // Constraints: Must be the first stream interceptor in the chain.
 // Thread-safety: The returned interceptor is safe for concurrent invocation
 // across simultaneous streaming RPCs.
+// Internal Logic Deep-Dive: Catches internal stream handler panics and translates them to gRPC Internal status codes.
 func RecoveryStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor {
 	return func(
 		srv any,
@@ -136,6 +137,7 @@ func RecoveryStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor
 // records the final status code.
 // Thread-safety: The returned interceptor is safe for concurrent invocation
 // across thousands of simultaneous RPCs.
+// Internal Logic Deep-Dive: Captures payload size and latency timings before and after handler execution.
 func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -181,6 +183,7 @@ func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 // panics are translated before the status code is recorded.
 // Thread-safety: The returned interceptor is safe for concurrent invocation
 // across simultaneous streaming RPCs.
+// Internal Logic Deep-Dive: Wraps stream implementations to log on initialization and completion phases.
 func LoggingStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor {
 	return func(
 		srv any,
