@@ -62,7 +62,7 @@ func Of[T any](value T, err error) Result[T] {
 // Purpose: Quick boolean check for success.
 // Constraints: Must map precisely to the struct `ok` state.
 // Thread-safety: Read-only check.
-// Internal Logic Deep-Dive: Explicitly asserts the internal error pointer is nil.
+// Internal Logic Deep-Dive: A fast inline boolean check that deliberately avoids evaluating error interfaces for performance on hot execution paths.
 func (r Result[T]) IsOk() bool {
 	return r.ok
 }
