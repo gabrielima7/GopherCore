@@ -346,7 +346,7 @@ func to(s State) State { return s }
 // Purpose: Manually clears any failure conditions.
 // Constraints: Disregards threshold counts when invoked.
 // Thread-safety: Mutex-locked and safe for concurrent use.
-// Internal Logic Deep-Dive: Zeroes out the internal failure counters to immediately restore traffic flow, useful for operator overrides.
+// Internal Logic Deep-Dive: Explicitly resetting counters under the mutex ensures that edge-case concurrent requests passing through during a manual reset do not read partial state anomalies.
 func (b *Breaker) Reset() {
 	b.mu.Lock()
 	defer b.mu.Unlock()

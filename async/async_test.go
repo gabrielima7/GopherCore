@@ -50,6 +50,7 @@ func TestGo_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			doneCh := make(chan struct{})
 			errCh := make(chan error, 1)
@@ -136,6 +137,7 @@ func TestGoErr_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ch := GoErr(tt.fn)
 			err := <-ch
@@ -206,6 +208,7 @@ func TestGroup_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewGroup()
 			for _, fn := range tt.funcs {
@@ -491,6 +494,7 @@ func TestMap_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var cancel context.CancelFunc
@@ -576,6 +580,7 @@ func TestFan_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var cancel context.CancelFunc

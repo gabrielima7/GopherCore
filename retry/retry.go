@@ -131,7 +131,7 @@ func WithMaxAttempts(n int) Option {
 // Purpose: Define a base wait offset.
 // Constraints: Usually bounded by MaxDelay.
 // Thread-safety: Mutates configuration synchronously.
-// Internal Logic Deep-Dive: Seeds the exponential growth algorithm.
+// Internal Logic Deep-Dive: Setting a deterministic lower-bound effectively seeds the exponential degradation strategy to guarantee immediate downstream relief during transient disruptions.
 func WithInitialDelay(d time.Duration) Option {
 	return func(c *Config) {
 		c.InitialDelay = d
