@@ -68,6 +68,7 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 // Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
 // rolling back these types of operations transactionally.
 // Thread-safety: Concurrent execution relies on the underlying golang-migrate advisory locks on the DB.
+// Internal Logic Deep-Dive: Executes a migration rollback using the golang-migrate library.
 func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -121,6 +122,7 @@ type MigrationVersion struct {
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
 // Thread-safety: Safe for concurrent queries across multiple nodes reading state.
+// Internal Logic Deep-Dive: Retrieves the current schema version from the migration engine.
 func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (mv MigrationVersion, err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {

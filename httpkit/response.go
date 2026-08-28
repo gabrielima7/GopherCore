@@ -37,6 +37,7 @@ type ErrorResponse struct {
 // Purpose: Simplifies sending structured JSON to clients securely.
 // Constraints: The data payload must be serializable to JSON.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+// Internal Logic Deep-Dive: Marshals the data to JSON and writes it to the http.ResponseWriter with the specified status code.
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {
@@ -57,6 +58,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 // Purpose: Standardizes JSON error messages.
 // Constraints: Status should be a valid HTTP status code.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+// Internal Logic Deep-Dive: Writes a JSON-formatted error response to the client.
 func Error(w http.ResponseWriter, status int, message string) {
 	// Standardize error structures so downstream API consumers can reliably parse
 	// fault states without writing bespoke parsing logic for every different endpoint.
@@ -71,6 +73,7 @@ func Error(w http.ResponseWriter, status int, message string) {
 // Purpose: Shorthand for returning successful 200 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Calls JSON to write a 200 OK response with the provided payload.
 func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
 }
@@ -79,6 +82,7 @@ func Ok(w http.ResponseWriter, data any) {
 // Purpose: Shorthand for returning successful 201 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Calls JSON to write a 201 Created response with the provided payload.
 func Created(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusCreated, data)
 }
@@ -87,6 +91,7 @@ func Created(w http.ResponseWriter, data any) {
 // Purpose: Shorthand for returning successful 204 empty responses.
 // Constraints: Does not accept a data payload.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Writes only a 204 No Content status header, ignoring any payload.
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }

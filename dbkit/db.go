@@ -22,49 +22,50 @@ type Config struct {
 	// Purpose: Specifies which underlying driver sqlx should initialize.
 	// Constraints: Must be a registered database driver name.
 	// Thread-safety: Read-only string.
-	Driver	string
+	Driver string
 	// DSN is the data source name / connection string.
 	// Purpose: Contains connection credentials and routing information.
 	// Constraints: Format strictly depends on the specified Driver.
 	// Thread-safety: Read-only string.
-	DSN	string
+	DSN string
 	// MaxOpenConns is the maximum number of open connections.
 	// Purpose: Throttles the maximum physical connections to the database.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	MaxOpenConns	int
+	MaxOpenConns int
 	// MaxIdleConns is the maximum number of idle connections.
 	// Purpose: Caps the number of inactive connections kept alive in the pool.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	MaxIdleConns	int
+	MaxIdleConns int
 	// ConnMaxLifetime is the maximum duration a connection can be reused.
 	// Purpose: Forces recycling of old connections to prevent stale socket issues.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	ConnMaxLifetime	time.Duration
+	ConnMaxLifetime time.Duration
 	// ConnMaxIdleTime is the maximum duration a connection can be idle.
 	// Purpose: Trims connections that have been inactive for too long.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	ConnMaxIdleTime	time.Duration
+	ConnMaxIdleTime time.Duration
 }
 
 // DefaultConfig constructs a highly resilient network baseline, pre-populating safe connection thresholds that protect against arbitrary socket exhaustion in production.
 // Purpose: Generates a baseline stable database connection configuration.
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
+// Internal Logic Deep-Dive: Returns a default configuration block for the database connection pool.
 func DefaultConfig(driver, dsn string) Config {
 	// These specific thresholds are chosen to prevent sudden bursts of traffic from
 	// exhausting the upstream database's connection limits, balancing active capacity
 	// against the memory overhead of maintaining stale idle sockets.
 	return Config{
-		Driver:			driver,
-		DSN:			dsn,
-		MaxOpenConns:		25,
-		MaxIdleConns:		5,
-		ConnMaxLifetime:	5 * time.Minute,
-		ConnMaxIdleTime:	1 * time.Minute,
+		Driver:          driver,
+		DSN:             dsn,
+		MaxOpenConns:    25,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 5 * time.Minute,
+		ConnMaxIdleTime: 1 * time.Minute,
 	}
 }
 
@@ -78,6 +79,7 @@ type Option func(*Config)
 // Purpose: Adjusts the connection pool size limit.
 // Constraints: n should be greater than 0.
 // Thread-safety: Mutates configuration synchronously.
+// Internal Logic Deep-Dive: Sets the maximum number of open connections to the database.
 func WithMaxOpenConns(n int) Option {
 	return func(c *Config) {
 		c.MaxOpenConns = n
@@ -88,6 +90,7 @@ func WithMaxOpenConns(n int) Option {
 // Purpose: Adjusts the connection pool idle limit.
 // Constraints: n should be >= 0.
 // Thread-safety: Mutates configuration synchronously.
+// Internal Logic Deep-Dive: Sets the maximum number of connections in the idle connection pool.
 func WithMaxIdleConns(n int) Option {
 	return func(c *Config) {
 		c.MaxIdleConns = n
@@ -98,6 +101,7 @@ func WithMaxIdleConns(n int) Option {
 // Purpose: Defines connection recycle limits.
 // Constraints: Should be shorter than database-side closing timeouts.
 // Thread-safety: Mutates configuration synchronously.
+// Internal Logic Deep-Dive: Sets the maximum amount of time a connection may be reused.
 func WithConnMaxLifetime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxLifetime = d
@@ -108,6 +112,7 @@ func WithConnMaxLifetime(d time.Duration) Option {
 // Purpose: Trims idle connections after this duration.
 // Constraints: Must be >= 0.
 // Thread-safety: Mutates configuration synchronously.
+// Internal Logic Deep-Dive: Sets the maximum amount of time a connection may be idle.
 func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxIdleTime = d
@@ -160,6 +165,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 // Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
 // Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
+// Internal Logic Deep-Dive: Initializes the database connection and immediately panics if the connection fails.
 func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
 	// Execute standard connection bootstrapping, intentionally panicking on failure.
 	// This is strictly designed for the application bootstrap phase where running
@@ -176,6 +182,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 // Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
+// Internal Logic Deep-Dive: Uses PingContext to verify the database connection is alive and responding.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }

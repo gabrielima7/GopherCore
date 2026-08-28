@@ -37,28 +37,29 @@ type ValidationError struct {
 	// Purpose: Identifies which specific input parameter was invalid.
 	// Constraints: Maps to the struct field's defined name or JSON tag.
 	// Thread-safety: Read-only string.
-	Field	string	`json:"field"`
+	Field string `json:"field"`
 	// Tag is the specific validation rule that triggered the failure.
 	// Purpose: Identifies the exact rule (e.g., 'required', 'email') that was violated.
 	// Constraints: Maps to go-playground/validator tag names.
 	// Thread-safety: Read-only string.
-	Tag	string	`json:"tag"`
+	Tag string `json:"tag"`
 	// Value is the actual input value that was rejected, formatted as a string.
 	// Purpose: Shows the invalid input for debugging and logging.
 	// Constraints: Should be sanitized if logging sensitive PII.
 	// Thread-safety: Read-only string.
-	Value	string	`json:"value"`
+	Value string `json:"value"`
 	// Message is a human-readable explanation of why the validation failed.
 	// Purpose: Provides a client-friendly error message.
 	// Constraints: Safe for external exposure via API responses.
 	// Thread-safety: Read-only string.
-	Message	string	`json:"message"`
+	Message string `json:"message"`
 }
 
 // Error fulfills the standard Go error interface for ValidationError, yielding a pre-formatted, user-safe description of the exact constraint violation.
 // Purpose: Allows treating a ValidationError strictly as an error interface.
 // Constraints: Standard interface constraint.
 // Thread-safety: Pure method on value receiver.
+// Internal Logic Deep-Dive: For ValidationErrors, concatenates the string representation of all underlying errors. For a single ValidationError, returns its specific message.
 func (v ValidationError) Error() string {
 	return v.Message
 }
@@ -73,6 +74,7 @@ type ValidationErrors []ValidationError
 // Purpose: Flattens grouped errors into a single error interface.
 // Constraints: Aggregated string may be large if many fields failed.
 // Thread-safety: Safe for concurrent access.
+// Internal Logic Deep-Dive: For ValidationErrors, concatenates the string representation of all underlying errors. For a single ValidationError, returns its specific message.
 func (ve ValidationErrors) Error() string {
 	var msgs []string
 	// Linearly map the individually nested validation errors to avoid losing context
@@ -109,10 +111,10 @@ func Validate(s any) error {
 	errs := make(ValidationErrors, 0, len(validationErrors))
 	for _, fe := range validationErrors {
 		errs = append(errs, ValidationError{
-			Field:		fe.Field(),
-			Tag:		fe.Tag(),
-			Value:		fmt.Sprintf("%v", fe.Value()),
-			Message:	formatValidationError(fe),
+			Field:   fe.Field(),
+			Tag:     fe.Tag(),
+			Value:   fmt.Sprintf("%v", fe.Value()),
+			Message: formatValidationError(fe),
 		})
 	}
 	return errs
@@ -124,6 +126,7 @@ func Validate(s any) error {
 // Thread-safety: This function modifies the global validator instance and is NOT thread-safe
 // to call concurrently with active `Validate` calls. It MUST be invoked strictly
 // during application startup initialization to prevent data races.
+// Internal Logic Deep-Dive: Registers a custom validation function with the internal go-playground/validator instance.
 func RegisterValidation(tag string, fn validator.Func) error {
 	return validate.RegisterValidation(tag, fn)
 }
@@ -157,6 +160,7 @@ func SanitizeString(s string) string {
 // Constraints: Destroys markup, not meant for HTML manipulation where structure should be retained.
 // Thread-safety: It leverages a globally instantiated policy and is fully
 // safe for concurrent execution across multiple goroutines.
+// Internal Logic Deep-Dive: Uses a specialized sanitizer (e.g., bluemonday) to strip HTML tags from a string.
 func StripHTML(s string) string {
 	return htmlPolicy.Sanitize(s)
 }

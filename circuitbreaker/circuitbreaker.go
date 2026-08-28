@@ -35,7 +35,7 @@ const (
 	// Purpose: Denotes the baseline healthy state.
 	// Constraints: Must be returned exclusively when the breaker is untripped.
 	// Thread-safety: Constant value.
-	StateClosed	State	= iota
+	StateClosed State = iota
 
 	// StateOpen represents the tripped state. All requests are immediately rejected
 	// with ErrCircuitOpen until the configured timeout duration expires.
@@ -56,6 +56,7 @@ const (
 // Purpose: Simplifies console output and logging of the circuit status.
 // Constraints: Always returns a valid string, defaulting to "unknown".
 // Thread-safety: Pure method on value receiver.
+// Internal Logic Deep-Dive: Uses a simple switch statement to map the State enum to its string representation.
 func (s State) String() string {
 	// Directly convert enum values into human-readable representations.
 	// This makes it vastly simpler to aggregate and query circuit breaker
@@ -82,46 +83,47 @@ type Config struct {
 	// Purpose: Determines how many consecutive failures trip the breaker.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	FailureThreshold	int
+	FailureThreshold int
 
 	// SuccessThreshold is the number of consecutive successes in
 	// HalfOpen state required to transition back to Closed.
 	// Purpose: Determines how many consecutive successes reset the breaker.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	SuccessThreshold	int
+	SuccessThreshold int
 
 	// Timeout is the duration the circuit stays in the Open state
 	// before transitioning to HalfOpen.
 	// Purpose: Determines the cooldown period before probing the service again.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	Timeout	time.Duration
+	Timeout time.Duration
 
 	// MaxHalfOpenRequests is the maximum number of requests allowed
 	// in the HalfOpen state. Defaults to 1.
 	// Purpose: Limits concurrent probes to the recovering service.
 	// Constraints: Must be greater than 0.
 	// Thread-safety: Read-only during execution.
-	MaxHalfOpenRequests	int
+	MaxHalfOpenRequests int
 
 	// OnStateChange is called when the circuit breaker transitions state.
 	// Purpose: Allows observing internal circuit breaker state changes.
 	// Constraints: Can be nil. If provided, it blocks state transitions.
 	// Thread-safety: Called synchronously under the breaker's mutex lock.
-	OnStateChange	func(from, to State)
+	OnStateChange func(from, to State)
 }
 
 // DefaultConfig establishes a highly battle-tested, conservative tolerance foundation designed to safely protect the majority of standard microservice architectures against cascading network death.
 // Purpose: Provides a safe, battle-tested baseline configuration.
 // Constraints: Generates defaults that can be optionally overridden.
 // Thread-safety: Returns a new instance.
+// Internal Logic Deep-Dive: Provides a standard configuration struct for the circuit breaker.
 func DefaultConfig() Config {
 	return Config{
-		FailureThreshold:	5,
-		SuccessThreshold:	2,
-		Timeout:		30 * time.Second,
-		MaxHalfOpenRequests:	1,
+		FailureThreshold:    5,
+		SuccessThreshold:    2,
+		Timeout:             30 * time.Second,
+		MaxHalfOpenRequests: 1,
 	}
 }
 
@@ -130,20 +132,21 @@ func DefaultConfig() Config {
 // Constraints: Must be created using New() and never copied by value after initialization.
 // Thread-safety: Mutex-guarded and safe for concurrent use.
 type Breaker struct {
-	mu	sync.Mutex
-	config	Config
+	mu     sync.Mutex
+	config Config
 
-	state			State
-	failureCount		int
-	successCount		int
-	halfOpenRequests	int
-	lastFailureTime		time.Time
+	state            State
+	failureCount     int
+	successCount     int
+	halfOpenRequests int
+	lastFailureTime  time.Time
 }
 
 // New creates a new Breaker instance with the provided Config.
 // Purpose: Instantiates and preconfigures a new Circuit Breaker.
 // Constraints: Applies default values for any configuration fields that are zero or invalid (<= 0). The breaker starts in StateClosed.
 // Thread-safety: Safe to initialize.
+// Internal Logic Deep-Dive: Initializes the circuit breaker with the provided configuration and allocates its internal synchronization primitives.
 func New(cfg Config) *Breaker {
 	// Sanitize configuration arguments silently rather than panicking or failing.
 	// This defensive posture ensures the circuit breaker guarantees system resilience
@@ -168,6 +171,7 @@ func New(cfg Config) *Breaker {
 // Constraints: It handles potential state transitions (e.g., from Open to HalfOpen) if the timeout
 // has expired before returning the state.
 // Thread-safety: Safe for concurrent use, heavily guarded by the internal mutex.
+// Internal Logic Deep-Dive: Uses an atomic load or mutex (depending on implementation) to return the current state of the breaker.
 func (b *Breaker) State() State {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -328,12 +332,13 @@ func (b *Breaker) transitionTo(newState State) {
 // Purpose: It is used to bypass variable shadowing issues in closure contexts.
 // Constraints: Must only be used internally.
 // Thread-safety: Pure function.
-func to(s State) State	{ return s }
+func to(s State) State { return s }
 
 // Reset restores the circuit breaker to its closed state, clearing all statistics.
 // Purpose: Manually clears any failure conditions.
 // Constraints: Disregards threshold counts when invoked.
 // Thread-safety: Mutex-locked and safe for concurrent use.
+// Internal Logic Deep-Dive: Acquires a lock to reset the failure counts and manually changes the state to Closed.
 func (b *Breaker) Reset() {
 	b.mu.Lock()
 	defer b.mu.Unlock()

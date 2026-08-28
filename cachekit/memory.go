@@ -36,6 +36,7 @@ type InMemoryCache struct {
 // Purpose: Initializes a local in-memory cache.
 // Constraints: Callers should call Close() to release background resources when done.
 // Thread-safety: Returns a thread-safe InMemoryCache.
+// Internal Logic Deep-Dive: Allocates an internal Go map protected by a sync.RWMutex and spawns a background goroutine for periodic eviction of expired keys.
 func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
 	c := &InMemoryCache{
 		items:  make(map[string]cacheItem),
@@ -110,6 +111,7 @@ func (c *InMemoryCache) evictExpired() {
 // Purpose: Frees resources associated with the background cleanup.
 // Constraints: Must be called to prevent goroutine leaks.
 // Thread-safety: Safe to call concurrently.
+// Internal Logic Deep-Dive: Signals the background eviction ticker to halt, freeing up resources.
 func (c *InMemoryCache) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.stopCh)
@@ -152,6 +154,7 @@ func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expir
 // Purpose: Implements Cache.Get using local map.
 // Constraints: Context is checked for cancellation before operation. Returns ErrCacheMiss if not found or expired.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Uses a read lock to retrieve an item, returning false if it does not exist or has expired.
 func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -187,6 +190,7 @@ func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 // Purpose: Implements Cache.Delete using local map.
 // Constraints: Context is checked for cancellation before operation.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Uses a write lock to remove a key from the internal map.
 func (c *InMemoryCache) Delete(ctx context.Context, key string) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
