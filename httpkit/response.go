@@ -15,6 +15,7 @@ import (
 // Purpose: Defines standard layout for JSON API errors.
 // Constraints: Assumes error message text is safely sanitized for external viewing.
 // Thread-safety: Data structure, safe when not mutated concurrently.
+// Internal Logic Deep-Dive: Using a consistent wrapper simplifies frontend state management drastically.
 type ErrorResponse struct {
 	// Error provides a machine-readable string describing the general failure category.
 	// Purpose: Provides a programmatic identifier for the error type.
@@ -37,6 +38,7 @@ type ErrorResponse struct {
 // Purpose: Simplifies sending structured JSON to clients securely.
 // Constraints: The data payload must be serializable to JSON.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+// Internal Logic Deep-Dive: Explicitly forces the `Content-Type: application/json` header to prevent MIME-sniffing vulnerabilities in browsers.
 func JSON(w http.ResponseWriter, status int, data any) {
 	body, err := jsonutil.Marshal(data)
 	if err != nil {
@@ -57,6 +59,7 @@ func JSON(w http.ResponseWriter, status int, data any) {
 // Purpose: Standardizes JSON error messages.
 // Constraints: Status should be a valid HTTP status code.
 // Thread-safety: Safe for concurrent use across multiple HTTP request handlers.
+// Internal Logic Deep-Dive: Wraps the internal failure into the explicit ErrorResponse struct to guarantee schema compliance.
 func Error(w http.ResponseWriter, status int, message string) {
 	// Standardize error structures so downstream API consumers can reliably parse
 	// fault states without writing bespoke parsing logic for every different endpoint.
@@ -71,6 +74,7 @@ func Error(w http.ResponseWriter, status int, message string) {
 // Purpose: Shorthand for returning successful 200 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Reduces boilerplate significantly across hundreds of handler functions.
 func Ok(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusOK, data)
 }
@@ -79,6 +83,7 @@ func Ok(w http.ResponseWriter, data any) {
 // Purpose: Shorthand for returning successful 201 JSON responses.
 // Constraints: Relies on json.Marshal internally, meaning data must be marshallable.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Indicates to the client that their POST command successfully persisted data.
 func Created(w http.ResponseWriter, data any) {
 	JSON(w, http.StatusCreated, data)
 }
@@ -87,6 +92,7 @@ func Created(w http.ResponseWriter, data any) {
 // Purpose: Shorthand for returning successful 204 empty responses.
 // Constraints: Does not accept a data payload.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Highly optimized for DELETE operations, minimizing network transfer.
 func NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }

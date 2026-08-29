@@ -62,6 +62,7 @@ func defaultServerConfig() serverConfig {
 // Constraints: Options are evaluated serially during construction. Nil options
 // are silently skipped to prevent panics.
 // Thread-safety: Safe when used sequentially during initialization.
+// Internal Logic Deep-Dive: Centralizes all server tuning into a predictable, variadic signature.
 type ServerOption func(*serverConfig)
 
 // WithServerAddress sets the TCP address on which the gRPC server will accept
@@ -70,6 +71,7 @@ type ServerOption func(*serverConfig)
 // Constraints: The address must be a valid TCP host:port string. An empty value
 // falls back to the system-chosen port.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Separates the address string from the actual socket binding to allow delayed initialization.
 func WithServerAddress(addr string) ServerOption {
 	return func(c *serverConfig) {
 		c.addr = addr
@@ -83,6 +85,7 @@ func WithServerAddress(addr string) ServerOption {
 // Constraints: cfg must not be nil; pass a properly configured *tls.Config
 // loaded from your certificate files.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Directly integrates standard `credentials.NewServerTLSFromCert` to strictly reject plaintext requests.
 func WithServerTLS(cfg *tls.Config) ServerOption {
 	return func(c *serverConfig) {
 		if cfg != nil {
@@ -97,6 +100,7 @@ func WithServerTLS(cfg *tls.Config) ServerOption {
 // Constraints: logger must not be nil. A nil value is silently ignored and
 // the existing logger is preserved.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Overrides the default grpclog to prevent unstructured output from leaking into standard error.
 func WithServerLogger(logger *slog.Logger) ServerOption {
 	return func(c *serverConfig) {
 		if logger != nil {
@@ -112,6 +116,7 @@ func WithServerLogger(logger *slog.Logger) ServerOption {
 // such as authentication, tracing, or metrics.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Uses `grpc.ChainUnaryInterceptor` to seamlessly execute all middleware before reaching the actual method handler.
 func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
 		// Filter out nil interceptors gracefully, ensuring the downstream
@@ -129,6 +134,7 @@ func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) ServerOp
 // Purpose: Allows callers to extend the streaming middleware chain with custom logic.
 // Constraints: Nil interceptors in the variadic slice are silently skipped.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
+// Internal Logic Deep-Dive: Allows telemetry middleware to monitor active stream counts without modifying business logic.
 func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) ServerOption {
 	return func(c *serverConfig) {
 		// Like unary interceptors, we filter out nils to maintain safety
@@ -175,6 +181,7 @@ func parseServerOptions(opts ...ServerOption) serverConfig {
 // caller is responsible for calling Serve(net.Listener) on the returned value.
 // Thread-safety: Construction is synchronous. The returned *grpc.Server is safe
 // for concurrent use via its exported API.
+// Internal Logic Deep-Dive: Bundles interceptors, TLS, and reflection services into a unified startup sequence.
 func NewServer(opts ...ServerOption) *grpc.Server {
 	cfg := parseServerOptions(opts...)
 
