@@ -158,7 +158,7 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 // Purpose: Preempts slow-loris attacks by capping total read duration.
 // Constraints: Must be positive or zero.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Specifically limits the body reading phase, forcefully severing slow connections.
+// Internal Logic Deep-Dive: Preemptively clamping the socket read duration provides foundational defense against Slowloris-style denial of service attacks by refusing to buffer indefinitely.
 func WithReadTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadTimeout = d

@@ -184,7 +184,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 // Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
-// Internal Logic Deep-Dive: Usually executes a simple `SELECT 1` to confirm the socket is truly active, not just locally open.
+// Internal Logic Deep-Dive: By injecting context cancellation directly into PingContext, we prevent temporary database network partitions from deadlocking the health-check goroutines.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }
