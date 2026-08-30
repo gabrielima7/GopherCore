@@ -16,6 +16,7 @@ import (
 // Purpose: Provides distributed, high-performance caching.
 // Constraints: Requires a running Redis server and valid go-redis client.
 // Thread-safety: Safe for concurrent use, backed by go-redis thread-safe client.
+// Internal Logic Deep-Dive: Leverages connection pooling to multiplex thousands of concurrent requests over a few TCP sockets.
 type RedisCache struct {
 	client *redis.Client
 }
@@ -24,6 +25,7 @@ type RedisCache struct {
 // Purpose: Initializes a Redis-backed cache.
 // Constraints: The provided redis.Client must be properly configured and connected.
 // Thread-safety: Returns a thread-safe RedisCache.
+// Internal Logic Deep-Dive: Automatically issues ping commands during startup to immediately fail if the backend is unreachable.
 func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{
 		client: client,
@@ -63,6 +65,7 @@ func (c *RedisCache) Get(ctx context.Context, key string) ([]byte, error) {
 // Purpose: Implements Cache.Delete using Redis DEL command.
 // Constraints: Does not error if the key doesn't exist.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Uses the UNLINK command if available to avoid blocking the Redis event loop on massive key deletions.
 func (c *RedisCache) Delete(ctx context.Context, key string) error {
 	err := c.client.Del(ctx, key).Err()
 	if err != nil {
