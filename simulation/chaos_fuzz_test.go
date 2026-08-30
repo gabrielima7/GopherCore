@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/goleak"
+
 	"github.com/gabrielima7/GopherCore/async"
 	"github.com/gabrielima7/GopherCore/cachekit"
 	"github.com/gabrielima7/GopherCore/circuitbreaker"
@@ -18,6 +20,8 @@ import (
 )
 
 func FuzzChaos(f *testing.F) {
+	defer goleak.VerifyNone(f, goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"), goleak.IgnoreTopFunction("os/signal.NotifyContext.func1"))
+
 	router := httpkit.NewRouter(
 		httpkit.WithRateLimit(50000, 100000),
 		httpkit.WithCORS("*"),

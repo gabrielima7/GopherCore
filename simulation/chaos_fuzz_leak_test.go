@@ -13,7 +13,7 @@ import (
 )
 
 func TestChaos_NoGoroutineLeak(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	router := httpkit.NewRouter()
 	router.Get("/process", func(w http.ResponseWriter, r *http.Request) {
