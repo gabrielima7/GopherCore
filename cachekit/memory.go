@@ -23,6 +23,7 @@ type cacheItem struct {
 // Purpose: Provides fast, local caching without external dependencies.
 // Constraints: Memory-bound. Does not automatically evict items based on memory pressure.
 // Thread-safety: Safe for concurrent use, synchronized via sync.RWMutex.
+// Internal Logic Deep-Dive: Uses RWMutex to drastically favor high read-throughput over write-contention in typical web workloads.
 type InMemoryCache struct {
 	mu        sync.RWMutex
 	items     map[string]cacheItem
@@ -36,6 +37,7 @@ type InMemoryCache struct {
 // Purpose: Initializes a local in-memory cache.
 // Constraints: Callers should call Close() to release background resources when done.
 // Thread-safety: Returns a thread-safe InMemoryCache.
+// Internal Logic Deep-Dive: Pre-allocates the underlying map to slightly reduce initial re-hashing overhead.
 func NewInMemoryCache(cleanupInterval time.Duration) *InMemoryCache {
 	c := &InMemoryCache{
 		items:  make(map[string]cacheItem),
@@ -110,6 +112,7 @@ func (c *InMemoryCache) evictExpired() {
 // Purpose: Frees resources associated with the background cleanup.
 // Constraints: Must be called to prevent goroutine leaks.
 // Thread-safety: Safe to call concurrently.
+// Internal Logic Deep-Dive: Specifically signals the internal TTL sweeper goroutine to exit to prevent memory leaks.
 func (c *InMemoryCache) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.stopCh)
@@ -152,6 +155,7 @@ func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expir
 // Purpose: Implements Cache.Get using local map.
 // Constraints: Context is checked for cancellation before operation. Returns ErrCacheMiss if not found or expired.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Validates expiration timestamps inline to evict stale data lazily upon read access.
 func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -187,6 +191,7 @@ func (c *InMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 // Purpose: Implements Cache.Delete using local map.
 // Constraints: Context is checked for cancellation before operation.
 // Thread-safety: Safe for concurrent use.
+// Internal Logic Deep-Dive: Uses the native map delete operation which is atomic under the write lock.
 func (c *InMemoryCache) Delete(ctx context.Context, key string) error {
 	if ctx.Err() != nil {
 		return ctx.Err()

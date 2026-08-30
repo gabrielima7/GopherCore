@@ -49,6 +49,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 // Purpose: Allows substitution of the standard rate limiter with distributed alternatives (e.g., Redis).
 // Constraints: Implementations must be thread-safe.
 // Thread-safety: Implementations are expected to manage concurrent state natively.
+// Internal Logic Deep-Dive: Abstraction allows us to swap an in-memory token bucket for a Redis-backed script seamlessly.
 type RateLimiter interface {
 	// Allow evaluates whether a single request is permitted to proceed under the current rate limit parameters.
 	// Purpose: Determines if a request should be processed or rejected due to rate limiting.
@@ -103,6 +104,7 @@ func RateLimitMiddleware(limiter RateLimiter) func(http.Handler) http.Handler {
 // without passing them down the middleware chain.
 // Thread-safety: Configuration maps and slices are built during initialization closure time
 // and strictly read concurrently during requests, guaranteeing absolute thread safety without mutexes.
+// Internal Logic Deep-Dive: Injects explicit `Access-Control-Allow-*` headers to strictly define security boundaries before the router processes the payload.
 func CORSMiddleware(allowedOrigins, allowedMethods, allowedHeaders []string) func(http.Handler) http.Handler {
 	// Pre-compute O(1) origin lookup map to keep handler execution extremely fast during heavy loads.
 	// Internal Logic Deep-Dive: We compute `originsSet`, `methodsStr`, and `headersStr` exactly once during middleware initialization closure. If we ran `strings.Join` or iterated over the `allowedOrigins` slice dynamically per-request inside the handler, the CPU overhead would spike catastrophically under heavy HTTP traffic.
