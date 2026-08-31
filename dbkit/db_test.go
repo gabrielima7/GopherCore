@@ -226,6 +226,24 @@ func TestMustConnectPanicsOnInvalidDriver(t *testing.T) {
 	MustConnect(context.Background(), "invalid_driver", "invalid_dsn")
 }
 
+func TestMustConnectPanicsOnEmptyDSN(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic from MustConnect with empty dsn")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic, got %T", r)
+		}
+		if msg != "dbkit: dbkit: dsn is required" {
+			t.Fatalf("unexpected panic message: %s", msg)
+		}
+	}()
+	MustConnect(context.Background(), "sqlite3", "")
+}
+
 func TestHealthCheck_TableDriven(t *testing.T) {
 	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 	tests := []struct {
