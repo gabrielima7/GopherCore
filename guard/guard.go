@@ -1,4 +1,4 @@
-// Package guard provides utilities.
+// Package guard provides runtime assertion, validation, and sanitization tools.
 // Purpose: guard provides runtime assertion and panic recovery utilities.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.

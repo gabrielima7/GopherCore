@@ -1,4 +1,4 @@
-// Package result provides utilities.
+// Package result provides a generic Result type for functional error handling.
 // Purpose: result provides a functional Result type for safer error handling without panics.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.

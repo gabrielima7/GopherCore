@@ -1,4 +1,4 @@
-// Package logkit provides utilities.
+// Package logkit provides structured and leveled JSON logging.
 // Purpose: logkit provides a minimal, structured logging abstraction.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.
