@@ -1,4 +1,4 @@
-// Package config provides utilities.
+// Package config provides environment-driven struct configuration and validation.
 // Purpose: config enables environment-driven struct configuration and validation.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.

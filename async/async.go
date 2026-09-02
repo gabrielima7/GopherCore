@@ -1,4 +1,4 @@
-// Package async provides utilities.
+// Package async provides goroutine management and job queuing capabilities.
 // Purpose: async provides asynchronous job queuing and worker management with bounded concurrency.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.

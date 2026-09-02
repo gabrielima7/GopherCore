@@ -1,4 +1,4 @@
-// Package jsonutil provides utilities.
+// Package jsonutil provides strict and fast JSON encoding/decoding wrappers.
 // Purpose: jsonutil provides strict JSON encoding and decoding utilities.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.
