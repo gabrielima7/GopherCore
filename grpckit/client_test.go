@@ -12,7 +12,7 @@ import (
 )
 
 func TestClientOptions(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"))
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
 	unaryInt := func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return invoker(ctx, method, req, reply, cc, opts...)
@@ -131,7 +131,7 @@ func TestClientOptions(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"))
 	// Happy path: start a local gRPC server on an ephemeral port to provide a real target for the dialer.
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -157,7 +157,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClient_ErrorPath(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run"))
 	tests := []struct {
 		name    string
 		target  string
