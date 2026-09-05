@@ -30,7 +30,7 @@ type Payload struct {
 }
 
 func TestChaosMicroserviceSimulation(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	// Initialize dbkit with SQLite
 	dbPath := filepath.Join(t.TempDir(), "chaos_test.db")

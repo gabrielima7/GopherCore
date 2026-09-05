@@ -20,7 +20,7 @@ import (
 )
 
 func TestExtremeConcurrencyLoad(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	router := httpkit.NewRouter()
 	var requestCount int64

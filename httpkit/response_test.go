@@ -3,10 +3,12 @@ package httpkit
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.uber.org/goleak"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -353,8 +355,8 @@ func TestResponses_InvalidStatusPanics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer func() {
 				r := recover()
-				if r == nil {
-					t.Errorf("expected panic for invalid status code, but did not panic")
+				if r == nil || !strings.Contains(fmt.Sprintf("%v", r), "invalid WriteHeader code") {
+					t.Errorf("expected panic containing invalid WriteHeader code for invalid status code")
 				}
 			}()
 			rr := httptest.NewRecorder()
