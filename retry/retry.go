@@ -1,4 +1,4 @@
-// Package retry provides utilities.
+// Package retry provides backoff and retry mechanisms for transient failures.
 // Purpose: retry provides backoff and retry mechanisms for transient failures.
 // Constraints: Internal package.
 // Thread-safety: Varies by component.
