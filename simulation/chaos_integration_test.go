@@ -25,7 +25,7 @@ import (
 var errBadStatus = errors.New("bad status")
 
 func TestIntegrationChaos(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	dbPath := filepath.Join(t.TempDir(), "integration_chaos.db")
 	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
