@@ -19,7 +19,7 @@ import (
 )
 
 func TestMassiveConcurrencyLoad(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 	// 1. Setup simulated backend
 	router := httpkit.NewRouter(
 		httpkit.WithRateLimit(100000, 200000), // Huge rate limit

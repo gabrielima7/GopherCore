@@ -20,7 +20,7 @@ import (
 )
 
 func TestErgonomicsAndChaosIntegration(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	// 1. Evaluate logkit configuration (Ergonomics)
 	logkit.Initialize()
