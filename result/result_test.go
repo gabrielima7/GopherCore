@@ -82,6 +82,31 @@ func TestResultConstructors_TableDriven(t *testing.T) {
 	}
 }
 
+func TestErrf(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	tests := []struct {
+		name   string
+		format string
+		args   []any
+		expect string
+	}{
+		{"simple", "error %d", []any{404}, "error 404"},
+		{"string", "msg: %s", []any{"not found"}, "msg: not found"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := Errf[int](tt.format, tt.args...)
+			if r.IsOk() {
+				t.Fatal("expected Errf to return an Err")
+			}
+			if r.Error().Error() != tt.expect {
+				t.Fatalf("expected error message %q, got %q", tt.expect, r.Error().Error())
+			}
+		})
+	}
+}
+
 func TestOf(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	tests := []struct {
