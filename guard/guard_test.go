@@ -136,6 +136,7 @@ func TestValidate_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := Validate(tt.input)
 			if !tt.expectErr {
@@ -250,6 +251,7 @@ func TestSanitizeString(t *testing.T) {
 		{"only control chars", "\x01\x02\x03", ""},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got := SanitizeString(tt.input)
 			if got != tt.expected {
@@ -274,6 +276,7 @@ func TestStripHTML(t *testing.T) {
 		{"attributes", `<a href="url">link</a>`, "link"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got := StripHTML(tt.input)
 			if got != tt.expected {
@@ -377,6 +380,7 @@ func TestFormatValidationErrorAllTags_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := Validate(tt.input)
 			if err == nil {
@@ -466,6 +470,7 @@ func TestGuardConcurrency(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			const numGoroutines = 100
 			errCh := make(chan error, numGoroutines)

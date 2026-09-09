@@ -136,6 +136,7 @@ func TestValid_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := Valid(tt.input); got != tt.expected {
 				t.Errorf("Valid(%q) = %v; expected %v", tt.input, got, tt.expected)
@@ -165,6 +166,7 @@ func TestEncoder_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
 			if tt.useErrWriter {
@@ -201,6 +203,7 @@ func TestDecoder_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
 			if tt.useErrReader {
@@ -231,6 +234,7 @@ func TestMarshalIndent_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := MarshalIndent(tt.data, "", "  ")
 			if (err != nil) != tt.expectErr {

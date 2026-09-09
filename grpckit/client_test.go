@@ -123,6 +123,7 @@ func TestClientOptions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := parseClientOptions(tt.opts...)
 			tt.validate(t, cfg)
@@ -179,6 +180,7 @@ func TestNewClient_ErrorPath(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			conn, err := NewClient(tt.target, tt.opts...)
 			if (err != nil) != tt.wantErr {

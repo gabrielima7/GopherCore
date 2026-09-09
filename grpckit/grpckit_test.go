@@ -113,6 +113,7 @@ func TestNewServer_TableDriven(t *testing.T) {
 		{"slice with nil options safety", []ServerOption{nil, WithServerLogger(silentLogger()), nil}},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			srv := NewServer(tt.opts...)
 			if srv == nil {
@@ -226,6 +227,7 @@ func TestNewClient_TableDriven(t *testing.T) {
 		{"slice with nil options safety", []ClientOption{nil, WithDialTimeout(200 * time.Millisecond), nil}},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			// grpc.NewClient is non-blocking by default. A successful non-blocking dial
 			// returns a conn even to unreachable targets, UNLESS grpc.WithBlock() is used,

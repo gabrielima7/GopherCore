@@ -298,6 +298,7 @@ func TestCalculateDelayExponential(t *testing.T) {
 		{3, 800 * time.Millisecond},
 	}
 	for _, tt := range tests {
+		tt := tt
 		got := calculateDelay(cfg, tt.attempt)
 		if got != tt.expected {
 			t.Errorf("attempt %d: expected %v, got %v", tt.attempt, tt.expected, got)
@@ -560,6 +561,7 @@ func TestDo_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var cancel context.CancelFunc
@@ -614,6 +616,7 @@ func TestDoConcurrency(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			const numGoroutines = 100
 			errCh := make(chan error, numGoroutines)
@@ -703,6 +706,7 @@ func TestDoWithValue_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 

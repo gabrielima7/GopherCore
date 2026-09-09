@@ -176,6 +176,7 @@ func TestConfigOptions_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := DefaultConfig("sqlite3", "test.db")
 			for _, opt := range tt.opts {
@@ -285,6 +286,7 @@ func TestHealthCheck_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			db, ctx, cancel := tt.setup(t)
 			defer cancel()
@@ -465,6 +467,7 @@ func TestConnect_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			var cancel context.CancelFunc

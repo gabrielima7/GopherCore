@@ -58,6 +58,7 @@ func TestNewLogger(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			var logger *slog.Logger
@@ -150,6 +151,7 @@ func TestInitialize(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 

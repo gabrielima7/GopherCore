@@ -61,6 +61,7 @@ func TestNewRouter_TableDriven(t *testing.T) {
 		{"slice with nil options safety", []RouterOption{nil, WithLogger(false), nil}},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRouter(tt.opts...)
 			if r == nil {
@@ -90,6 +91,7 @@ func TestRouterMetricsRegistration(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRouter(
 				WithMetricsPath(tt.metricsPath),
@@ -176,6 +178,7 @@ func TestRouterOptions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := parseOptions(tt.opts...)
 			tt.validate(t, cfg)
@@ -229,6 +232,7 @@ func TestNewServer_TableDriven(t *testing.T) {
 		{"slice with nil options safety", []RouterOption{nil, WithReadTimeout(5 * time.Second), nil}},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := NewRouter(WithLogger(false))
 			srv := NewServer(":8080", r, tt.opts...)
@@ -311,6 +315,7 @@ func TestGracefulShutdown_Signal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &http.Server{
 				Addr: "127.0.0.1:0", // Listen on any available port
@@ -415,6 +420,7 @@ func TestGracefulShutdown_ServerClosed(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			srv := &http.Server{
 				Addr:              "127.0.0.1:0",

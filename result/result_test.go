@@ -46,6 +46,7 @@ func TestResultConstructors_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.constructor()
 
@@ -95,6 +96,7 @@ func TestErrf(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := Errf[int](tt.format, tt.args...)
 			if r.IsOk() {
@@ -130,6 +132,7 @@ func TestOf(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			r := Of(tt.valFn())
 			if tt.wantErr {
@@ -200,6 +203,7 @@ func TestUnwrapOrElse(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.res.UnwrapOrElse(tt.fn)
 			if got != tt.expected {
@@ -234,6 +238,7 @@ func TestError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.res.Error()
 			if tt.err == nil {
@@ -430,6 +435,7 @@ func TestResult_Methods_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			switch tt.op {
 			case "Map":
@@ -541,6 +547,7 @@ func TestResultConcurrency(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			const numGoroutines = 100
 			errCh := make(chan error, numGoroutines)

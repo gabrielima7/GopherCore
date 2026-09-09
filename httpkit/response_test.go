@@ -187,6 +187,7 @@ func TestResponses_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			tt.fn(rr)

@@ -196,6 +196,7 @@ func TestReset_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := newTestBreaker()
 			tt.setup(t, cb)
@@ -242,6 +243,7 @@ func TestStateString(t *testing.T) {
 		{State(99), "unknown"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		if tt.state.String() != tt.expected {
 			t.Errorf("expected %q, got %q", tt.expected, tt.state.String())
 		}
@@ -315,6 +317,7 @@ func TestBreaker_Execute_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			timeout := tt.timeout
 			if timeout == 0 {
@@ -449,6 +452,7 @@ func TestConfig_TableDriven(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			cb := New(tt.input)
 			if cb.config.FailureThreshold != tt.expected.FailureThreshold {

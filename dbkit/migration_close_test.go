@@ -131,6 +131,7 @@ func TestRunMigrations_CloseErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			rawDB := openDB(t, dbPath)
 			realDriver := newDriver(t, rawDB)
@@ -179,6 +180,7 @@ func TestRollbackMigrations_CloseErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			// Pre-apply migrations for the step to work
 			rawDBInit := openDB(t, dbPath)
@@ -236,6 +238,7 @@ func TestGetMigrationVersion_CloseErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			rawDB := openDB(t, dbPath)
 			realDriver := newDriver(t, rawDB)
