@@ -364,3 +364,30 @@ func TestResponses_InvalidStatusPanics(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshalErrors_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	tests := []struct {
+		name string
+		fn   func(http.ResponseWriter, any)
+	}{
+		{
+			name: "Ok unmarshalable type",
+			fn:   Ok,
+		},
+		{
+			name: "Created unmarshalable type",
+			fn:   Created,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			tt.fn(rr, make(chan int)) // Channels cannot be marshaled to JSON.
+			if rr.Code != http.StatusInternalServerError {
+				t.Fatalf("expected 500 for unmarshalable type, got %d", rr.Code)
+			}
+		})
+	}
+}

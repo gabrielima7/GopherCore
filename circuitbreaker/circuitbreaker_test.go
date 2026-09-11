@@ -608,3 +608,14 @@ func TestExecutePanic(t *testing.T) {
 		panic("catastrophic failure")
 	})
 }
+
+func TestExecuteNilFunc(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	b := newTestBreaker()
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic on nil function in Execute")
+		}
+	}()
+	_ = b.Execute(nil)
+}
