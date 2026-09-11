@@ -55,6 +55,7 @@ type RateLimiter interface {
 	// Purpose: Determines if a request should be processed or rejected due to rate limiting.
 	// Constraints: Must execute rapidly (O(1)) without blocking the main router thread.
 	// Thread-safety: Implementations must be natively thread-safe.
+	// Internal Logic Deep-Dive: Implementing this as a boolean fast-path rather than returning standard error objects allows for inline short-circuiting in middleware routers, significantly reducing garbage collection pressure during Layer 7 HTTP floods.
 	Allow() bool
 }
 
