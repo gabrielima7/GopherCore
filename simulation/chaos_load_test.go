@@ -69,7 +69,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 
 		res := result.Of(retry.DoWithValue(ctx, func(ctx context.Context) (string, error) {
 			var val string
-			err := cb.Execute(func() error {
+			err := cb.Execute(ctx, func() error {
 				endpoint := srv.URL + "/process?id=ok"
 				if item%10 == 0 {
 					endpoint = srv.URL + "/process?id=crash"

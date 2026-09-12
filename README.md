@@ -134,7 +134,7 @@ cb := circuitbreaker.New(circuitbreaker.Config{
     },
 })
 
-err := cb.Execute(func() error {
+err := cb.Execute(ctx, func() error {
     return callService()
 })
 

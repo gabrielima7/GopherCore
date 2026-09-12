@@ -59,7 +59,7 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 
 			_, err := retry.DoWithValue(ctx, func(c context.Context) (string, error) {
 				var result string
-				execErr := cb.Execute(func() error {
+				execErr := cb.Execute(ctx, func() error {
 					endpoint := srv.URL + "/process"
 					if idx%3 == 0 {
 						endpoint += "?fail=true"

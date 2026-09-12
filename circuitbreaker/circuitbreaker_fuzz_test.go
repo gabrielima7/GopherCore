@@ -1,6 +1,7 @@
 package circuitbreaker
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -57,7 +58,7 @@ func FuzzCircuitBreakerTransitions(f *testing.F) {
 
 		// Safely execute randomized load to ensure Breaker does not panic
 		for i := 0; i < iterations; i++ {
-			_ = cb.Execute(func() error {
+			_ = cb.Execute(context.Background(), func() error {
 				if i%2 == 0 {
 					return errSimulated
 				}

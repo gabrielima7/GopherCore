@@ -5,6 +5,7 @@
 package circuitbreaker
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -191,7 +192,11 @@ func (b *Breaker) State() State {
 // Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached.
 // Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.
 // Internal Logic Deep-Dive: The state machine transitions atomically. If the circuit is open, we fast-fail returning ErrCircuitOpen to prevent cascading failure pressure on the downstream service.
-func (b *Breaker) Execute(fn func() error) error {
+func (b *Breaker) Execute(ctx context.Context, fn func() error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	b.mu.Lock()
 
 	// Evaluate the state lazily when traffic arrives. This prevents us from
