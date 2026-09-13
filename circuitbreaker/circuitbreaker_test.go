@@ -627,7 +627,9 @@ func TestExecuteContext_NilContext(t *testing.T) {
 
 	// Should not panic on nil context and run successfully
 	var ran bool
-	err := cb.ExecuteContext(nil, func() error {
+	var nilCtx context.Context
+	//nolint:staticcheck // SA1012: deliberately testing defensive nil context handling
+	err := cb.ExecuteContext(nilCtx, func() error {
 		ran = true
 		return nil
 	})
