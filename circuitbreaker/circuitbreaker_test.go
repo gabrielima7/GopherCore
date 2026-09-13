@@ -1,6 +1,7 @@
 package circuitbreaker
 
 import (
+	"context"
 	"errors"
 	"go.uber.org/goleak"
 	"sync"
@@ -618,4 +619,118 @@ func TestExecuteNilFunc(t *testing.T) {
 		}
 	}()
 	_ = b.Execute(nil)
+}
+
+func TestExecuteContext_NilContext(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	// Should not panic on nil context and run successfully
+	var ran bool
+	var nilCtx context.Context
+	//nolint:staticcheck,SA1012 // SA1012: deliberately testing defensive nil context handling
+	err := cb.ExecuteContext(nilCtx, func() error {
+		ran = true
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error with nil context: %v", err)
+	}
+	if !ran {
+		t.Fatal("expected function to run even with nil context")
+	}
+}
+
+func TestExecuteContext_PreCancelled(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // pre-cancel context
+
+	var ran bool
+	err := cb.ExecuteContext(ctx, func() error {
+		ran = true
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got: %v", err)
+	}
+	if ran {
+		t.Fatal("expected fn not to be executed on pre-cancelled context")
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 0 {
+		t.Fatalf("expected failureCount 0 on pre-cancelled context, got %d", cb.failureCount)
+	}
+	if cb.state != StateClosed {
+		t.Fatalf("expected StateClosed, got %v", cb.state)
+	}
+}
+
+func TestExecuteContext_CancelledDuringExecution(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	err := cb.ExecuteContext(ctx, func() error {
+		cancel() // cancel during execution
+		return ctx.Err()
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got: %v", err)
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 0 {
+		t.Fatalf("expected failureCount 0 when context is cancelled, got %d", cb.failureCount)
+	}
+}
+
+func TestExecuteContext_ServiceErrorRecordsFailure(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	errExpected := errors.New("downstream error")
+	err := cb.ExecuteContext(context.Background(), func() error {
+		return errExpected
+	})
+
+	if !errors.Is(err, errExpected) {
+		t.Fatalf("expected errExpected, got %v", err)
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 1 {
+		t.Fatalf("expected failureCount 1 after downstream failure, got %d", cb.failureCount)
+	}
+}
+
+func TestExecuteContext_OpenCircuitFastFail(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	// Trip the circuit
+	for i := 0; i < 3; i++ {
+		_ = cb.Execute(func() error { return errTest })
+	}
+
+	if cb.State() != StateOpen {
+		t.Fatalf("expected StateOpen, got %v", cb.State())
+	}
+
+	err := cb.ExecuteContext(context.Background(), func() error {
+		return nil
+	})
+
+	if !errors.Is(err, ErrCircuitOpen) {
+		t.Fatalf("expected ErrCircuitOpen, got %v", err)
+	}
 }

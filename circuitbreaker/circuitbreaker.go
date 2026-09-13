@@ -5,6 +5,7 @@
 package circuitbreaker
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -190,8 +191,25 @@ func (b *Breaker) State() State {
 // Purpose: Rejects requests when the circuit is Open or too busy in HalfOpen, otherwise runs fn and tracks outcomes.
 // Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached.
 // Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.
-// Internal Logic Deep-Dive: The state machine transitions atomically. If the circuit is open, we fast-fail returning ErrCircuitOpen to prevent cascading failure pressure on the downstream service.
+// Internal Logic Deep-Dive: Preserves 100% backward compatibility for existing callers by executing fn under a default background context via ExecuteContext.
 func (b *Breaker) Execute(fn func() error) error {
+	return b.ExecuteContext(context.Background(), fn)
+}
+
+// ExecuteContext protects the execution of the user-provided function fn with context cancellation awareness.
+// Purpose: Fast-fails pre-cancelled contexts, short-circuits client aborts without falsely tripping failure thresholds, and runs fn safely.
+// Constraints: Returns ErrCircuitOpen when Open, ErrTooManyRequests when HalfOpen limit is reached, or ctx.Err() if the context was cancelled.
+// Thread-safety: Safe for concurrent use; releases the internal lock during execution of fn.
+// Internal Logic Deep-Dive: Evaluates ctx.Err() before taking the lock to fast-fail cancelled requests. Defensively handles a nil ctx by substituting context.Background(). In defer, client cancellations (errors.Is(err, context.Canceled) or errors.Is(ctx.Err(), context.Canceled)) are ignored during failure recording to avoid penalizing the circuit breaker for client-side disconnects.
+func (b *Breaker) ExecuteContext(ctx context.Context, fn func() error) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	b.mu.Lock()
 
 	// Evaluate the state lazily when traffic arrives. This prevents us from
@@ -237,7 +255,12 @@ func (b *Breaker) Execute(fn func() error) error {
 			// so we record it before the panic continues bubbling up.
 			b.recordFailure()
 		} else if err != nil {
-			b.recordFailure()
+			// Client cancellation (context.Canceled) is an intentional client-side abort
+			// and does not indicate remote service degradation. Therefore, we do not
+			// count context.Canceled as a circuit breaker failure.
+			if !errors.Is(err, context.Canceled) && !errors.Is(ctx.Err(), context.Canceled) {
+				b.recordFailure()
+			}
 		} else {
 			b.recordSuccess()
 		}
