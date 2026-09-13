@@ -167,7 +167,7 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 
 					res := result.Of(retry.DoWithValue(ctx, func(ctx context.Context) (string, error) {
 						var finalVal string
-						err := cb.Execute(func() (err error) {
+						err := cb.ExecuteContext(ctx, func() (err error) {
 							var req *http.Request
 							if isPost {
 								req, err = http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(payload))

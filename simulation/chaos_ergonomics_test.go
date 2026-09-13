@@ -59,7 +59,7 @@ func TestErgonomicsAndChaosIntegration(t *testing.T) {
 		// Use the Result pattern idiomatically
 		res := result.Of(retry.DoWithValue(c, func(ctx context.Context) (string, error) {
 			var final string
-			cbErr := cb.Execute(func() error {
+			cbErr := cb.ExecuteContext(ctx, func() error {
 				endpoint := httpServer.URL + "/process"
 				if id%5 == 0 {
 					endpoint += "?fail=true"
