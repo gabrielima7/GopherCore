@@ -27,7 +27,7 @@ func TestClosedState(t *testing.T) {
 		t.Fatalf("expected Closed, got %s", cb.State())
 	}
 
-	err := cb.Execute(context.Background(), func() error { return nil })
+	err := cb.Execute(func() error { return nil })
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,14 +39,14 @@ func TestTransitionToOpen(t *testing.T) {
 
 	// Trigger failure threshold.
 	for i := 0; i < 3; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 
 	if cb.State() != StateOpen {
 		t.Fatalf("expected Open, got %s", cb.State())
 	}
 
-	err := cb.Execute(context.Background(), func() error { return nil })
+	err := cb.Execute(func() error { return nil })
 	if !errors.Is(err, ErrCircuitOpen) {
 		t.Fatalf("expected ErrCircuitOpen, got: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestTransitionToHalfOpen(t *testing.T) {
 	cb := newTestBreaker()
 
 	for i := 0; i < 3; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 
 	// Wait for timeout.
@@ -79,13 +79,13 @@ func TestHalfOpenToClosedOnSuccess(t *testing.T) {
 
 	// Trip the breaker.
 	for i := 0; i < 2; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 	time.Sleep(60 * time.Millisecond)
 
 	// Two successes should close it.
 	for i := 0; i < 2; i++ {
-		err := cb.Execute(context.Background(), func() error { return nil })
+		err := cb.Execute(func() error { return nil })
 		if err != nil {
 			t.Fatalf("unexpected error on attempt %d: %v", i, err)
 		}
@@ -101,12 +101,12 @@ func TestHalfOpenToOpenOnFailure(t *testing.T) {
 	cb := newTestBreaker()
 
 	for i := 0; i < 3; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 	time.Sleep(60 * time.Millisecond)
 
 	// A failure in HalfOpen should re-open.
-	_ = cb.Execute(context.Background(), func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
 
 	if cb.State() != StateOpen {
 		t.Fatalf("expected Open, got %s", cb.State())
@@ -118,7 +118,7 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 	cb := newTestBreaker() // MaxHalfOpenRequests = 1
 
 	for i := 0; i < 3; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 	time.Sleep(60 * time.Millisecond)
 
@@ -132,7 +132,7 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_ = cb.Execute(context.Background(), func() error {
+		_ = cb.Execute(func() error {
 			<-ch
 			return nil
 		})
@@ -142,7 +142,7 @@ func TestTooManyRequestsInHalfOpen(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// Second request should be rejected immediately
-	err := cb.Execute(context.Background(), func() error { return nil })
+	err := cb.Execute(func() error { return nil })
 	if !errors.Is(err, ErrTooManyRequests) {
 		t.Fatalf("expected ErrTooManyRequests, got: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestReset_TableDriven(t *testing.T) {
 			name: "Reset from Open State",
 			setup: func(t *testing.T, cb *Breaker) {
 				for i := 0; i < 3; i++ {
-					_ = cb.Execute(context.Background(), func() error { return errTest })
+					_ = cb.Execute(func() error { return errTest })
 				}
 				if cb.State() != StateOpen {
 					t.Fatalf("expected Open state before reset, got %v", cb.State())
@@ -174,7 +174,7 @@ func TestReset_TableDriven(t *testing.T) {
 			name: "Reset from HalfOpen State",
 			setup: func(t *testing.T, cb *Breaker) {
 				for i := 0; i < 3; i++ {
-					_ = cb.Execute(context.Background(), func() error { return errTest })
+					_ = cb.Execute(func() error { return errTest })
 				}
 				cb.mu.Lock()
 				cb.lastFailureTime = time.Now().Add(-100 * time.Millisecond) // force timeout expiration
@@ -223,7 +223,7 @@ func TestOnStateChange(t *testing.T) {
 
 	// Closed → Open
 	for i := 0; i < 2; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 
 	if len(transitions) != 1 || transitions[0].from != StateClosed || transitions[0].to != StateOpen {
@@ -339,7 +339,7 @@ func TestBreaker_Execute_TableDriven(t *testing.T) {
 			}
 			cb.mu.Unlock()
 
-			err := cb.Execute(context.Background(), func() error {
+			err := cb.Execute(func() error {
 				return tt.executeFnErr
 			})
 
@@ -380,7 +380,7 @@ func TestConcurrentExecute(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_ = cb.Execute(context.Background(), func() error { return nil })
+			_ = cb.Execute(func() error { return nil })
 		}()
 	}
 	wg.Wait()
@@ -498,15 +498,15 @@ func TestExecuteSuccessInClosedResetsFailures(t *testing.T) {
 	cb := newTestBreaker()
 
 	// Add some failures (below threshold).
-	_ = cb.Execute(context.Background(), func() error { return errTest })
-	_ = cb.Execute(context.Background(), func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
 
 	// Success resets failure count.
-	_ = cb.Execute(context.Background(), func() error { return nil })
+	_ = cb.Execute(func() error { return nil })
 
 	// Now 3 more failures from zero should trip it.
 	for i := 0; i < 3; i++ {
-		_ = cb.Execute(context.Background(), func() error { return errTest })
+		_ = cb.Execute(func() error { return errTest })
 	}
 	if cb.State() != StateOpen {
 		t.Fatalf("expected Open after threshold failures, got %s", cb.State())
@@ -521,7 +521,7 @@ func TestNoOnStateChangeCallback(t *testing.T) {
 		SuccessThreshold: 1,
 		Timeout:          50 * time.Millisecond,
 	})
-	_ = cb.Execute(context.Background(), func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
 	if cb.State() != StateOpen {
 		t.Fatalf("expected Open, got %s", cb.State())
 	}
@@ -541,15 +541,15 @@ func TestFullCycleClosedOpenHalfOpenClosed(t *testing.T) {
 	})
 
 	// Closed → Open
-	_ = cb.Execute(context.Background(), func() error { return errTest })
-	_ = cb.Execute(context.Background(), func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
+	_ = cb.Execute(func() error { return errTest })
 
 	// Wait for Open → HalfOpen
 	time.Sleep(60 * time.Millisecond)
 	_ = cb.State() // trigger transition
 
 	// HalfOpen → Closed (success)
-	_ = cb.Execute(context.Background(), func() error { return nil })
+	_ = cb.Execute(func() error { return nil })
 
 	expected := []string{"closed→open", "open→half-open", "half-open→closed"}
 	if len(stateLog) != len(expected) {
@@ -575,7 +575,7 @@ func FuzzBreakerThresholds(f *testing.F) {
 			MaxHalfOpenRequests: successThresh,
 		})
 		for i := 0; i < ops; i++ {
-			_ = cb.Execute(context.Background(), func() error {
+			_ = cb.Execute(func() error {
 				if i%2 == 0 {
 					return errTest
 				}
@@ -605,7 +605,7 @@ func TestExecutePanic(t *testing.T) {
 		}
 	}()
 
-	_ = cb.Execute(context.Background(), func() error {
+	_ = cb.Execute(func() error {
 		panic("catastrophic failure")
 	})
 }
@@ -618,5 +618,117 @@ func TestExecuteNilFunc(t *testing.T) {
 			t.Fatal("expected panic on nil function in Execute")
 		}
 	}()
-	_ = b.Execute(context.Background(), nil)
+	_ = b.Execute(nil)
+}
+
+func TestExecuteContext_NilContext(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	// Should not panic on nil context and run successfully
+	var ran bool
+	err := cb.ExecuteContext(nil, func() error {
+		ran = true
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error with nil context: %v", err)
+	}
+	if !ran {
+		t.Fatal("expected function to run even with nil context")
+	}
+}
+
+func TestExecuteContext_PreCancelled(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // pre-cancel context
+
+	var ran bool
+	err := cb.ExecuteContext(ctx, func() error {
+		ran = true
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got: %v", err)
+	}
+	if ran {
+		t.Fatal("expected fn not to be executed on pre-cancelled context")
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 0 {
+		t.Fatalf("expected failureCount 0 on pre-cancelled context, got %d", cb.failureCount)
+	}
+	if cb.state != StateClosed {
+		t.Fatalf("expected StateClosed, got %v", cb.state)
+	}
+}
+
+func TestExecuteContext_CancelledDuringExecution(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	err := cb.ExecuteContext(ctx, func() error {
+		cancel() // cancel during execution
+		return ctx.Err()
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got: %v", err)
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 0 {
+		t.Fatalf("expected failureCount 0 when context is cancelled, got %d", cb.failureCount)
+	}
+}
+
+func TestExecuteContext_ServiceErrorRecordsFailure(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	errExpected := errors.New("downstream error")
+	err := cb.ExecuteContext(context.Background(), func() error {
+		return errExpected
+	})
+
+	if !errors.Is(err, errExpected) {
+		t.Fatalf("expected errExpected, got %v", err)
+	}
+
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.failureCount != 1 {
+		t.Fatalf("expected failureCount 1 after downstream failure, got %d", cb.failureCount)
+	}
+}
+
+func TestExecuteContext_OpenCircuitFastFail(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	cb := newTestBreaker()
+
+	// Trip the circuit
+	for i := 0; i < 3; i++ {
+		_ = cb.Execute(func() error { return errTest })
+	}
+
+	if cb.State() != StateOpen {
+		t.Fatalf("expected StateOpen, got %v", cb.State())
+	}
+
+	err := cb.ExecuteContext(context.Background(), func() error {
+		return nil
+	})
+
+	if !errors.Is(err, ErrCircuitOpen) {
+		t.Fatalf("expected ErrCircuitOpen, got %v", err)
+	}
 }

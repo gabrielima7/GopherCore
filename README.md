@@ -134,7 +134,13 @@ cb := circuitbreaker.New(circuitbreaker.Config{
     },
 })
 
-err := cb.Execute(ctx, func() error {
+// Standard execution
+err := cb.Execute(func() error {
+    return callService()
+})
+
+// Or context-aware execution (safe cancellation without false failure recording)
+err := cb.ExecuteContext(ctx, func() error {
     return callService()
 })
 

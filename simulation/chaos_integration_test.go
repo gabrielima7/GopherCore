@@ -95,7 +95,7 @@ func TestIntegrationChaos(t *testing.T) {
 			// 2. Wrap network call in Retry & CircuitBreaker
 			res := result.Of(retry.DoWithValue(ctx, func(ctx context.Context) (string, error) {
 				var finalVal string
-				err := cb.Execute(ctx, func() error {
+				err := cb.ExecuteContext(ctx, func() error {
 					endpoint := srv.URL + "/data?id=ok"
 					if idx%5 == 0 {
 						endpoint = srv.URL + "/data?id=fail"
