@@ -7,7 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-playground/validator/v10 v10.30.4
 	github.com/goccy/go-json v0.10.6
-	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/hibiken/asynq v0.26.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.52
