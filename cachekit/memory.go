@@ -132,7 +132,7 @@ func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expir
 	}
 
 	var exp time.Time
-	if expiration > 0 {
+	if expiration != 0 {
 		exp = time.Now().Add(expiration)
 	}
 

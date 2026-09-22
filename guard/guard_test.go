@@ -133,6 +133,18 @@ func TestValidate_TableDriven(t *testing.T) {
 			expectErr:            true,
 			expectValidationErrs: false,
 		},
+		{
+			name: "deeply nested struct with nil pointer",
+			input: struct {
+				Deep *Inner `validate:"required"`
+			}{
+				Deep: nil,
+			},
+			expectErr:            true,
+			expectValidationErrs: true,
+			expectedErrCount:     1,
+			expectedTags:         map[string]string{"Deep": "required"},
+		},
 	}
 
 	for _, tt := range tests {
