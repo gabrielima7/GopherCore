@@ -450,6 +450,47 @@ func TestCalculateDelayZeroMaxDelay(t *testing.T) {
 	}
 }
 
+func TestDo_EdgeCases_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	ctx := context.Background()
+
+	tests := []struct {
+		name        string
+		fn          func(context.Context) error
+		opts        []Option
+		expectError bool
+	}{
+		{
+			name: "Nil option injected into opts",
+			fn: func(ctx context.Context) error {
+				return nil
+			},
+			opts:        []Option{WithMaxAttempts(2), nil},
+			expectError: false,
+		},
+		{
+			name: "Empty opts defaults safely",
+			fn: func(ctx context.Context) error {
+				return errors.New("always fail")
+			},
+			opts:        nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Do(ctx, tt.fn, tt.opts...)
+			if tt.expectError && err == nil {
+				t.Errorf("expected error, got nil")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestDo_TableDriven(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	errTest := errors.New("test error")
