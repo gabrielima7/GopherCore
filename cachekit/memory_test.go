@@ -216,17 +216,15 @@ func TestInMemoryCache(t *testing.T) {
 				cache := cachekit.NewInMemoryCache(0)
 				defer func() { _ = cache.Close() }()
 
-				// Negative duration should be treated as expired immediately (or zero). Let's see the logic.
-				// In memory.go: if expiration > 0 { exp = time.Now().Add(expiration) }
-				// So negative expiration results in zero value time.Time, which means it never expires.
+				// Negative duration is in the past, so it is treated as expired immediately (ErrCacheMiss)
 				err := cache.Set(ctx, "neg_dur", []byte("val"), -1*time.Minute)
 				if err != nil {
 					t.Fatalf("Set failed for negative duration: %v", err)
 				}
 
-				val, err := cache.Get(ctx, "neg_dur")
-				if err != nil || string(val) != "val" {
-					t.Errorf("Expected to retrieve value for negative duration, got err: %v", err)
+				_, err = cache.Get(ctx, "neg_dur")
+				if !errors.Is(err, cachekit.ErrCacheMiss) {
+					t.Errorf("Expected ErrCacheMiss for negative duration, got err: %v", err)
 				}
 
 				// Zero value payload (nil)
@@ -235,7 +233,7 @@ func TestInMemoryCache(t *testing.T) {
 					t.Fatalf("Set failed for nil payload: %v", err)
 				}
 
-				val, err = cache.Get(ctx, "nil_val")
+				val, err := cache.Get(ctx, "nil_val")
 				if err != nil {
 					t.Fatalf("Get failed for nil payload: %v", err)
 				}
