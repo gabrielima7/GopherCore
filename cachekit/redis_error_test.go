@@ -60,6 +60,29 @@ func TestRedisCache_Errors(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "BrokenConnection",
+			run: func(t *testing.T) {
+				// Create a new client to deliberately break
+				brokenClient := redis.NewClient(&redis.Options{
+					Addr: mr.Addr(),
+				})
+				_ = brokenClient.Close()
+				brokenCache := cachekit.NewRedisCache(brokenClient)
+
+				// Use valid context so the failure is strictly from connection error
+				validCtx := context.Background()
+				if err := brokenCache.Set(validCtx, "key", []byte("val"), 0); err == nil {
+					t.Error("expected error due to closed client on Set, got nil")
+				}
+				if _, err := brokenCache.Get(validCtx, "key"); err == nil {
+					t.Error("expected error due to closed client on Get, got nil")
+				}
+				if err := brokenCache.Delete(validCtx, "key"); err == nil {
+					t.Error("expected error due to closed client on Delete, got nil")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
