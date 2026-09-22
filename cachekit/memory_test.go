@@ -210,6 +210,82 @@ func TestInMemoryCache(t *testing.T) {
 				wg.Wait()
 			},
 		},
+		{
+			name: "EdgeCases_ZeroValueAndNegativeDuration",
+			run: func(t *testing.T) {
+				cache := cachekit.NewInMemoryCache(0)
+				defer func() { _ = cache.Close() }()
+
+				// Negative duration should be treated as expired immediately (or zero). Let's see the logic.
+				// In memory.go: if expiration > 0 { exp = time.Now().Add(expiration) }
+				// So negative expiration results in zero value time.Time, which means it never expires.
+				err := cache.Set(ctx, "neg_dur", []byte("val"), -1*time.Minute)
+				if err != nil {
+					t.Fatalf("Set failed for negative duration: %v", err)
+				}
+
+				val, err := cache.Get(ctx, "neg_dur")
+				if err != nil || string(val) != "val" {
+					t.Errorf("Expected to retrieve value for negative duration, got err: %v", err)
+				}
+
+				// Zero value payload (nil)
+				err = cache.Set(ctx, "nil_val", nil, 0)
+				if err != nil {
+					t.Fatalf("Set failed for nil payload: %v", err)
+				}
+
+				val, err = cache.Get(ctx, "nil_val")
+				if err != nil {
+					t.Fatalf("Get failed for nil payload: %v", err)
+				}
+				if len(val) != 0 {
+					t.Errorf("Expected empty or nil payload, got len %d", len(val))
+				}
+
+				// Empty payload
+				err = cache.Set(ctx, "empty_val", []byte(""), 0)
+				if err != nil {
+					t.Fatalf("Set failed for empty payload: %v", err)
+				}
+				val, err = cache.Get(ctx, "empty_val")
+				if err != nil {
+					t.Fatalf("Get failed for empty payload: %v", err)
+				}
+				if len(val) != 0 {
+					t.Errorf("Expected empty payload, got len %d", len(val))
+				}
+			},
+		},
+		{
+			name: "ConcurrentDeletions",
+			run: func(t *testing.T) {
+				cache := cachekit.NewInMemoryCache(0)
+				defer func() { _ = cache.Close() }()
+
+				_ = cache.Set(ctx, "del_key", []byte("data"), 0)
+
+				var wg sync.WaitGroup
+				startCh := make(chan struct{})
+
+				for i := 0; i < 50; i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						<-startCh
+						_ = cache.Delete(ctx, "del_key")
+					}()
+				}
+
+				close(startCh)
+				wg.Wait()
+
+				_, err := cache.Get(ctx, "del_key")
+				if !errors.Is(err, cachekit.ErrCacheMiss) {
+					t.Errorf("expected ErrCacheMiss after concurrent deletes, got %v", err)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
