@@ -82,7 +82,7 @@ func NewLogger(opts ...Option) *slog.Logger {
 	return slog.New(handler)
 }
 
-// Initialize configures the global slog logger with a structured JSON handler based on the provided options.
+// Initialize bootstraps the application-wide logging engine, atomically swapping the global default logger with a high-performance structured JSON emission sink.
 // Purpose: Bootstraps the application-wide logging engine.
 // Constraints: This function mutates global application state and
 // should typically only be called once during the application's bootstrap phase.

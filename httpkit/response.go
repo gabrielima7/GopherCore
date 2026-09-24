@@ -11,7 +11,7 @@ import (
 	"github.com/gabrielima7/GopherCore/jsonutil"
 )
 
-// ErrorResponse standardizes the JSON contract across the entire external-facing API, guaranteeing that all client applications receive identically structured payloads when HTTP errors occur.
+// ErrorResponse forces a hard termination boundary on the current HTTP stream, rendering out an immutable, universally standard JSON fault structure.
 // Purpose: Defines standard layout for JSON API errors.
 // Constraints: Assumes error message text is safely sanitized for external viewing.
 // Thread-safety: Data structure, safe when not mutated concurrently.

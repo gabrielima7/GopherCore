@@ -21,7 +21,7 @@ type RedisCache struct {
 	client *redis.Client
 }
 
-// NewRedisCache creates a new RedisCache instance.
+// NewRedisCache establishes a strictly typed interface masking a high-performance Redis connection pool, ensuring the application code never deals with raw network sockets directly.
 // Purpose: Initializes a Redis-backed cache.
 // Constraints: The provided redis.Client must be properly configured and connected.
 // Thread-safety: Returns a thread-safe RedisCache.

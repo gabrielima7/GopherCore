@@ -42,7 +42,7 @@ type serverConfig struct {
 	dialTimeout time.Duration
 }
 
-// defaultServerConfig returns a serverConfig pre-populated with production-safe
+// defaultServerConfig yields a baseline configuration structure pre-populated with production-safe
 // defaults: port 50051, no TLS, the default slog logger.
 // Purpose: Establishes defensive limits against resource exhaustion attacks.
 // Constraints: Default limits can be overridden by functional options.

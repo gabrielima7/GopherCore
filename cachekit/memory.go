@@ -32,7 +32,7 @@ type InMemoryCache struct {
 	closeOnce sync.Once
 }
 
-// NewInMemoryCache creates a new InMemoryCache instance and starts a background cleanup routine.
+// NewInMemoryCache boots a synchronized, thread-safe memory map wrapped inside a goroutine scheduler that autonomously evicts expired records without blocking hot access paths.
 // The cleanupInterval dictates how often expired items are actively purged.
 // Purpose: Initializes a local in-memory cache.
 // Constraints: Callers should call Close() to release background resources when done.
