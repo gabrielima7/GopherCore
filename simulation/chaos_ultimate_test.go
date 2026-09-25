@@ -44,6 +44,7 @@ func TestUltimateChaosSimulation(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	// 2. Cache
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
@@ -51,6 +52,7 @@ func TestUltimateChaosSimulation(t *testing.T) {
 
 	// 3. Circuit Breaker
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	// 4. Concurrency via Async
 	const numGoroutines = 10000
@@ -90,7 +92,7 @@ func TestUltimateChaosSimulation(t *testing.T) {
 						return reqErr
 					}
 
-					resp, doErr := http.DefaultClient.Do(req)
+					resp, doErr := client.Do(req)
 					if doErr != nil {
 						return doErr
 					}

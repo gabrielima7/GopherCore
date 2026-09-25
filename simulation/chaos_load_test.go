@@ -34,12 +34,14 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	// 2. Setup internal infrastructure components
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -78,7 +80,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				resp, err := http.DefaultClient.Do(req)
+				resp, err := client.Do(req)
 				if err != nil {
 					return err
 				}

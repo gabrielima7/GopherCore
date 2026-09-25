@@ -34,11 +34,13 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	const numGoroutines = 5000
 	group := async.NewGroup()
@@ -70,7 +72,7 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 						return reqErr
 					}
 
-					resp, doErr := http.DefaultClient.Do(req)
+					resp, doErr := client.Do(req)
 					if doErr != nil {
 						return doErr
 					}

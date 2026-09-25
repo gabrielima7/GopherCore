@@ -58,11 +58,13 @@ func TestIntegrationChaos(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	const numRequests = 5000
 
@@ -106,7 +108,7 @@ func TestIntegrationChaos(t *testing.T) {
 						return err
 					}
 
-					resp, err := http.DefaultClient.Do(req)
+					resp, err := client.Do(req)
 					if err != nil {
 						return err
 					}
