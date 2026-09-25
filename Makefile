@@ -1,6 +1,6 @@
 .PHONY: all lint nilaway test fuzz security vulncheck sbom audit tidy fmt vet install-tools help
 
-export GOTOOLCHAIN ?= go1.26.6
+export GOTOOLCHAIN ?= auto
 
 # Default target
 all: audit
@@ -26,10 +26,10 @@ help:
 ## install-tools: Install golangci-lint, nilaway, gosec, govulncheck
 install-tools:
 	@echo "==> Installing development tools..."
-	GOTOOLCHAIN=go1.26.6 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-	GOTOOLCHAIN=go1.26.6 go install go.uber.org/nilaway/cmd/nilaway@latest
-	GOTOOLCHAIN=go1.26.6 go install github.com/securego/gosec/v2/cmd/gosec@latest
-	GOTOOLCHAIN=go1.26.6 go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	go install go.uber.org/nilaway/cmd/nilaway@latest
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
 	@echo "==> Done."
 
 ## fmt: Format all Go source files
@@ -45,7 +45,7 @@ vet:
 ## nilaway: Run NilAway static nil dereference analysis
 nilaway:
 	@echo "==> Running NilAway..."
-	@GOTOOLCHAIN=go1.26.6 go install go.uber.org/nilaway/cmd/nilaway@latest
+	@go install go.uber.org/nilaway/cmd/nilaway@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \
@@ -55,7 +55,7 @@ nilaway:
 ## lint: Run golangci-lint + NilAway
 lint:
 	@echo "==> Running linters..."
-	@GOTOOLCHAIN=go1.26.6 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \
@@ -97,7 +97,7 @@ fuzz:
 ## security: Run gosec static security analysis
 security:
 	@echo "==> Running gosec..."
-	@GOTOOLCHAIN=go1.26.6 go install github.com/securego/gosec/v2/cmd/gosec@latest
+	@go install github.com/securego/gosec/v2/cmd/gosec@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \
@@ -107,7 +107,7 @@ security:
 ## vulncheck: Run govulncheck dependency vulnerability check
 vulncheck:
 	@echo "==> Running govulncheck..."
-	@GOTOOLCHAIN=go1.26.6 go install golang.org/x/vuln/cmd/govulncheck@latest
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@GOBIN_PATH="$$(go env GOBIN)"; \
 	if [ -z "$$GOBIN_PATH" ]; then \
 		GOBIN_PATH="$$(go env GOPATH)/bin"; \

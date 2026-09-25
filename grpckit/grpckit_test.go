@@ -63,7 +63,10 @@ func startTestServer(t *testing.T, srv *grpc.Server, impl grpc_testing.TestServi
 		srv.Stop()
 	})
 
-	return ln.Addr().String()
+	if ln.Addr() != nil {
+		return ln.Addr().String()
+	}
+	return ""
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -206,7 +209,10 @@ func TestNewClient_TableDriven(t *testing.T) {
 		t.Fatalf("failed to listen: %v", err)
 	}
 	defer ln.Close()
-	addr := ln.Addr().String()
+	addr := ""
+	if ln.Addr() != nil {
+		addr = ln.Addr().String()
+	}
 	go func() {
 		// Accept and immediately close to simulate a fast-failing network connection
 		for {
@@ -939,8 +945,12 @@ func TestNewClient_WithTLS(t *testing.T) {
 	}()
 	t.Cleanup(srv.Stop)
 
+	targetAddr := ""
+	if ln.Addr() != nil {
+		targetAddr = ln.Addr().String()
+	}
 	// Dial using NewClient with TLS — exercises the cfg.tlsConfig != nil branch.
-	conn, err := NewClient(ln.Addr().String(),
+	conn, err := NewClient(targetAddr,
 		WithClientTLS(clientTLS),
 		WithDialTimeout(3*time.Second),
 	)

@@ -144,8 +144,12 @@ func TestNewClient(t *testing.T) {
 	}()
 	defer srv.Stop()
 
+	targetAddr := ""
+	if lis.Addr() != nil {
+		targetAddr = lis.Addr().String()
+	}
 	// Connect to the real local server using insecure transport and a custom user agent option.
-	conn, err := NewClient(lis.Addr().String(), WithDialTimeout(2*time.Second), WithInsecure(), WithRawDialOptions(grpc.WithAuthority("test")))
+	conn, err := NewClient(targetAddr, WithDialTimeout(2*time.Second), WithInsecure(), WithRawDialOptions(grpc.WithAuthority("test")))
 	if err != nil {
 		t.Fatalf("expected successful connection, got error: %v", err)
 	}

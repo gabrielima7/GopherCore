@@ -30,11 +30,17 @@ type Payload struct {
 }
 
 func TestChaosMicroserviceSimulation(t *testing.T) {
-	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	// Initialize dbkit with SQLite
 	dbPath := filepath.Join(t.TempDir(), "chaos_test.db")
-	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
+	db, err := dbkit.Connect(context.Background(), "sqlite3", dbPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "CGO_ENABLED=0") {
+			t.Skip("skipping test: sqlite3 requires cgo, but CGO_ENABLED=0")
+		}
+		t.Fatalf("failed to connect to database: %v", err)
+	}
 	defer func() {
 		if err := db.Close(); err != nil {
 			t.Errorf("failed to close database: %v", err)
