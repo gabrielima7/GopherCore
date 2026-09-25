@@ -87,7 +87,7 @@ func (ve ValidationErrors) Error() string {
 	return strings.Join(msgs, "; ")
 }
 
-// Validate inspects the provided struct using reflection to ensure all fields satisfy their declared `validate` tags.
+// Validate utilizes deep reflection to recursively traverse the provided data structure, aggressively matching fields against registered `validate` structural bounds.
 // Purpose: Enforces struct field rules dynamically based on struct tags.
 // Constraints: The input `s` MUST be a struct or a pointer to a struct, otherwise it returns an error.
 // Thread-safety: It relies on a globally initialized validator instance and is entirely

@@ -41,7 +41,7 @@ type clientConfig struct {
 	rawDialOpts []grpc.DialOption
 }
 
-// defaultClientConfig returns a clientConfig pre-populated with production-safe
+// defaultClientConfig yields a baseline configuration structure pre-populated with production-safe
 // defaults: insecure transport, 10-second dial timeout, no extra interceptors.
 // Purpose: Generates safe, conservative defaults for client timeouts and limits.
 // Constraints: Assumes typical microservice operational bounds.
@@ -175,7 +175,7 @@ func parseClientOptions(opts ...ClientOption) clientConfig {
 	return cfg
 }
 
-// NewClient dials a gRPC target address and returns a ready-to-use *grpc.ClientConn.
+// NewClient establishes a tightly monitored, timeout-bounded TCP connection to the target gRPC registry, yielding a ready-to-use *grpc.ClientConn.
 // The connection attempt is bounded by a configurable timeout (default 10 s)
 // and the caller-supplied context, whichever deadline expires first.
 //

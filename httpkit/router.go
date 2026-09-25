@@ -236,7 +236,7 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 	return cfg
 }
 
-// NewRouter creates a new chi.Mux router with standard security, recovery, and observability middlewares applied.
+// NewRouter constructs the core application multiplexer, injecting a hardened stack of panic recovery, strict rate limiting, and open telemetry middlewares into the absolute root of the request chain.
 //
 // The default stack enforces request tracing (RequestID), client IP extraction (RealIP),
 // panic safety (Recoverer), and strict security headers. Optional middlewares

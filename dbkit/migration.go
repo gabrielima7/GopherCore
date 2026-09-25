@@ -119,7 +119,7 @@ type MigrationVersion struct {
 	Dirty bool
 }
 
-// GetMigrationVersion queries the internal synchronization tables inside the target database to extract the currently recognized schema generation timestamp alongside its cleanliness flag.
+// GetMigrationVersion executes an atomic lock against the internal tracking schema to decisively read the exact generational integer state without suffering read-skew.
 // Purpose: Reads the active database schema version level.
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.

@@ -20,7 +20,7 @@ import (
 // Recovery Interceptors
 // ─────────────────────────────────────────────────────────────────────────────
 
-// RecoveryUnaryInterceptor returns a gRPC unary server interceptor that
+// RecoveryUnaryInterceptor injects a critical deferred trap at the absolute outer edge of the unary execution chain, which
 // catches any panic emitted by a downstream handler, emits a structured error
 // log entry via the provided logger, and translates the panic value into a
 // gRPC error carrying codes.Internal — guaranteeing the server process never
@@ -70,7 +70,7 @@ func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// RecoveryStreamInterceptor returns a gRPC stream server interceptor that
+// RecoveryStreamInterceptor injects a critical deferred trap at the absolute outer edge of the streaming execution chain, which
 // catches any panic emitted by a downstream stream handler, emits a structured
 // error log entry via the provided logger, and translates the panic value into a
 // gRPC error carrying codes.Internal.
@@ -119,7 +119,7 @@ func RecoveryStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor
 // Logging Interceptors
 // ─────────────────────────────────────────────────────────────────────────────
 
-// LoggingUnaryInterceptor returns a gRPC unary server interceptor that emits
+// LoggingUnaryInterceptor transparently wraps the core unary handler execution block in a precise timing mechanism that emits
 // a single structured log entry per RPC, capturing the full method path,
 // wall-clock duration, and final gRPC status code.
 //
@@ -169,7 +169,7 @@ func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// LoggingStreamInterceptor returns a gRPC stream server interceptor that emits
+// LoggingStreamInterceptor transparently wraps the core streaming handler execution block in a precise timing mechanism that emits
 // a single structured log entry per streaming RPC, capturing the full method
 // path, wall-clock duration of the entire stream lifetime, and the final gRPC
 // status code.

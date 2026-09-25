@@ -151,7 +151,7 @@ type Breaker struct {
 	lastFailureTime  time.Time
 }
 
-// New creates a new Breaker instance with the provided Config.
+// New constructs a rigid state machine that mathematically bounds failure ratios before forcefully severing downstream requests to prevent cascading system collapse.
 // Purpose: Instantiates and preconfigures a new Circuit Breaker.
 // Constraints: Applies default values for any configuration fields that are zero or invalid (<= 0). The breaker starts in StateClosed.
 // Thread-safety: Safe to initialize.

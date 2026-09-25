@@ -18,7 +18,7 @@ type Result[T any] struct {
 	ok    bool
 }
 
-// Ok creates a successful Result containing the provided value.
+// Ok cleanly packs a raw execution outcome into a strongly typed success monad state.
 // Purpose: Wraps a raw value into a success state.
 // Constraints: The internal error state is implicitly nil.
 // Thread-safety: Pure functional constructor.
@@ -45,7 +45,7 @@ func Errf[T any](format string, args ...any) Result[T] {
 	return Result[T]{err: fmt.Errorf(format, args...), ok: false}
 }
 
-// Of converts a standard (value, error) return pair into a Result type.
+// Of safely bridges legacy Go multi-return idioms directly into a unified Result monadic wrapper.
 // Purpose: Converts a classic (value, err) return tuple into a Result.
 // Constraints: If err is non-nil, it returns an Err result. Otherwise, it wraps the value in an Ok result.
 // Thread-safety: Pure functional constructor.

@@ -33,7 +33,7 @@ type QueueServer struct {
 	started bool
 }
 
-// NewQueueServer initializes a new QueueServer.
+// NewQueueServer boots up the core message consumption engine, binding it deeply to the Redis data store for resilient, distributed task processing.
 // Purpose: Creates an instance of QueueServer ready for handler registration.
 // Constraints: redisOpt and cfg must be fully configured.
 // Thread-safety: Returns a new struct pointer, safe to share across goroutines.
@@ -115,7 +115,7 @@ type QueueClient struct {
 	client *asynq.Client
 }
 
-// NewQueueClient creates a new client for task enqueueing.
+// NewQueueClient provisions an isolated outbound connection pool dedicated strictly to pushing asynchronous jobs into the Redis backend without interfering with primary HTTP traffic.
 // Purpose: Initializes the client that submits new tasks to Redis.
 // Constraints: redisOpt must point to an active Redis instance.
 // Thread-safety: Returns a new struct pointer.
