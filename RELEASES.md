@@ -2,6 +2,120 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.5.0] - Dual Go 1.26/1.27 Compatibility, Ultimate Chaos Verification, Context-Aware Circuit Breaking, and Concurrency Leak Hardening
+
+This major release elevates GopherCore's production readiness, enterprise resilience, and formal verification. It introduces official dual-compatibility and continuous testing across Go 1.26+ and Go 1.27+ toolchains, expands the chaos engineering testing harness with the Ultimate Chaos Load Test scaling up to 10,000 concurrent goroutines alongside formal mathematical state convergence proofs, brings context-aware cancellation to circuit breaker execution, eliminates background goroutine leaks across all network and asynchronous worker components, and achieves 100% GoDoc Living Documentation compliance across all 14 packages.
+
+### 🚀 Additions (Features & Enhancements)
+- **Official Dual Go 1.26+ and Go 1.27+ Compatibility Matrix:** Configured CI/CD workflows (`ci.yml`, `test.yml`, `benchmark.yml`) with a dynamic test matrix targeting Go `1.26.x` and `1.27.x`. Added dynamic toolchain detection (`GOTOOLCHAIN ?= auto`) in the `Makefile` and conditional static analysis execution for NilAway. (PR #299)
+- **Ultimate Chaos Load Test and Formal Verification:** Introduced `simulation/chaos_load_test.go` and empirical stress testing simulating up to 10,000 concurrent goroutines across caching, circuit breaking, retries, and HTTP services. Includes formal mathematical proofs demonstrating bounded memory allocation, zero deadlocks, and O(1) state convergence. (PR #291, PR #243)
+- **Context-Aware Circuit Breaker:** Extended `circuitbreaker.Execute(ctx, fn)` with a first-class `context.Context` parameter, ensuring active cancellation propagation and fast-abort upon context deadline expiration to prevent goroutine exhaustion. (PR #275)
+- **Asynq Worker Graceful Teardown:** Added strict graceful shutdown lifecycle hooks (`srv.Shutdown()`, `srv.Stop()`) to the `async` background worker implementation, ensuring zero dangling goroutines or unhandled queue worker terminations. (PR #217, PR #239)
+- **Comprehensive Unhappy Path and TDT Test Suites:**
+  - Expanded `cachekit` with edge-case tests covering nil keys, closed connections, empty payloads, and TTL overflows. (PR #292)
+  - Added table-driven tests for nil function recovery in `async`. (PR #283)
+  - Hardened `retry` and `guard` packages with zero-value, empty-options, and struct nil-pointer boundary tests. (PR #285, PR #249, PR #236)
+  - Added dedicated unit tests for formatted error generation via `result.Errf`. (PR #264)
+  - Added missing validation test for `dbkit.MustConnect` asserting panic on empty or malformed DSN. (PR #260)
+  - Added tests asserting panic-free error responses on invalid HTTP status codes in `httpkit`. (PR #252)
+  - Added Table-Driven Test coverage for `grpckit.NewClient` error paths and invalid configurations. (PR #199)
+  - Validated `Result.Unwrap` panic contracts across exhaustive test matrices. (PR #231)
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Goroutine Leak Hardening with `goleak`:** Integrated `go.uber.org/goleak` across all simulation and chaos test suites. Replaced shared `http.DefaultClient` instances with isolated test server clients (`srv.Client()`) and explicit `CloseIdleConnections()` invocations, eliminating lingering TCP keep-alive socket goroutines. (PR #298, PR #265, PR #263, PR #254, PR #245, PR #212)
+- **JSON Error Response Content-Type Canonicalization:** Ensured `httpkit.Error()` consistently sets the `Content-Type: application/json` header before writing HTTP error payloads, guaranteeing compliant client-side deserialization. (PR #232)
+- **NilAway Static Nil-Safety Remediation:** Added defensive nil checks to `net.Listener.Addr()` and network initialization paths, ensuring zero static nil dereference warnings under Go 1.26 NilAway analysis. (PR #299)
+- **Graceful Shutdown Timeout Fallback:** Fixed an edge-case in `httpkit.GracefulShutdown` where supplying a zero duration resulted in instantaneous context expiration, implementing an automatic fallback to standard default timeout limits. (PR #210)
+- **gRPC Custom Dialer Context Handling:** Fixed timeout deadline propagation in `grpckit` custom dialer logic to prevent premature connection timeouts or unmanaged background dials. (PR #206, PR #237)
+- **Living Documentation & GoDoc Audits:** Conducted exhaustive repository-wide documentation synchronizations across all 14 packages, ensuring all exported interfaces, structs, functions, and internal mechanics include comprehensive `Internal Logic Deep-Dive` descriptions and contract specifications. (PR #296, PR #273, PR #272, PR #262, PR #259, PR #256, PR #251, PR #247, PR #242, PR #240, PR #227, PR #221, PR #218, PR #215, PR #202, PR #198)
+- **Tooling & Dependency Upgrades:**
+  - Upgraded `actions/setup-go` from v5 to v7 across CI workflows. (PR #203)
+  - Upgraded `github/codeql-action` to `v4.38.0`. (PR #234, PR #241, PR #250, PR #258, PR #276)
+  - Upgraded `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc` to `v0.71.0`. (PR #246, PR #293)
+  - Upgraded `google.golang.org/grpc` to `v1.84.0`. (PR #200, PR #235, PR #293)
+  - Upgraded `github.com/redis/go-redis/v9` to `v9.22.0`. (PR #238, PR #293)
+  - Upgraded `github.com/golang-migrate/migrate/v4` to `v4.20.1`. (PR #277)
+  - Upgraded `github.com/mattn/go-sqlite3` to `v1.14.52`. (PR #235, PR #271, PR #293)
+  - Upgraded `github.com/prometheus/client_golang` to `v1.24.1`. (PR #216)
+  - Upgraded `go-sql-driver/mysql`, `go.uber.org/atomic`, and `google.golang.org/genproto` APIs. (PR #297, PR #204, PR #225, PR #280)
+
+### 🗑️ Exclusions (Deprecations & Removals)
+- **Removal of Static Go Toolchain Pinning:** Removed static `GOTOOLCHAIN=go1.26.6` declarations across developer build environments to allow seamless developer compilation under Go 1.26, Go 1.27, and future toolchains. (PR #299)
+- **Removal of Leaking Default Transports in Tests:** Eliminated usage of shared HTTP default transports within integration tests to remove lingering background keep-alive socket goroutines. (PR #298)
+- **Deprecation of Context-Free Circuit Breaking:** Deprecated invoking circuit-protected operations without context propagation; callers are directed to the context-aware `circuitbreaker.Execute(ctx, fn)`. (PR #275)
+
+### 📦 Pull Requests
+- **PR #299:** chore(build): official compatibility and support for Go 1.26+ and Go 1.27+
+- **PR #298:** fix: eliminate testing goroutine leaks in chaos simulation
+- **PR #297:** chore(deps): update mysql, atomic, and genproto dependencies
+- **PR #296:** docs: perform exhaustive living documentation audit
+- **PR #293:** build(deps): update core dependencies
+- **PR #292:** test(cachekit): improve test robustness with unhappy path edge cases
+- **PR #291:** feat(simulation): Ultimate Chaos Load Test and Formal Verification
+- **PR #285:** test(gophercore): add edge case tests for retry and guard packages
+- **PR #283:** test(async): add table-driven tests for nil function recovery
+- **PR #280:** Update dependencies and clean go.mod/go.sum
+- **PR #277:** Update dependency github.com/golang-migrate/migrate/v4 to v4.20.1
+- **PR #276:** chore(deps): bump github/codeql-action from 4.37.9 to 4.38.0 in the actions-minor-patch group
+- **PR #275:** feat(circuitbreaker): add context parameter to Execute
+- **PR #273:** docs: Add missing internal logic deep-dives for interfaces
+- **PR #272:** docs: add deep-dive comment to simulation package
+- **PR #271:** chore(deps): bump the go-minor-patch group across 1 directory with 2 updates
+- **PR #268:** Improve test coverage for httpkit and circuitbreaker
+- **PR #267:** chore(deps): bump the go-minor-patch group with 2 updates
+- **PR #265:** Fix httpkit panics and simulation goroutine leaks
+- **PR #264:** test: add test coverage for result.Errf
+- **PR #263:** Fix goroutine leaks in grpckit and simulation tests
+- **PR #262:** docs: update package documentation descriptions
+- **PR #261:** chore(deps): bump the go-minor-patch group with 8 updates
+- **PR #260:** test(dbkit): add missing test for MustConnect empty DSN panic
+- **PR #259:** docs: exhaustive documentation synchronization for gophercore
+- **PR #258:** chore(deps): bump github/codeql-action from 4.37.7 to 4.37.9 in the actions-minor-patch group
+- **PR #256:** chore: fix tdt tests and deep-dive documentation
+- **PR #255:** chore(deps): bump the go-minor-patch group with 3 updates
+- **PR #254:** test(simulation): fix goroutine leaks in chaos fuzz tests
+- **PR #252:** test(httpkit): add tests for invalid status code panics
+- **PR #251:** docs: add internal logic deep dive comments to exhaustive list of packages
+- **PR #250:** chore(deps): bump github/codeql-action from 4.37.6 to 4.37.7 in the actions-minor-patch group
+- **PR #249:** Add edge case and boundary unit tests for core utility packages
+- **PR #247:** Update package docs
+- **PR #246:** chore(deps): bump go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc from 0.69.0 to 0.70.0 in the go-minor-patch group
+- **PR #245:** fix: add goroutine leak check to TestMassiveConcurrencyLoad
+- **PR #243:** test(simulation): execute empirical simulation destruction and proof
+- **PR #242:** chore: exhaustive full-project documentation audit and logic deep-dives
+- **PR #241:** chore(deps): bump github/codeql-action from 4.37.3 to 4.37.6 in the actions-minor-patch group
+- **PR #240:** docs: add internal logic deep-dive comments
+- **PR #239:** fix(async): ensure graceful shutdown of Asynq workers to prevent goroutine leaks
+- **PR #238:** chore: update go-redis and opentelemetry dependencies
+- **PR #237:** fix: update grpckit custom dialer context timeout handling
+- **PR #236:** test: improve coverage for guard and httpkit edge cases
+- **PR #235:** Bump sqlite3, grpc and otelhttp dependencies
+- **PR #234:** chore(deps): bump github/codeql-action from 3 to 4.37.3
+- **PR #233:** chore(deps): bump the go-minor-patch group across 1 directory with 2 updates
+- **PR #232:** Fix: Set JSON Content-Type correctly in httpkit error responses
+- **PR #231:** test(result): cover Result.Unwrap with table-driven tests
+- **PR #230:** chore: intelligently manage and update dependencies
+- **PR #227:** chore: add rigorous documentation to internal unexported entities
+- **PR #225:** chore(deps): update otelhttp and grpcgcp dependencies
+- **PR #223:** build(deps): intelligently update outdated module dependencies
+- **PR #221:** chore(docs): audit and verify living documentation
+- **PR #218:** docs: Project-wide Exhaustive Documentation Audit
+- **PR #217:** fix: gracefully shutdown asynq server to prevent goroutine leaks
+- **PR #216:** chore(deps): bump github.com/prometheus/client_golang from 1.24.0 to 1.24.1 in the go-minor-patch group
+- **PR #215:** Audit and verify GoDoc synchronization project-wide
+- **PR #212:** test: empirical proof of no goroutine leaks via goleak and edge-case testing
+- **PR #210:** fix: resolve instant context expiration in GracefulShutdown with zero timeout
+- **PR #206:** Fix gRPC client context timeout bug
+- **PR #204:** Update google genproto APIs
+- **PR #203:** chore(deps): bump actions/setup-go from 5 to 7
+- **PR #202:** docs: Exhaustive GoDoc documentation synchronization
+- **PR #201:** Fix gosec test compilation for otelkit
+- **PR #200:** chore(deps): bump google.golang.org/grpc from 1.82.0 to 1.82.1 in the go-minor-patch group
+- **PR #199:** test(grpckit): add TDT coverage for NewClient error paths
+- **PR #198:** docs: exhaustively fix all godoc comments
+
+---
+
 ## [v0.4.1] - gRPC Client Hardening, HTTP Canonicalization, Extreme Concurrency Simulation, and QA Defensive Teardowns
 
 This release improves the stability and compliance of GopherCore's networking and concurrency models. It migrates deprecated gRPC dial connections to the modern client initializer while preserving timeout behavior via custom context dialers. In addition, it enforces standard HTTP header canonicalization in all middleware and utility packages, introduces extreme concurrency simulations to prove O(1) space and time complexity convergence, and hardens test suites with defensive teardown logic to prevent G104 unhandled error violations.
