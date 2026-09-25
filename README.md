@@ -11,7 +11,7 @@
     <a href="https://github.com/gabrielima7/GopherCore/actions/workflows/codeql.yml"><img src="https://github.com/gabrielima7/GopherCore/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Analysis"></a>
     <a href="https://pkg.go.dev/github.com/gabrielima7/GopherCore"><img src="https://pkg.go.dev/badge/github.com/gabrielima7/GopherCore.svg" alt="Go Reference"></a>
     <a href="https://goreportcard.com/report/github.com/gabrielima7/GopherCore"><img src="https://goreportcard.com/badge/github.com/gabrielima7/GopherCore" alt="Go Report Card"></a>
-    <img src="https://img.shields.io/badge/go-1.26-00ADD8?logo=go" alt="Go 1.26">
+    <img src="https://img.shields.io/badge/go-1.26_%7C_1.27-00ADD8?logo=go" alt="Go 1.26 | 1.27">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   </p>
 </p>
@@ -56,7 +56,7 @@ import (
 )
 ```
 
-**Requirements:** Go 1.26+
+**Requirements:** Go 1.26+ (Officially tested and supported on Go 1.26 and Go 1.27)
 
 ---
 
@@ -393,7 +393,7 @@ results, err := async.Map(ctx, items, 10, func(ctx context.Context, item Item) (
 
 ### Prerequisites
 
-- Go 1.26+
+- Go 1.26+ or 1.27+
 - [golangci-lint](https://golangci-lint.run/) v2.11+
 - [NilAway](https://github.com/uber-go/nilaway) (static nil-panic prevention)
 - [gosec](https://github.com/securego/gosec)

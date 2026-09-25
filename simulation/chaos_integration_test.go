@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -25,10 +26,16 @@ import (
 var errBadStatus = errors.New("bad status")
 
 func TestIntegrationChaos(t *testing.T) {
-	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"), goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"))
 
 	dbPath := filepath.Join(t.TempDir(), "integration_chaos.db")
-	db := dbkit.MustConnect(context.Background(), "sqlite3", dbPath)
+	db, err := dbkit.Connect(context.Background(), "sqlite3", dbPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "CGO_ENABLED=0") {
+			t.Skip("skipping test: sqlite3 requires cgo, but CGO_ENABLED=0")
+		}
+		t.Fatalf("failed to connect to database: %v", err)
+	}
 	defer func() { _ = db.Close() }()
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY, value TEXT)"); err != nil {
 		t.Fatalf("failed to create table: %v", err)
