@@ -83,6 +83,7 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	tests := []struct {
 		name             string

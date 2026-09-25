@@ -36,11 +36,13 @@ func FuzzChaos(f *testing.F) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	f.Add(100)
 	f.Fuzz(func(t *testing.T, numRequests int) {
@@ -83,7 +85,7 @@ func FuzzChaos(f *testing.F) {
 						if err != nil {
 							return err
 						}
-						resp, err := http.DefaultClient.Do(req)
+						resp, err := client.Do(req)
 						if err != nil {
 							return err
 						}

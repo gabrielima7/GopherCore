@@ -21,8 +21,10 @@ func TestChaos_NoGoroutineLeak(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -36,7 +38,7 @@ func TestChaos_NoGoroutineLeak(t *testing.T) {
 	_, _ = async.Map(ctx, requests, 50, func(ctx context.Context, _ int) (bool, error) {
 		err := cb.ExecuteContext(ctx, func() error {
 			req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/process", nil)
-			resp, err := srv.Client().Do(req)
+			resp, err := client.Do(req)
 			if err != nil {
 				return err
 			}

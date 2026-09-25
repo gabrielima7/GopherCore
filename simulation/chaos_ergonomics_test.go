@@ -41,9 +41,11 @@ func TestErgonomicsAndChaosIntegration(t *testing.T) {
 	})
 	httpServer := httptest.NewServer(router)
 	defer httpServer.Close()
+	defer httpServer.Client().CloseIdleConnections()
 
 	// 3. Evaluate Circuit Breaker and Retry setup
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := httpServer.Client()
 
 	// 4. Simulate thousands of goroutines accessing the HTTP endpoint with result pattern
 	const concurrency = 1000
@@ -65,7 +67,7 @@ func TestErgonomicsAndChaosIntegration(t *testing.T) {
 					endpoint += "?fail=true"
 				}
 				req, _ := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-				resp, doErr := httpServer.Client().Do(req)
+				resp, doErr := client.Do(req)
 				if doErr != nil {
 					return doErr
 				}
