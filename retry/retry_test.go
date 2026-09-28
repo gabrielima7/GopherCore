@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"fmt"
 	"context"
 	"errors"
 	"go.uber.org/goleak"
@@ -773,5 +774,118 @@ func TestDoWithValue_TableDriven(t *testing.T) {
 				t.Errorf("expected %d calls, got %d", tt.expectedCalls, calls)
 			}
 		})
+	}
+}
+
+func TestDoWithValue_EdgeCases_TableDriven(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	dummyErr := errors.New("dummy")
+
+	tests := []struct {
+		name        string
+		fn          func(context.Context) (string, error)
+		opts        []Option
+		expectPanic bool
+		expectedVal string
+		expectedErr error
+	}{
+		{
+			name: "zero max attempts",
+			fn: func(ctx context.Context) (string, error) {
+				return "", dummyErr
+			},
+			opts:        []Option{WithMaxAttempts(0)},
+			expectPanic: false,
+			expectedVal: "",
+			expectedErr: ErrMaxAttemptsReached,
+		},
+		{
+			name:        "nil function",
+			fn:          nil,
+			opts:        []Option{WithMaxAttempts(1)},
+			expectPanic: true, // Calling a nil func will panic in Go
+		},
+		{
+			name: "success on first try with large jitter",
+			fn: func(ctx context.Context) (string, error) {
+				return "success", nil
+			},
+			opts:        []Option{WithMaxAttempts(3), WithStrategy(StrategyExponential), WithJitter(true), WithMaxDelay(1 * time.Hour)},
+			expectPanic: false,
+			expectedVal: "success",
+			expectedErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectPanic {
+				defer func() {
+					if r := recover(); r == nil {
+						t.Errorf("expected panic, got none")
+					}
+				}()
+			}
+
+			val, err := DoWithValue(context.Background(), tt.fn, tt.opts...)
+
+			if !tt.expectPanic {
+				if val != tt.expectedVal {
+					t.Errorf("expected value %q, got %q", tt.expectedVal, val)
+				}
+				if tt.expectedErr != nil {
+					if !errors.Is(err, tt.expectedErr) {
+						t.Errorf("expected error %v, got %v", tt.expectedErr, err)
+					}
+				} else if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestRetry_ConcurrentChaos(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	const numGoroutines = 1000
+	errCh := make(chan error, numGoroutines)
+
+	// A shared counter to test concurrent stress on the retry loop.
+	var counter int64
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			_, err := DoWithValue(context.Background(), func(ctx context.Context) (int, error) {
+				atomic.AddInt64(&counter, 1)
+				// Simulate random failures
+				if idx%2 == 0 {
+					return 0, errors.New("simulated transient failure")
+				}
+				return idx, nil
+			}, WithMaxAttempts(5), WithInitialDelay(1*time.Millisecond), WithJitter(true))
+
+			if idx%2 == 0 {
+				if !errors.Is(err, ErrMaxAttemptsReached) {
+					errCh <- fmt.Errorf("expected ErrMaxAttemptsReached, got: %v", err)
+					return
+				}
+			} else {
+				if err != nil {
+					errCh <- fmt.Errorf("expected success, got error: %v", err)
+					return
+				}
+			}
+			errCh <- nil
+		}(i)
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		if err := <-errCh; err != nil {
+			t.Errorf("concurrent retry test failed: %v", err)
+		}
+	}
+	if counter == 0 {
+		t.Errorf("expected counter > 0, got %d", counter)
 	}
 }
