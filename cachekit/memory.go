@@ -82,7 +82,14 @@ func (c *InMemoryCache) evictExpired() {
 	// We use RLock to prevent blocking active concurrent Get() and Set() requests
 	// while we iterate over potentially millions of keys.
 	c.mu.RLock()
-	var expiredKeys []string
+
+	// Pre-allocate to reduce heap escapes and garbage collection overhead during massive evictions.
+	estimatedExpired := len(c.items) / 4
+	if estimatedExpired < 16 {
+		estimatedExpired = 16
+	}
+	expiredKeys := make([]string, 0, estimatedExpired)
+
 	for k, v := range c.items {
 		if !v.expiration.IsZero() && now.After(v.expiration) {
 			expiredKeys = append(expiredKeys, k)
