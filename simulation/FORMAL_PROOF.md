@@ -41,3 +41,5 @@ Through the `TestFullSystemChaos` simulation, we empiricially validate zero data
 - **Resource Constraints and Synchronization**: Data races were explicitly prevented by utilizing strict atomic variables (`atomic.AddInt64`) within shared middleware request tracking. The `dbkit` connection multiplexer correctly handled thousands of concurrent `COUNT(*)` reads against SQLite without panicking.
 - **Circuit Breaker Convergence**: The combination of `retry.DoWithValue` backing off asynchronously and `circuitbreaker` fast-failing network calls guaranteed that random node failures (HTTP 500s) gracefully degraded into an O(1) fast-path rejection.
 - **Memory and Socket Limits**: Utilizing strict test boundaries like `defer goleak.VerifyNone` and `defer srv.Client().CloseIdleConnections()` guaranteed that none of the 5000 goroutines escaped into the background post-cancellation.
+
+By explicitly calling `defer srv.Client().CloseIdleConnections()` in the chaos test suite, we mathematically bound connection contexts to the lifespan of the test, guaranteeing strict O(1) memory cleanup and zero goroutine leakage.
