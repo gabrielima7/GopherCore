@@ -48,3 +48,9 @@ Through the `TestApocalypseChaosSimulation` simulation, we rigorously tested the
 - **Resilience to Malicious Payloads and Panics:** Random injections of intentional panics (caught by HTTP middlewares), bad JSON inputs, and XSS string injections were properly bounded and rejected by the API layer in O(1) time without crashing the server or introducing unbounded memory consumption.
 - **Socket Exhaustion and Goroutine Leaks:** Validated via `goleak` and tightly scoped `httptest.Server` clients. At peak load, the connection pools handled the simulated data contention natively, maintaining mathematical O(1) cleanup via `CloseIdleConnections()`.
 - **Atomic Operations:** Race detector results confirmed zero data races across the simulation architecture when logging massive amounts of parallel state, correctly modeling the expected safety properties of the production ecosystem.
+
+## 10. Agent Chaos Simulation & Self-Healing
+
+Through the `TestAgentChaos` simulation, we further injected aggressive and dynamic failures combined with massive parallel goroutines (2,000 requests) slamming both `retry.DoWithValue` and `circuitbreaker.ExecuteContext`.
+- **Systematic Revalidation:** Validated via `-race` and `golangci-lint` to ensure robust error handling without triggering false panics under random `context.Canceled` or `context.DeadlineExceeded`.
+- **Developer Experience (Ergonomics):** Demonstrated clear chaining of `context.Context`, safe functional execution loops, and O(1) circuit tripping, preventing CPU deadlocks while gracefully falling back using idiomatic Go.
