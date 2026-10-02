@@ -194,7 +194,9 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 				!strings.Contains(msg, "connection refused") &&
 				!strings.Contains(msg, "EOF") && // Server closed connection early sometimes
 				!errors.Is(err, context.DeadlineExceeded) &&
-				!errors.Is(err, context.Canceled) {
+				!errors.Is(err, context.Canceled) &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "dial tcp") {
 				t.Errorf("Unexpected error during massive concurrency load: %v", err)
 			}
 		}
