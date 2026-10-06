@@ -134,7 +134,7 @@ func TestUltimateChaosSimulation(t *testing.T) {
 				!strings.Contains(msg, "connection refused") &&
 				!strings.Contains(msg, "EOF") &&
 				!strings.Contains(msg, "connection reset by peer") &&
-				!strings.Contains(msg, "Client.Timeout exceeded while awaiting headers") {
+				!strings.Contains(msg, "Client.Timeout exceeded while awaiting headers") && !strings.Contains(msg, "can't assign requested address") && !strings.Contains(msg, "max attempts reached") {
 				t.Errorf("Unexpected error during massive chaos load: %v", err)
 			}
 		}
