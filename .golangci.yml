@@ -13,5 +13,18 @@ linters:
     - unused
     - ineffassign
 
+linters-settings:
+  govet:
+    enable:
+      - nilness
+
 issues:
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+
+output:
+  formats:
+    - format: colored-line-number
