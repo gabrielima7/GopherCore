@@ -81,6 +81,10 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 		var count int
 		err := db.Get(&count, "SELECT COUNT(*) FROM users WHERE name = ?", id)
 		if err != nil {
+			if strings.Contains(err.Error(), "database is locked") || strings.Contains(err.Error(), "SQLITE_BUSY") {
+				httpkit.Error(w, http.StatusTooManyRequests, "database is locked")
+				return
+			}
 			httpkit.Error(w, http.StatusInternalServerError, "db error")
 			return
 		}
