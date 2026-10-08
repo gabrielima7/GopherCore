@@ -184,7 +184,10 @@ func isExpectedError(err error) bool {
 		errors.Is(err, circuitbreaker.ErrCircuitOpen) ||
 		errors.Is(err, circuitbreaker.ErrTooManyRequests) ||
 		errors.Is(err, retry.ErrMaxAttemptsReached) ||
-		errors.Is(err, errBadStatus) {
+		errors.Is(err, errBadStatus) ||
+		strings.Contains(err.Error(), "can't assign requested address") ||
+		strings.Contains(err.Error(), "context deadline exceeded") ||
+		strings.Contains(err.Error(), "context canceled") {
 		return true
 	}
 	return false

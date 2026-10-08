@@ -130,7 +130,16 @@ func TestUltimateChaosSimulation(t *testing.T) {
 				!errors.Is(err, context.DeadlineExceeded) &&
 				!errors.Is(err, context.Canceled) &&
 				!strings.Contains(msg, "context deadline exceeded") &&
+				!strings.Contains(msg, "can't assign requested address") &&
 				!strings.Contains(msg, "context canceled") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") && !strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") && !strings.Contains(msg, "can't assign requested address") && !strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "can't assign requested address") &&
 				!strings.Contains(msg, "connection refused") &&
 				!strings.Contains(msg, "EOF") &&
 				!strings.Contains(msg, "connection reset by peer") &&

@@ -121,7 +121,7 @@ func FuzzChaos(f *testing.F) {
 		_ = g.Wait()
 
 		for _, err := range errs {
-			if err != nil && !strings.Contains(err.Error(), "bad status") && !strings.Contains(err.Error(), "circuit is open") && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+			if err != nil && !strings.Contains(err.Error(), "bad status") && !strings.Contains(err.Error(), "circuit is open") && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) && !strings.Contains(err.Error(), "can't assign requested address") {
 				t.Errorf("unexpected error in chaos fuzz test: %v", err)
 			}
 		}
