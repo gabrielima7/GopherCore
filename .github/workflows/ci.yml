@@ -55,9 +55,9 @@ jobs:
         run: go mod download
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.64.6
 
       - name: Run NilAway
         run: make nilaway
