@@ -107,3 +107,71 @@ func TestArchitectureSimulation_HighDemand(t *testing.T) {
 	close(startCh)
 	wg.Wait()
 }
+
+func TestErgonomicsArchitecture(t *testing.T) {
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"), goleak.IgnoreTopFunction("net/http.(*persistConn).writeLoop"), goleak.IgnoreTopFunction("net/http.(*persistConn).readLoop"), goleak.IgnoreTopFunction("os/signal.NotifyContext.func1"))
+
+	router := httpkit.NewRouter()
+	router.Get("/ergo", func(w http.ResponseWriter, r *http.Request) {
+		httpkit.JSON(w, http.StatusOK, map[string]string{"ergo": "test"})
+	})
+
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+	defer srv.Client().CloseIdleConnections()
+
+	cache := cachekit.NewInMemoryCache(10 * time.Millisecond)
+	defer func() { _ = cache.Close() }()
+
+	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
+	client := srv.Client()
+
+	numGoroutines := 1000
+	var wg sync.WaitGroup
+	startCh := make(chan struct{})
+
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			<-startCh
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			key := "key_ergo"
+
+			if val, err := cache.Get(ctx, key); err == nil && len(val) > 0 {
+				return
+			}
+
+			res, err := retry.DoWithValue(ctx, func(ctx context.Context) (string, error) {
+				var finalVal string
+				cbErr := cb.ExecuteContext(ctx, func() error {
+					req, reqErr := http.NewRequestWithContext(ctx, "GET", srv.URL+"/ergo", nil)
+					if reqErr != nil {
+						return reqErr
+					}
+					resp, respErr := client.Do(req)
+					if respErr != nil {
+						return respErr
+					}
+					defer resp.Body.Close()
+					if resp.StatusCode != http.StatusOK {
+						return errSimulated
+					}
+					finalVal = "success_ergo"
+					return nil
+				})
+				return finalVal, cbErr
+			}, retry.WithMaxAttempts(2), retry.WithInitialDelay(5*time.Millisecond))
+
+			if err == nil {
+				_ = cache.Set(ctx, key, []byte(res), 50*time.Millisecond)
+			}
+		}(i)
+	}
+
+	close(startCh)
+	wg.Wait()
+}
