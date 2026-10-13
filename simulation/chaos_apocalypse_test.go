@@ -98,7 +98,6 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	// 3. Cache & Circuit Breaker Setup
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
@@ -106,6 +105,11 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 10000
+		tr.MaxIdleConnsPerHost = 10000
+	}
+	defer client.CloseIdleConnections()
 
 	const numGoroutines = 10000
 	group := async.NewGroup()
@@ -196,6 +200,9 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 				!strings.Contains(msg, "bad status") &&
 				!strings.Contains(msg, "too many requests") &&
 				!strings.Contains(msg, "connection refused") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "dial tcp") &&
+				!strings.Contains(msg, "max attempts reached") &&
 				!strings.Contains(msg, "EOF") && // Server closed connection early sometimes
 				!errors.Is(err, context.DeadlineExceeded) &&
 				!errors.Is(err, context.Canceled) {

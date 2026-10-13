@@ -36,13 +36,17 @@ func TestArchitectureSimulation_HighDemand(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(10 * time.Millisecond)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 2000
+		tr.MaxIdleConnsPerHost = 2000
+	}
+	defer client.CloseIdleConnections()
 
 	numGoroutines := 2000
 	var wg sync.WaitGroup

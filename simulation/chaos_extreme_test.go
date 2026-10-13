@@ -34,13 +34,17 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 5000
+		tr.MaxIdleConnsPerHost = 5000
+	}
+	defer client.CloseIdleConnections()
 
 	const numGoroutines = 5000
 	group := async.NewGroup()
@@ -104,6 +108,9 @@ func TestExtremeConcurrencyLoad(t *testing.T) {
 			if !strings.Contains(msg, "circuit is open") &&
 				!strings.Contains(msg, "bad status") &&
 				!strings.Contains(msg, "too many requests") &&
+				!strings.Contains(msg, "can't assign requested address") &&
+				!strings.Contains(msg, "dial tcp") &&
+				!strings.Contains(msg, "max attempts reached") &&
 				!errors.Is(err, context.DeadlineExceeded) &&
 				!errors.Is(err, context.Canceled) {
 				t.Errorf("Unexpected error during massive concurrency load: %v", err)

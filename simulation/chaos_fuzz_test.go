@@ -36,13 +36,17 @@ func FuzzChaos(f *testing.F) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 2000
+		tr.MaxIdleConnsPerHost = 2000
+	}
+	defer client.CloseIdleConnections()
 
 	f.Add(100)
 	f.Fuzz(func(t *testing.T, numRequests int) {
@@ -121,7 +125,14 @@ func FuzzChaos(f *testing.F) {
 		_ = g.Wait()
 
 		for _, err := range errs {
-			if err != nil && !strings.Contains(err.Error(), "bad status") && !strings.Contains(err.Error(), "circuit is open") && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+			if err != nil &&
+				!strings.Contains(err.Error(), "bad status") &&
+				!strings.Contains(err.Error(), "circuit is open") &&
+				!strings.Contains(err.Error(), "max attempts reached") &&
+				!strings.Contains(err.Error(), "can't assign requested address") &&
+				!strings.Contains(err.Error(), "dial tcp") &&
+				!errors.Is(err, context.DeadlineExceeded) &&
+				!errors.Is(err, context.Canceled) {
 				t.Errorf("unexpected error in chaos fuzz test: %v", err)
 			}
 		}

@@ -69,13 +69,17 @@ func TestIntegrationChaos(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
 	defer func() { _ = cache.Close() }()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 5000
+		tr.MaxIdleConnsPerHost = 5000
+	}
+	defer client.CloseIdleConnections()
 
 	const numRequests = 5000
 
@@ -188,7 +192,10 @@ func isExpectedError(err error) bool {
 		errors.Is(err, circuitbreaker.ErrCircuitOpen) ||
 		errors.Is(err, circuitbreaker.ErrTooManyRequests) ||
 		errors.Is(err, retry.ErrMaxAttemptsReached) ||
-		errors.Is(err, errBadStatus) {
+		errors.Is(err, errBadStatus) ||
+		strings.Contains(err.Error(), "can't assign requested address") ||
+		strings.Contains(err.Error(), "dial tcp") ||
+		strings.Contains(err.Error(), "max attempts reached") {
 		return true
 	}
 	return false

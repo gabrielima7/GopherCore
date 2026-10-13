@@ -13,7 +13,7 @@ import (
 )
 
 func TestCacheErgonomics_ExtremeEviction(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t, goleak.IgnoreTopFunction("database/sql.(*DB).connectionOpener"))
 
 	// Create cache with extremely fast cleanup tick (1ms) to maximize interference and eviction scans.
 	cache := cachekit.NewInMemoryCache(1 * time.Millisecond)

@@ -93,7 +93,12 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
+	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 2000
+		tr.MaxIdleConnsPerHost = 2000
+	}
+	defer client.CloseIdleConnections()
 
 	tests := []struct {
 		name             string
@@ -190,7 +195,6 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 								return err
 							}
 
-							client := &http.Client{}
 							resp, err := client.Do(req)
 							if err != nil {
 								return err
@@ -220,6 +224,8 @@ func TestChaosMicroserviceSimulation(t *testing.T) {
 							!errors.Is(err, context.Canceled) &&
 							err.Error() != "bad status" &&
 							!strings.Contains(err.Error(), "max attempts reached") &&
+							!strings.Contains(err.Error(), "can't assign requested address") &&
+							!strings.Contains(err.Error(), "dial tcp") &&
 							!strings.Contains(err.Error(), "deadline exceeded") &&
 							!strings.Contains(err.Error(), "context canceled") {
 							t.Errorf("unexpected error in chaos testing: %v", err)

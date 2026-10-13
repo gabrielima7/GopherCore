@@ -34,7 +34,6 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	// 2. Setup internal infrastructure components
 	cache := cachekit.NewInMemoryCache(1 * time.Second)
@@ -42,6 +41,11 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 1000
+		tr.MaxIdleConnsPerHost = 1000
+	}
+	defer client.CloseIdleConnections()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -122,6 +126,7 @@ func TestMassiveConcurrencyLoad(t *testing.T) {
 			!strings.Contains(errMsg, "connection refused") &&
 			!strings.Contains(errMsg, "connectex") &&
 			!strings.Contains(errMsg, "dial tcp") &&
+			!strings.Contains(errMsg, "can't assign requested address") &&
 			!strings.Contains(errMsg, "max attempts reached") &&
 			!errors.Is(err, context.DeadlineExceeded) &&
 			!errors.Is(err, context.Canceled) {

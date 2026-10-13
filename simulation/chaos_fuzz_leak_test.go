@@ -21,10 +21,14 @@ func TestChaos_NoGoroutineLeak(t *testing.T) {
 	})
 	srv := httptest.NewServer(router)
 	defer srv.Close()
-	defer srv.Client().CloseIdleConnections()
 
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.MaxIdleConns = 500
+		tr.MaxIdleConnsPerHost = 500
+	}
+	defer client.CloseIdleConnections()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
