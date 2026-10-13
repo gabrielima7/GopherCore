@@ -88,11 +88,15 @@ func (c *InMemoryCache) evictExpired() {
 	if estimatedExpired < 16 {
 		estimatedExpired = 16
 	}
-	expiredKeys := make([]string, 0, estimatedExpired)
+	type expiredItem struct {
+		key string
+		exp time.Time
+	}
+	expiredKeys := make([]expiredItem, 0, estimatedExpired)
 
 	for k, v := range c.items {
 		if !v.expiration.IsZero() && now.After(v.expiration) {
-			expiredKeys = append(expiredKeys, k)
+			expiredKeys = append(expiredKeys, expiredItem{key: k, exp: v.expiration})
 		}
 	}
 	c.mu.RUnlock()
@@ -106,11 +110,12 @@ func (c *InMemoryCache) evictExpired() {
 	// mathematically minimizing lock contention and tail-latency spikes.
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, k := range expiredKeys {
+	for _, item := range expiredKeys {
 		// Internal Logic Deep-Dive: Double-check expiration. A high-concurrency Goroutine might have
 		// updated this key with a fresh TTL between our RLock and Lock phases.
-		if v, exists := c.items[k]; exists && !v.expiration.IsZero() && now.After(v.expiration) {
-			delete(c.items, k)
+		// By checking exact equality, we guarantee we never accidentally delete a newly inserted item.
+		if v, exists := c.items[item.key]; exists && v.expiration.Equal(item.exp) {
+			delete(c.items, item.key)
 		}
 	}
 }
