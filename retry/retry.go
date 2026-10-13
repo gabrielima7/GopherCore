@@ -34,6 +34,7 @@ var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 // Internal Logic Deep-Dive: Essential for preventing coordinated retry storms against recovering backend services.
 type Strategy int
 
+// Constants defining the algorithms to calculate time delays between attempts.
 const (
 	// StrategyConstant uses a fixed delay between retries.
 	// Purpose: Provides stable looping gaps without degradation.

@@ -32,6 +32,7 @@ var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-o
 // Internal Logic Deep-Dive: We use strongly typed integers to ensure switch statements cover all states during state transitions.
 type State int
 
+// Constants defining the possible internal states of the Circuit Breaker.
 const (
 	// StateClosed represents the normal operational state. All requests are allowed
 	// through. The breaker counts consecutive failures to determine if it
