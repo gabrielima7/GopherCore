@@ -106,12 +106,12 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
 	if tr, ok := client.Transport.(*http.Transport); ok {
-		tr.MaxIdleConns = 10000
-		tr.MaxIdleConnsPerHost = 10000
+		tr.MaxIdleConns = 20000
+		tr.MaxIdleConnsPerHost = 20000
 	}
 	defer client.CloseIdleConnections()
 
-	const numGoroutines = 10000
+	const numGoroutines = 20000
 	group := async.NewGroup()
 	startSignal := make(chan struct{})
 
@@ -160,6 +160,9 @@ func TestApocalypseChaosSimulation(t *testing.T) {
 						payloadData = `{"Data": "s"}` // Fails guard validation (min=3)
 					} else if idx%70 == 0 {
 						payloadData = `{invalid json`
+					} else if idx%90 == 0 {
+						// Malicious deeply-nested JSON payload to test jsonutil bounds
+						payloadData = `{"Data": "deep", "Key": "val", "Nested": {"a": {"b": {"c": {"d": "e"}}}}}`
 					}
 
 					req, reqErr := http.NewRequestWithContext(c, "POST", endpoint, strings.NewReader(payloadData))
