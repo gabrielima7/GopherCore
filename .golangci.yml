@@ -1,9 +1,6 @@
-version: "2"
-
 run:
   timeout: 5m
   tests: true
-  go: "1.26"
 
 linters:
   enable:
@@ -26,10 +23,3 @@ linters:
 
 issues:
   max-same-issues: 0
-
-output:
-  formats:
-    text:
-      path: stdout
-      colors: true
-
