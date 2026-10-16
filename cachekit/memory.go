@@ -139,8 +139,8 @@ func (c *InMemoryCache) Close() error {
 // Thread-safety: Safe for concurrent use.
 // Internal Logic Deep-Dive: We proactively allocate a new slice and perform a full `copy(valCopy, value)` to definitively detach the stored byte array from the caller's memory references. This fundamentally guards the cache state against accidental downstream mutations if the caller modifies the original slice array.
 func (c *InMemoryCache) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
-	if ctx.Err() != nil {
-		return ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
 	var exp time.Time
