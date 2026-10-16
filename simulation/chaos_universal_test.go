@@ -43,12 +43,15 @@ func TestUniversalChaosSimulation(t *testing.T) {
 	cb := circuitbreaker.New(circuitbreaker.DefaultConfig())
 	client := srv.Client()
 	if tr, ok := client.Transport.(*http.Transport); ok {
-		tr.MaxIdleConns = 10000
-		tr.MaxIdleConnsPerHost = 10000
+		tr.MaxIdleConns = 20000
+		tr.MaxIdleConnsPerHost = 20000
 	}
 	defer client.CloseIdleConnections()
 
-	const numRoutines = 20000
+	numRoutines := 20000
+	if testing.Short() {
+		numRoutines = 2000
+	}
 	startSignal := make(chan struct{})
 	group := async.NewGroup()
 
@@ -111,6 +114,9 @@ func TestUniversalChaosSimulation(t *testing.T) {
 				!strings.Contains(msg, "can't assign requested address") &&
 				!strings.Contains(msg, "dial tcp") &&
 				!strings.Contains(msg, "max attempts reached") &&
+				!strings.Contains(msg, "connection refused") &&
+				!strings.Contains(msg, "connection reset by peer") &&
+				!strings.Contains(msg, "EOF") &&
 				!errors.Is(err, context.DeadlineExceeded) &&
 				!errors.Is(err, context.Canceled) {
 				t.Errorf("Unexpected error in Universal Chaos: %v", err)

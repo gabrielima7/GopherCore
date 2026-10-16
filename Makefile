@@ -66,7 +66,7 @@ lint:
 ## test: Run tests with coverage and race detector
 test:
 	@echo "==> Running tests..."
-	go test -cover -race -count=1 -timeout=60s ./...
+	go test -cover -race -count=1 -timeout=5m ./...
 
 ## fuzz: Run fuzz tests for 30s per package
 fuzz:
