@@ -365,3 +365,5 @@ func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 		return srv.Shutdown(ctx)
 	}
 }
+
+// Living documentation triggered
