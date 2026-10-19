@@ -32,27 +32,22 @@ var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-o
 // Internal Logic Deep-Dive: We use strongly typed integers to ensure switch statements cover all states during state transitions.
 type State int
 
-// Constants defining the possible internal states of the Circuit Breaker.
 const (
-	// StateClosed represents the normal operational state. All requests are allowed
-	// through. The breaker counts consecutive failures to determine if it
-	// should trip to StateOpen.
+	// StateClosed represents the normal operational state. All requests are allowed through. The breaker counts consecutive failures to determine if it should trip to StateOpen.
 	// Purpose: Denotes the baseline healthy state.
 	// Constraints: Must be returned exclusively when the breaker is untripped.
 	// Thread-safety: Constant value.
 	// Internal Logic Deep-Dive: Represents the baseline where the proxy incurs minimal overhead.
 	StateClosed State = iota
 
-	// StateOpen represents the tripped state. All requests are immediately rejected
-	// with ErrCircuitOpen until the configured timeout duration expires.
+	// StateOpen represents the tripped state. All requests are immediately rejected with ErrCircuitOpen until the configured timeout duration expires.
 	// Purpose: Denotes the failing, protective state.
 	// Constraints: Must enforce fast-failure rejections.
 	// Thread-safety: Constant value.
 	// Internal Logic Deep-Dive: Instantly sheds load to prevent cascading connection timeouts across the distributed system.
 	StateOpen
 
-	// StateHalfOpen represents the recovery state. A limited number of probe requests
-	// are allowed through to test if the underlying service has recovered.
+	// StateHalfOpen represents the recovery state. A limited number of probe requests are allowed through to test if the underlying service has recovered.
 	// Purpose: Denotes the tentative recovery state.
 	// Constraints: Must restrict the number of probes to avoid re-overloading.
 	// Thread-safety: Constant value.
