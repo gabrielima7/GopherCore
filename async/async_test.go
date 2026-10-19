@@ -683,3 +683,125 @@ func TestMapContextCancellationDuringSemaphoreWait(t *testing.T) {
 		t.Fatalf("expected context.Canceled, got %v (results: %v)", err, results)
 	}
 }
+
+func TestGoErr_TableDriven_EdgeCases(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	errTest := errors.New("expected test error")
+
+	tests := []struct {
+		name        string
+		fn          func() error
+		expectErr   error
+		expectPanic bool
+	}{
+		{
+			name:      "happy path returns nil",
+			fn:        func() error { return nil },
+			expectErr: nil,
+		},
+		{
+			name:      "error path returns error",
+			fn:        func() error { return errTest },
+			expectErr: errTest,
+		},
+		{
+			name:        "panic is recovered into PanicError",
+			fn:          func() error { panic("simulated fatal panic") },
+			expectPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errCh := GoErr(tt.fn)
+			err := <-errCh
+
+			if tt.expectPanic {
+				var pe *PanicError
+				if !errors.As(err, &pe) {
+					t.Errorf("expected PanicError, got %T: %v", err, err)
+				}
+			} else if tt.expectErr != nil {
+				if !errors.Is(err, tt.expectErr) {
+					t.Errorf("expected error %v, got %v", tt.expectErr, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestGroup_TableDriven_EdgeCases(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	errTest1 := errors.New("error 1")
+	errTest2 := errors.New("error 2")
+
+	tests := []struct {
+		name        string
+		actions     []func() error
+		expectCount int
+		expectPanic bool
+	}{
+		{
+			name:        "empty group wait returns nil",
+			actions:     []func() error{},
+			expectCount: 0,
+		},
+		{
+			name: "all successes returns nil",
+			actions: []func() error{
+				func() error { return nil },
+				func() error { return nil },
+			},
+			expectCount: 0,
+		},
+		{
+			name: "collects multiple distinct errors",
+			actions: []func() error{
+				func() error { return errTest1 },
+				func() error { return errTest2 },
+			},
+			expectCount: 2,
+		},
+		{
+			name: "collects mixed errors and panics",
+			actions: []func() error{
+				func() error { return errTest1 },
+				func() error { panic("fatal group panic") },
+				func() error { return nil },
+			},
+			expectCount: 2,
+			expectPanic: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewGroup()
+			for _, action := range tt.actions {
+				g.Go(action)
+			}
+			errs := g.Wait()
+
+			if len(errs) != tt.expectCount {
+				t.Errorf("expected %d errors, got %d", tt.expectCount, len(errs))
+			}
+
+			if tt.expectPanic {
+				foundPanic := false
+				for _, err := range errs {
+					var pe *PanicError
+					if errors.As(err, &pe) {
+						foundPanic = true
+					}
+				}
+				if !foundPanic {
+					t.Errorf("expected to find at least one PanicError")
+				}
+			}
+		})
+	}
+}
