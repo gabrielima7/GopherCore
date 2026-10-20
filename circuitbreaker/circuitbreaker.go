@@ -33,32 +33,30 @@ var ErrTooManyRequests = errors.New("circuitbreaker: too many requests in half-o
 type State int
 
 // Constants defining the possible internal states of the Circuit Breaker.
-const (
-	// StateClosed represents the normal operational state. All requests are allowed
-	// through. The breaker counts consecutive failures to determine if it
-	// should trip to StateOpen.
-	// Purpose: Denotes the baseline healthy state.
-	// Constraints: Must be returned exclusively when the breaker is untripped.
-	// Thread-safety: Constant value.
-	// Internal Logic Deep-Dive: Represents the baseline where the proxy incurs minimal overhead.
-	StateClosed State = iota
+// StateClosed represents the normal operational state. All requests are allowed
+// through. The breaker counts consecutive failures to determine if it
+// should trip to StateOpen.
+// Purpose: Denotes the baseline healthy state.
+// Constraints: Must be returned exclusively when the breaker is untripped.
+// Thread-safety: Constant value.
+// Internal Logic Deep-Dive: Represents the baseline where the proxy incurs minimal overhead.
+const StateClosed State = 0
 
-	// StateOpen represents the tripped state. All requests are immediately rejected
-	// with ErrCircuitOpen until the configured timeout duration expires.
-	// Purpose: Denotes the failing, protective state.
-	// Constraints: Must enforce fast-failure rejections.
-	// Thread-safety: Constant value.
-	// Internal Logic Deep-Dive: Instantly sheds load to prevent cascading connection timeouts across the distributed system.
-	StateOpen
+// StateOpen represents the tripped state. All requests are immediately rejected
+// with ErrCircuitOpen until the configured timeout duration expires.
+// Purpose: Denotes the failing, protective state.
+// Constraints: Must enforce fast-failure rejections.
+// Thread-safety: Constant value.
+// Internal Logic Deep-Dive: Instantly sheds load to prevent cascading connection timeouts across the distributed system.
+const StateOpen State = 1
 
-	// StateHalfOpen represents the recovery state. A limited number of probe requests
-	// are allowed through to test if the underlying service has recovered.
-	// Purpose: Denotes the tentative recovery state.
-	// Constraints: Must restrict the number of probes to avoid re-overloading.
-	// Thread-safety: Constant value.
-	// Internal Logic Deep-Dive: Acts as a critical throttle to prevent slamming a recovering service with full traffic instantly.
-	StateHalfOpen
-)
+// StateHalfOpen represents the recovery state. A limited number of probe requests
+// are allowed through to test if the underlying service has recovered.
+// Purpose: Denotes the tentative recovery state.
+// Constraints: Must restrict the number of probes to avoid re-overloading.
+// Thread-safety: Constant value.
+// Internal Logic Deep-Dive: Acts as a critical throttle to prevent slamming a recovering service with full traffic instantly.
+const StateHalfOpen State = 2
 
 // String maps the internal integer phase enum into an intuitive, human-parseable text label, heavily utilized during metric exports and structured observability logging.
 // Purpose: Simplifies console output and logging of the circuit status.

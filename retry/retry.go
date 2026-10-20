@@ -35,21 +35,19 @@ var ErrMaxAttemptsReached = errors.New("retry: max attempts reached")
 type Strategy int
 
 // Constants defining the algorithms to calculate time delays between attempts.
-const (
-	// StrategyConstant uses a fixed delay between retries.
-	// Purpose: Provides stable looping gaps without degradation.
-	// Constraints: Best for predictable internal operations.
-	// Thread-safety: Constant value.
-	// Internal Logic Deep-Dive: Best used for polling local processes, terrible for network calls.
-	StrategyConstant Strategy = iota
+// StrategyConstant uses a fixed delay between retries.
+// Purpose: Provides stable looping gaps without degradation.
+// Constraints: Best for predictable internal operations.
+// Thread-safety: Constant value.
+// Internal Logic Deep-Dive: Best used for polling local processes, terrible for network calls.
+const StrategyConstant Strategy = 0
 
-	// StrategyExponential uses exponential backoff between retries.
-	// Purpose: Helps gracefully de-escalate resource usage while down.
-	// Constraints: Recommended for remote network calls.
-	// Thread-safety: Constant value.
-	// Internal Logic Deep-Dive: Ensures the system organically backs off, allowing databases time to recover from locked states.
-	StrategyExponential
-)
+// StrategyExponential uses exponential backoff between retries.
+// Purpose: Helps gracefully de-escalate resource usage while down.
+// Constraints: Recommended for remote network calls.
+// Thread-safety: Constant value.
+// Internal Logic Deep-Dive: Ensures the system organically backs off, allowing databases time to recover from locked states.
+const StrategyExponential Strategy = 1
 
 // Config solidifies the exhaustive behavioral blueprint constraining how aggressively and how frequently a given failure handler attempts to repeat an aborted logical execution block.
 // Purpose: Parameterizes retry loops.
