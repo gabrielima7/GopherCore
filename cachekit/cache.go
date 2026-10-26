@@ -14,7 +14,7 @@ import (
 // Purpose: Allows callers to differentiate between an actual error and a cache miss.
 // Constraints: Standardized across all Cache implementations.
 // Thread-safety: Immutable error value.
-// Internal Logic Deep-Dive: Allows callers to differentiate between network faults and normal cache eviction cycles.
+// Internal Logic Deep-Dive: Allows callers to differentiate between network faults and normal cache eviction cycles. This ensures that application logic handles misses gracefully instead of failing violently.
 var ErrCacheMiss = errors.New("cache: key not found")
 
 // Cache defines the standard interface for a caching layer.
