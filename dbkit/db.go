@@ -18,36 +18,41 @@ import (
 // Thread-safety: Safely read-only post instantiation.
 // Internal Logic Deep-Dive: Prevents hardcoded magic numbers across the application by providing a unified tuning structure.
 type Config struct {
-	// Driver is the database driver name (e.g., "postgres", "mysql", "sqlite3").
-	// The correct driver must be explicitly imported in the `main` package (e.g., `_ "github.com/lib/pq"`).
+	// Driver specifies which underlying driver sqlx should initialize.
 	// Purpose: Specifies which underlying driver sqlx should initialize.
 	// Constraints: Must be a registered database driver name.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Required for SQL dialect mapping and driver initialization.
 	Driver string
-	// DSN is the data source name / connection string.
+	// DSN contains connection credentials and routing information.
 	// Purpose: Contains connection credentials and routing information.
 	// Constraints: Format strictly depends on the specified Driver.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Secures the direct network route to the primary data store.
 	DSN string
-	// MaxOpenConns is the maximum number of open connections.
+	// MaxOpenConns throttles the maximum physical connections to the database.
 	// Purpose: Throttles the maximum physical connections to the database.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
+	// Internal Logic Deep-Dive: Implements strict backpressure limits on database connection allocation.
 	MaxOpenConns int
-	// MaxIdleConns is the maximum number of idle connections.
+	// MaxIdleConns caps the number of inactive connections kept alive in the pool.
 	// Purpose: Caps the number of inactive connections kept alive in the pool.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
+	// Internal Logic Deep-Dive: Minimizes the TCP connection overhead while bounding idle memory limits.
 	MaxIdleConns int
-	// ConnMaxLifetime is the maximum duration a connection can be reused.
+	// ConnMaxLifetime forces recycling of old connections to prevent stale socket issues.
 	// Purpose: Forces recycling of old connections to prevent stale socket issues.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Actively closes aging connections before network proxy timeouts trigger unexpected EOF errors.
 	ConnMaxLifetime time.Duration
-	// ConnMaxIdleTime is the maximum duration a connection can be idle.
+	// ConnMaxIdleTime trims connections that have been inactive for too long.
 	// Purpose: Trims connections that have been inactive for too long.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Ensures transient connection spikes are pruned back to baseline efficiently.
 	ConnMaxIdleTime time.Duration
 }
 

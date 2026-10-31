@@ -16,15 +16,17 @@ import (
 // Thread-safety: Mutative during setup, read-only afterwards.
 // Internal Logic Deep-Dive: Segregates configuration to easily toggle JSON vs Console formatting depending on the deployment environment.
 type Config struct {
-	// Level determines the minimum severity threshold for emitting log records.
-	// Purpose: Sets the noise threshold (e.g., Info vs Debug).
-	// Constraints: Must be a valid slog.Level.
-	// Thread-safety: Read-only during execution.
+	// Level is the logging verbosity level.
+	// Purpose: The logging verbosity level.
+	// Constraints: Uses slog.Level types.
+	// Thread-safety: Read-only value.
+	// Internal Logic Deep-Dive: Filters emitted logs based on severity.
 	Level slog.Level
-	// Writer explicitly overrides the default logging output destination (os.Stdout) for capturing logs elsewhere.
-	// Purpose: Directs log bytes to a specified sink.
-	// Constraints: Must implement io.Writer and ideally handle concurrent writes safely.
-	// Thread-safety: Read-only interface pointer.
+	// Writer is the destination for log output.
+	// Purpose: The destination for log output.
+	// Constraints: Must implement io.Writer.
+	// Thread-safety: Implementations must be concurrent-safe.
+	// Internal Logic Deep-Dive: Dictates the physical or virtual destination of serialized log entries.
 	Writer io.Writer
 }
 

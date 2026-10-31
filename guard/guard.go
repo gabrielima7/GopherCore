@@ -34,25 +34,29 @@ var htmlPolicy = bluemonday.StrictPolicy()
 // generated human-readable message.
 // Internal Logic Deep-Dive: We use struct tags tightly to ensure the reported field names match the JSON payload, not the Go struct.
 type ValidationError struct {
-	// Field is the struct property name that failed validation.
-	// Purpose: Identifies which specific input parameter was invalid.
-	// Constraints: Maps to the struct field's defined name or JSON tag.
+	// Field is the name of the field that failed validation.
+	// Purpose: Name of the field that failed validation.
+	// Constraints: Corresponds to a struct field name.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Pinpoints the exact struct boundary where validation failed.
 	Field string `json:"field"`
-	// Tag is the specific validation rule that triggered the failure.
-	// Purpose: Identifies the exact rule (e.g., 'required', 'email') that was violated.
-	// Constraints: Maps to go-playground/validator tag names.
+	// Tag is the validation tag that was violated.
+	// Purpose: Validation tag that was violated.
+	// Constraints: Should match a defined validator tag.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Identifies the precise rule condition that was breached.
 	Tag string `json:"tag"`
-	// Value is the actual input value that was rejected, formatted as a string.
-	// Purpose: Shows the invalid input for debugging and logging.
-	// Constraints: Should be sanitized if logging sensitive PII.
+	// Value is the value that failed validation.
+	// Purpose: The value that failed validation.
+	// Constraints: Represents the raw rejected input.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Preserves the erroneous data state to enable better user feedback.
 	Value string `json:"value"`
-	// Message is a human-readable explanation of why the validation failed.
-	// Purpose: Provides a client-friendly error message.
-	// Constraints: Safe for external exposure via API responses.
+	// Message is a human-readable error message.
+	// Purpose: Human-readable error message.
+	// Constraints: Safe to display to end users.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Formats the raw validation error into a readable and actionable error state.
 	Message string `json:"message"`
 }
 
