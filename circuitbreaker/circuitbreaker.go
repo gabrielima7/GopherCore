@@ -86,38 +86,39 @@ func (s State) String() string {
 // Thread-safety: Treat as read-only once passed to the Breaker constructor.
 // Internal Logic Deep-Dive: Encapsulating parameters into a struct prevents function signature bloat and simplifies default overrides.
 type Config struct {
-	// FailureThreshold is the number of consecutive failures before
-	// the circuit breaker transitions from Closed to Open.
-	// Purpose: Determines how many consecutive failures trip the breaker.
-	// Constraints: Must be greater than 0.
-	// Thread-safety: Read-only during execution.
+	// FailureThreshold is the number of consecutive failures before tripping.
+	// Purpose: Number of consecutive failures before tripping.
+	// Constraints: Must be greater than zero.
+	// Thread-safety: Read-only access.
+	// Internal Logic Deep-Dive: Determines the exact fault tolerance limit before defensive isolation triggers.
 	FailureThreshold int
 
-	// SuccessThreshold is the number of consecutive successes in
-	// HalfOpen state required to transition back to Closed.
-	// Purpose: Determines how many consecutive successes reset the breaker.
-	// Constraints: Must be greater than 0.
-	// Thread-safety: Read-only during execution.
+	// SuccessThreshold is the number of successful requests required to transition from Half-Open to Closed.
+	// Purpose: Number of successful requests required to transition from Half-Open to Closed.
+	// Constraints: Must be greater than zero.
+	// Thread-safety: Read-only access.
+	// Internal Logic Deep-Dive: Ensures network stability is proven over multiple requests before fully reopening.
 	SuccessThreshold int
 
-	// Timeout is the duration the circuit stays in the Open state
-	// before transitioning to HalfOpen.
-	// Purpose: Determines the cooldown period before probing the service again.
-	// Constraints: Must be greater than 0.
-	// Thread-safety: Read-only during execution.
+	// Timeout is the duration the circuit remains Open before transitioning to Half-Open.
+	// Purpose: Duration the circuit remains Open before transitioning to Half-Open.
+	// Constraints: Must be greater than zero.
+	// Thread-safety: Read-only access.
+	// Internal Logic Deep-Dive: Provides a guaranteed cooling-off period for failing downstream services to recover.
 	Timeout time.Duration
 
-	// MaxHalfOpenRequests is the maximum number of requests allowed
-	// in the HalfOpen state. Defaults to 1.
-	// Purpose: Limits concurrent probes to the recovering service.
-	// Constraints: Must be greater than 0.
-	// Thread-safety: Read-only during execution.
+	// MaxHalfOpenRequests is the maximum concurrent requests allowed during the Half-Open state.
+	// Purpose: Maximum concurrent requests allowed during the Half-Open state.
+	// Constraints: Must be greater than zero.
+	// Thread-safety: Read-only access.
+	// Internal Logic Deep-Dive: Prevents overwhelming a recovering service with sudden traffic spikes during the tentative phase.
 	MaxHalfOpenRequests int
 
-	// OnStateChange is called when the circuit breaker transitions state.
-	// Purpose: Allows observing internal circuit breaker state changes.
-	// Constraints: Can be nil. If provided, it blocks state transitions.
-	// Thread-safety: Called synchronously under the breaker's mutex lock.
+	// OnStateChange is an optional callback invoked when the circuit transitions between states.
+	// Purpose: Optional callback invoked when the circuit transitions between states.
+	// Constraints: Execution should be non-blocking.
+	// Thread-safety: Must be thread-safe for concurrent execution.
+	// Internal Logic Deep-Dive: Facilitates external metric collection and alert generation asynchronously.
 	OnStateChange func(from, to State)
 }
 

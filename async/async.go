@@ -18,15 +18,17 @@ import (
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
 // Internal Logic Deep-Dive: We use a dedicated struct to encapsulate interface{} to maintain clear boundaries between expected errors and fatal system faults.
 type PanicError struct {
-	// Value holds the raw panic interface{} caught during execution.
+	// Value is the raw value recovered from the panic.
 	// Purpose: Holds the raw value recovered from the panic.
-	// Constraints: Can be of any type, typically an error or string.
-	// Thread-safety: Read-only struct field.
+	// Constraints: Typically an error or string, but can be interface{}.
+	// Thread-safety: Read-only access to internal fields.
+	// Internal Logic Deep-Dive: Preserves the exact memory state of the panic for accurate inspection.
 	Value any
-	// Stack holds the runtime stack trace captured immediately at the panic site.
+	// Stack provides debugging context for where the panic originated.
 	// Purpose: Provides debugging context for where the panic originated.
-	// Constraints: Automatically captured via runtime/debug.
-	// Thread-safety: Read-only string.
+	// Constraints: Formatted as a multi-line string.
+	// Thread-safety: Read-only access to internal fields.
+	// Internal Logic Deep-Dive: Captures the runtime stack to enable precise post-mortem debugging.
 	Stack string
 }
 

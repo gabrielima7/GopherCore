@@ -20,15 +20,17 @@ import (
 // Thread-safety: Read-only after instantiation.
 // Internal Logic Deep-Dive: Segregating migration configuration allows for separate CLI tools to run migrations out-of-band.
 type MigrationConfig struct {
-	// SourceURL is the source URL for migration files (e.g., "file://migrations").
-	// Purpose: Identifies where the migration files are located.
-	// Constraints: Must be a valid URL scheme supported by golang-migrate.
+	// SourceURL is the location of the migration files.
+	// Purpose: Location of the migration files.
+	// Constraints: Standard golang-migrate format URL.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Directs the migration engine to the correct local or remote schema definition path.
 	SourceURL string
-	// DatabaseName is the database driver name for migrate (e.g., "postgres").
-	// Purpose: Tells the migrator which SQL dialect to use.
-	// Constraints: Must match the registered database driver name.
+	// DatabaseName is the name of the database to migrate.
+	// Purpose: Name of the database to migrate.
+	// Constraints: Cannot be empty.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Defines the logical database target within the broader database cluster.
 	DatabaseName string
 }
 
@@ -107,15 +109,17 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 // Thread-safety: Struct data.
 // Internal Logic Deep-Dive: We use a distinct struct to ensure versioning logic isn't confused with arbitrary integer data.
 type MigrationVersion struct {
-	// Version is the current numeric version of the database schema.
-	// Purpose: Represents the currently applied migration step.
-	// Constraints: Usually an incrementally increasing integer.
-	// Thread-safety: Read-only primitive.
+	// Version is the current numerical migration version.
+	// Purpose: The current numerical migration version.
+	// Constraints: Must be >= 0.
+	// Thread-safety: Read-only integer.
+	// Internal Logic Deep-Dive: Provides a concrete numerical identifier for the current database schema schema state.
 	Version uint
-	// Dirty indicates whether the last migration attempt failed and left the schema in a potentially inconsistent state.
-	// Purpose: Flags if the database requires manual intervention to fix a botched migration.
-	// Constraints: If true, automated migrations will typically halt.
+	// Dirty indicates if the last migration failed midway.
+	// Purpose: Indicates if the last migration failed midway.
+	// Constraints: True if the database is in an inconsistent state.
 	// Thread-safety: Read-only boolean.
+	// Internal Logic Deep-Dive: Flags an unstable schema state requiring manual administrative intervention.
 	Dirty bool
 }
 

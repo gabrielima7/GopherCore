@@ -56,35 +56,41 @@ const (
 // Thread-safety: Modifying after initiation is not advised; fields should be considered read-only by runners.
 // Internal Logic Deep-Dive: Isolates the arithmetic variables required to calculate complex jitter and backoffs.
 type Config struct {
-	// MaxAttempts limits the total number of execution iterations before completely failing.
-	// Purpose: Provides a hard upper bound on retry loops.
-	// Constraints: Should be > 0.
+	// MaxAttempts is the maximum number of times to retry.
+	// Purpose: Maximum number of times to retry.
+	// Constraints: Must be > 0.
 	// Thread-safety: Read-only integer.
+	// Internal Logic Deep-Dive: Imposes a strict boundary on operational retries.
 	MaxAttempts int
-	// InitialDelay is the starting sleep duration used by backoff strategies after the first failure.
-	// Purpose: Determines the baseline sleep time.
-	// Constraints: Should be >= 0.
+	// InitialDelay is the starting delay before the first retry.
+	// Purpose: The starting delay before the first retry.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Establishes the baseline pause for backing off.
 	InitialDelay time.Duration
-	// MaxDelay aggressively caps the exponentially growing sleep duration to prevent infinitely increasing wait times.
-	// Purpose: Limits how long a single backoff sleep can take.
-	// Constraints: Should be >= InitialDelay.
+	// MaxDelay is the absolute maximum delay allowed between retries.
+	// Purpose: The absolute maximum delay allowed between retries.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Prevents exponential backoffs from scaling into unacceptably long pauses.
 	MaxDelay time.Duration
-	// Strategy determines the mathematical decay mechanism applied between subsequent retries.
-	// Purpose: Chooses the backoff algorithm (e.g. constant vs exponential).
-	// Constraints: Should be a valid Strategy enum.
-	// Thread-safety: Read-only enum.
+	// Strategy is the backoff strategy to employ.
+	// Purpose: The backoff strategy to employ.
+	// Constraints: Supported strategies are Constant and Exponential.
+	// Thread-safety: Read-only enum value.
+	// Internal Logic Deep-Dive: Determines the mathematical progression of delay durations.
 	Strategy Strategy
-	// Jitter enables the injection of cryptographic randomness into sleep durations to thwart thundering herd bottlenecks.
-	// Purpose: Prevents synchronized retries from overwhelming dependencies.
-	// Constraints: Boolean flag.
+	// Jitter indicates if jitter should be added to delays.
+	// Purpose: Indicates if jitter should be added to delays.
+	// Constraints: True enables jitter.
 	// Thread-safety: Read-only boolean.
+	// Internal Logic Deep-Dive: Introduces randomness to prevent the thundering herd problem.
 	Jitter bool
-	// RetryIf acts as a custom predicate interceptor, allowing the system to selectively abort retries for non-recoverable errors.
-	// Purpose: Allows short-circuiting the retry loop for fatal errors.
-	// Constraints: If nil, all errors are retried.
-	// Thread-safety: Executed synchronously by the caller goroutine.
+	// RetryIf is an optional callback to determine if a specific error is retryable.
+	// Purpose: Optional callback to determine if a specific error is retryable.
+	// Constraints: Should return true if retryable.
+	// Thread-safety: Must be safe for concurrent execution.
+	// Internal Logic Deep-Dive: Provides granular application-level control over which errors trigger a retry.
 	RetryIf func(error) bool
 }
 

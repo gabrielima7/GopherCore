@@ -26,66 +26,77 @@ import (
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
 // Internal Logic Deep-Dive: Centralizes all server vulnerability mitigations (like Slowloris protections) into one tunable block.
 type RouterConfig struct {
-	// RateLimiter allows injection of a custom or distributed rate limiter interface.
-	// Purpose: Provide custom rate limiter, e.g. for horizontal scaling.
-	// Constraints: Takes precedence over RateLimit/RateBurst if set.
-	// Thread-safety: Read-only interface.
+	// RateLimiter is a custom rate limiter to use.
+	// Purpose: Custom rate limiter to use.
+	// Constraints: Takes precedence over default rate limiting if provided.
+	// Thread-safety: Must be thread-safe for concurrent request handling.
+	// Internal Logic Deep-Dive: Injects external throttling logic directly into the middleware pipeline.
 	RateLimiter RateLimiter
-	// AllowedOrigins for CORS. Empty means no CORS middleware.
-	// Purpose: Configures CORS Access-Control-Allow-Origin dynamically.
-	// Constraints: Can be empty to bypass CORS entirely.
+	// AllowedOrigins are the origins allowed for CORS.
+	// Purpose: Origins allowed for CORS.
+	// Constraints: Specifies exact origins or wildcards.
 	// Thread-safety: Read-only slice.
+	// Internal Logic Deep-Dive: Determines cross-origin security boundaries.
 	AllowedOrigins []string
-	// AllowedMethods for CORS. Defaults to GET, POST, PUT, DELETE, OPTIONS.
-	// Purpose: Configures CORS Access-Control-Allow-Methods dynamically.
-	// Constraints: Read-only, pre-joined during initialization.
+	// AllowedMethods are the HTTP methods allowed for CORS.
+	// Purpose: HTTP methods allowed for CORS.
+	// Constraints: Valid HTTP verbs.
 	// Thread-safety: Read-only slice.
+	// Internal Logic Deep-Dive: Explicitly whitelists acceptable operations.
 	AllowedMethods []string
-	// AllowedHeaders for CORS. Defaults to Accept, Authorization, Content-Type.
-	// Purpose: Configures CORS Access-Control-Allow-Headers dynamically.
-	// Constraints: Read-only, pre-joined during initialization.
+	// AllowedHeaders are the HTTP headers allowed for CORS.
+	// Purpose: HTTP headers allowed for CORS.
+	// Constraints: Valid HTTP headers.
 	// Thread-safety: Read-only slice.
+	// Internal Logic Deep-Dive: Secures incoming headers from external domains.
 	AllowedHeaders []string
-	// RateLimit is the maximum requests per second. 0 disables rate limiting.
-	// Purpose: Limits incoming traffic rates to prevent resource exhaustion.
-	// Constraints: Ignored if set to 0.
+	// RateLimit is the requests per second allowed.
+	// Purpose: Requests per second allowed.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only float64.
+	// Internal Logic Deep-Dive: Configures the baseline flow rate for incoming connections.
 	RateLimit float64
-	// RateBurst is the maximum burst size for rate limiting. Defaults to RateLimit.
-	// Purpose: Configures the burst tolerance over the rate limit.
-	// Constraints: Ignored if RateLimit is 0.
-	// Thread-safety: Read-only int.
+	// RateBurst is the maximum burst size for rate limiting.
+	// Purpose: Maximum burst size for rate limiting.
+	// Constraints: Must be positive.
+	// Thread-safety: Read-only integer.
+	// Internal Logic Deep-Dive: Accommodates temporary request spikes without dropping connections.
 	RateBurst int
-	// ReadTimeout for the HTTP server.
-	// Purpose: Time allowed to read the entire request, including the body.
-	// Constraints: Protects against slowloris attacks.
+	// ReadTimeout is the maximum duration for reading the entire request.
+	// Purpose: Maximum duration for reading the entire request.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Mitigates Slowloris attacks by capping request read times.
 	ReadTimeout time.Duration
-	// ReadHeaderTimeout for the HTTP server.
-	// Purpose: Time allowed to read request headers.
-	// Constraints: Protects against slowloris attacks targeting headers.
+	// ReadHeaderTimeout is the maximum duration for reading request headers.
+	// Purpose: Maximum duration for reading request headers.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Ensures initial connection headers are parsed promptly.
 	ReadHeaderTimeout time.Duration
-	// WriteTimeout for the HTTP server.
-	// Purpose: Time allowed to write the response.
-	// Constraints: Protects against slow clients.
+	// WriteTimeout is the maximum duration before timing out writes.
+	// Purpose: Maximum duration before timing out writes.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Prevents server resources from hanging on slow clients.
 	WriteTimeout time.Duration
-	// IdleTimeout for the HTTP server.
-	// Purpose: Time allowed for idle keep-alive connections.
-	// Constraints: Determines how aggressively idle sockets are closed.
+	// IdleTimeout is the maximum amount of time to wait for the next request.
+	// Purpose: Maximum amount of time to wait for the next request.
+	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
+	// Internal Logic Deep-Dive: Efficiently reclaims keep-alive connections from idle clients.
 	IdleTimeout time.Duration
-	// EnableLogger enables the chi request logger middleware.
-	// Purpose: Toggles basic HTTP request logging automatically.
-	// Constraints: Boolean flag.
+	// EnableLogger determines if the logger middleware should be enabled.
+	// Purpose: Determines if the logger middleware should be enabled.
+	// Constraints: True to enable.
 	// Thread-safety: Read-only boolean.
+	// Internal Logic Deep-Dive: Toggles access log generation at the router level.
 	EnableLogger bool
-	// MetricsPath specifies the HTTP path where Prometheus metrics are exposed.
-	// If empty, metrics are not registered on the router.
-	// Purpose: Configures the metrics path dynamically.
-	// Constraints: Read-only string.
+	// MetricsPath is the path to expose Prometheus metrics.
+	// Purpose: Path to expose Prometheus metrics.
+	// Constraints: Valid URL path.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Mounts the telemetry export endpoint.
 	MetricsPath string
 }
 

@@ -17,20 +17,23 @@ import (
 // Thread-safety: Data structure, safe when not mutated concurrently.
 // Internal Logic Deep-Dive: Using a consistent wrapper simplifies frontend state management drastically.
 type ErrorResponse struct {
-	// Error provides a machine-readable string describing the general failure category.
-	// Purpose: Provides a programmatic identifier for the error type.
-	// Constraints: Usually tied to the HTTP status text.
-	// Thread-safety: Read-only string.
+	// Error indicates that the response is an error.
+	// Purpose: Indicates that the response is an error.
+	// Constraints: Always true for this struct.
+	// Thread-safety: Read-only boolean.
+	// Internal Logic Deep-Dive: Provides an explicit structural flag for clients to identify failure states.
 	Error string `json:"error"`
-	// Code matches the HTTP status code returned in the response header.
-	// Purpose: Mirrors the HTTP status code in the JSON payload for easy client parsing.
-	// Constraints: Must be a valid HTTP status code.
-	// Thread-safety: Read-only integer.
-	Code int `json:"code"`
-	// Message offers an optional, human-readable description intended for developers or end-users.
-	// Purpose: Provides additional context about the failure.
-	// Constraints: Should not contain sensitive system information.
+	// Code is an application-specific error code.
+	// Purpose: Application-specific error code.
+	// Constraints: Should align with internal error taxonomies.
 	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Enables programmatic switching on error classifications without parsing strings.
+	Code int `json:"code"`
+	// Message is a human-readable error description.
+	// Purpose: Human-readable error description.
+	// Constraints: Safe for public disclosure.
+	// Thread-safety: Read-only string.
+	// Internal Logic Deep-Dive: Carries the contextual failure details directly to the consuming client.
 	Message string `json:"message,omitempty"`
 }
 
