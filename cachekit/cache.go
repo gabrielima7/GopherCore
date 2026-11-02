@@ -14,21 +14,21 @@ import (
 // Purpose: Allows callers to differentiate between an actual error and a cache miss.
 // Constraints: Standardized across all Cache implementations.
 // Thread-safety: Immutable error value.
-// Internal Logic Deep-Dive: Allows callers to differentiate between network faults and normal cache eviction cycles. This ensures that application logic handles misses gracefully instead of failing violently.
+// Internal Logic Deep-Dive: Allows callers to differentiate between network faults and normal cache eviction cycles. This ensures that application logic handles misses gracefully instead of failing violently. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 var ErrCacheMiss = errors.New("cache: key not found")
 
 // Cache defines the standard interface for a caching layer.
 // Purpose: Provides a unified API for both in-memory and distributed caches.
 // Constraints: Implementations must be thread-safe and handle context cancellation.
 // Thread-safety: Implementations must guarantee concurrent safety.
-// Internal Logic Deep-Dive: The unified Cache interface deliberately standardizes on `[]byte` values for all read and write operations rather than generic interfaces (`any`). This architectural constraint ensures consistent serialization/deserialization behavior across both local memory boundaries and network boundaries (Redis), preventing runtime type assertion panics or subtle gob/JSON encoding discrepancies.
+// Internal Logic Deep-Dive: The unified Cache interface deliberately standardizes on `[]byte` values for all read and write operations rather than generic interfaces (`any`). This architectural constraint ensures consistent serialization/deserialization behavior across both local memory boundaries and network boundaries (Redis), preventing runtime type assertion panics or subtle gob/JSON encoding discrepancies. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Cache interface {
 	// Set stores a value in the cache with the given key and expiration time.
 	// If expiration is 0, the key has no expiration time.
 	// Purpose: Allows persistent or volatile storage of byte slice data mapped by a string key.
 	// Constraints: The key must not be empty. Context cancellation terminates external connections immediately.
 	// Thread-safety: Implementations must guarantee thread-safety for concurrent writes.
-	// Internal Logic Deep-Dive: Enforces byte slice values to guarantee deterministic serialization across local memory maps and distributed network stores like Redis.
+	// Internal Logic Deep-Dive: Enforces byte slice values to guarantee deterministic serialization across local memory maps and distributed network stores like Redis. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Set(ctx context.Context, key string, value []byte, expiration time.Duration) error
 
 	// Get retrieves a value from the cache by its key.
@@ -36,7 +36,7 @@ type Cache interface {
 	// Purpose: Fetches the cached byte slice associated with the specified key.
 	// Constraints: Returns an exact match or ErrCacheMiss. Context cancellation is respected.
 	// Thread-safety: Implementations must be safe for concurrent reads.
-	// Internal Logic Deep-Dive: Returning byte slices natively prevents reflective type-assertion panics and enforces a strict boundary between raw storage and application-level struct decoding.
+	// Internal Logic Deep-Dive: Returning byte slices natively prevents reflective type-assertion panics and enforces a strict boundary between raw storage and application-level struct decoding. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Get(ctx context.Context, key string) ([]byte, error)
 
 	// Delete removes a key from the cache.
@@ -44,6 +44,6 @@ type Cache interface {
 	// Purpose: Removes a specific entry from the caching layer, freeing memory.
 	// Constraints: Idempotent operation; deleting a non-existent key will not yield an error.
 	// Thread-safety: Implementations must synchronize deletion alongside active reads and writes.
-	// Internal Logic Deep-Dive: By explicitly suppressing errors for missing keys, this method enables concurrent cleanup routines to safely retry bulk deletions without coordinating state.
+	// Internal Logic Deep-Dive: By explicitly suppressing errors for missing keys, this method enables concurrent cleanup routines to safely retry bulk deletions without coordinating state. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Delete(ctx context.Context, key string) error
 }

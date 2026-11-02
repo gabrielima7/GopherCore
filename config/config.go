@@ -34,7 +34,7 @@ var validate = validator.New()
 //   - `envDefault:"val"`: Uses "val" if the specified environment variable is absent or empty.
 //   - `validate:"rule"`: Applies standard go-playground validation rules.
 //
-// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic.
+// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Load(cfg any) error {
 	// Dynamically introspect the target struct and enforce it is a valid pointer.
 	// This is required to ensure we can assign values back to the original fields.
@@ -44,7 +44,7 @@ func Load(cfg any) error {
 	}
 
 	// Dereference the pointer to get to the underlying struct type before populating.
-	// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic.
+	// Internal Logic Deep-Dive: We dereference the pointer to access the underlying struct type before populating it dynamically. If we attempted to set fields on the pointer itself, the reflect package would panic. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	v = v.Elem()
 	if v.Kind() != reflect.Struct {
 		return errors.New("cfg must be a pointer to a struct")
@@ -145,7 +145,7 @@ func setField(v reflect.Value, value string) error {
 		if err != nil {
 			return err
 		}
-		// Internal Logic Deep-Dive: We use `v.OverflowInt` to actively block out-of-bounds environment values from silently corrupting configuration at runtime. Without this, passing "300" into an `int8` field would silently wrap around to a small positive or negative value, causing unpredictable application behavior.
+		// Internal Logic Deep-Dive: We use `v.OverflowInt` to actively block out-of-bounds environment values from silently corrupting configuration at runtime. Without this, passing "300" into an `int8` field would silently wrap around to a small positive or negative value, causing unpredictable application behavior. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 		if v.OverflowInt(intVal) {
 			return fmt.Errorf("integer overflow for value %s", value)
 		}

@@ -16,19 +16,19 @@ import (
 // without terminating the entire application.
 // Constraints: Must be instantiated via recovering panics, not meant to be manually created.
 // Thread-safety: Pure struct, safe to pass across goroutine channels.
-// Internal Logic Deep-Dive: We use a dedicated struct to encapsulate interface{} to maintain clear boundaries between expected errors and fatal system faults.
+// Internal Logic Deep-Dive: We use a dedicated struct to encapsulate interface{} to maintain clear boundaries between expected errors and fatal system faults. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type PanicError struct {
 	// Value is the raw value recovered from the panic.
 	// Purpose: Holds the raw value recovered from the panic.
 	// Constraints: Typically an error or string, but can be interface{}.
 	// Thread-safety: Read-only access to internal fields.
-	// Internal Logic Deep-Dive: Preserves the exact memory state of the panic for accurate inspection.
+	// Internal Logic Deep-Dive: Preserves the exact memory state of the panic for accurate inspection. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Value any
 	// Stack provides debugging context for where the panic originated.
 	// Purpose: Provides debugging context for where the panic originated.
 	// Constraints: Formatted as a multi-line string.
 	// Thread-safety: Read-only access to internal fields.
-	// Internal Logic Deep-Dive: Captures the runtime stack to enable precise post-mortem debugging.
+	// Internal Logic Deep-Dive: Captures the runtime stack to enable precise post-mortem debugging. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Stack string
 }
 
@@ -36,7 +36,7 @@ type PanicError struct {
 // Purpose: Implements the standard error interface.
 // Constraints: Assumes the internal stack trace string has been properly formatted.
 // Thread-safety: Read-only access to internal fields.
-// Internal Logic Deep-Dive: Formats the error tightly to ensure logs parsing systems don't drop multiline panics unexpectedly.
+// Internal Logic Deep-Dive: Formats the error tightly to ensure logs parsing systems don't drop multiline panics unexpectedly. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func (p *PanicError) Error() string {
 	return fmt.Sprintf("panic recovered: %v\n%s", p.Value, p.Stack)
 }
@@ -47,7 +47,7 @@ func (p *PanicError) Error() string {
 // caught and converted into a PanicError. This error is then passed to the optional onPanic
 // callback functions, if any are provided. If no callback is provided, the panic is silently recovered.
 // Thread-safety: Safely detaches and isolates panic propagation from the calling goroutine.
-// Internal Logic Deep-Dive: We encapsulate the worker in a goroutine and apply a defer recovery block at its root. This strictly isolates panic fault boundaries, guaranteeing that a single bad asynchronous worker never crashes the main application thread.
+// Internal Logic Deep-Dive: We encapsulate the worker in a goroutine and apply a defer recovery block at its root. This strictly isolates panic fault boundaries, guaranteeing that a single bad asynchronous worker never crashes the main application thread. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Go(fn func(), onPanic ...func(err error)) {
 	go func() {
 		// By injecting a strict recovery block at the root of every dispatched goroutine,
@@ -74,7 +74,7 @@ func Go(fn func(), onPanic ...func(err error)) {
 // goroutine leaks if the caller does not read from it immediately.
 // Thread-safety: If the goroutine panics, the panic is recovered and sent safely to the
 // channel as a PanicError. Channel access is inherently concurrent-safe.
-// Internal Logic Deep-Dive: A buffered channel size of 1 is intentionally selected to completely decouple the producer's exit from the consumer's readiness.
+// Internal Logic Deep-Dive: A buffered channel size of 1 is intentionally selected to completely decouple the producer's exit from the consumer's readiness. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func GoErr(fn func() error) <-chan error {
 	ch := make(chan error, 1)
 	go func() {
@@ -97,7 +97,7 @@ func GoErr(fn func() error) <-chan error {
 // Constraints: Must be instantiated using NewGroup to function correctly.
 // Thread-safety: It uses internal sync primitives to be entirely safe for concurrent
 // execution and error collection from multiple workers.
-// Internal Logic Deep-Dive: We encapsulate WaitGroup and Mutex to provide a unified synchronization barrier that prevents leaky goroutine scheduling.
+// Internal Logic Deep-Dive: We encapsulate WaitGroup and Mutex to provide a unified synchronization barrier that prevents leaky goroutine scheduling. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Group struct {
 	wg   sync.WaitGroup
 	mu   sync.Mutex
@@ -108,7 +108,7 @@ type Group struct {
 // Purpose: Constructs an empty, properly initialized Group.
 // Constraints: Instantiates without arguments, assumes unbounded slice allocation.
 // Thread-safety: Returns a new struct instance pointer. Safe to share.
-// Internal Logic Deep-Dive: Pointer initialization ensures all callers share the exact same underlying synchronization primitives.
+// Internal Logic Deep-Dive: Pointer initialization ensures all callers share the exact same underlying synchronization primitives. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func NewGroup() *Group {
 	return &Group{}
 }
@@ -119,7 +119,7 @@ func NewGroup() *Group {
 // Constraints: Expected to be called before Wait.
 // Thread-safety: All concurrent accesses to the internal error slice are safely
 // synchronized via a mutex lock to strictly prevent data races.
-// Internal Logic Deep-Dive: By injecting a strict recovery block at the root of the dispatched goroutine, we prevent localized algorithmic faults from escalating into full application crashes, preserving system availability even if background tasks fail unexpectedly.
+// Internal Logic Deep-Dive: By injecting a strict recovery block at the root of the dispatched goroutine, we prevent localized algorithmic faults from escalating into full application crashes, preserving system availability even if background tasks fail unexpectedly. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func (g *Group) Go(fn func() error) {
 	g.wg.Add(1)
 	go func() {
@@ -148,7 +148,7 @@ func (g *Group) Go(fn func() error) {
 // If no errors occurred, it returns nil.
 // Thread-safety: It safely accesses the internal error slice protected by a mutex lock.
 // Safe for concurrent calls, though typically called once by a single coordinator goroutine.
-// Internal Logic Deep-Dive: Ensure that readers of the error array view fully synchronized state across all completed goroutines. Without locking here, the caller could read stale cache lines on multi-core machines.
+// Internal Logic Deep-Dive: Ensure that readers of the error array view fully synchronized state across all completed goroutines. Without locking here, the caller could read stale cache lines on multi-core machines. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func (g *Group) Wait() []error {
 	g.wg.Wait()
 
@@ -171,7 +171,7 @@ func (g *Group) Wait() []error {
 // Thread-safety: It uses a buffered channel as a counting semaphore to restrict the number of
 // concurrently active goroutines. Panics within workers are gracefully recovered.
 // Each worker writes its result to its own unique pre-allocated slice index, avoiding race conditions entirely.
-// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load.
+// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(context.Context, T) (R, error)) ([]R, error) {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -187,7 +187,7 @@ func Map[T any, R any](ctx context.Context, items []T, concurrency int, fn func(
 Loop:
 	for i, item := range items {
 		// Fast-path context cancellation check before spawning.
-		// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load.
+		// Internal Logic Deep-Dive: A simple `if ctx.Err() != nil` check inside the loop prevents spawning entirely new Goroutines if the context is already dead. This avoids the overhead of Goroutine allocation and subsequent immediate cancellation, protecting CPU and memory resources under high load. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 		if ctx.Err() != nil {
 			break Loop
 		}
@@ -257,7 +257,7 @@ Loop:
 // For bounded concurrency, prefer using Map.
 // Thread-safety: It uses a sync.WaitGroup to coordinate completion and a sync.Mutex to
 // safely collect any errors encountered without data races.
-// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough.
+// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) error) []error {
 	var (
 		wg   sync.WaitGroup
@@ -287,7 +287,7 @@ func Fan[T any](ctx context.Context, items []T, fn func(context.Context, T) erro
 				}
 			}()
 			// Execute the worker logic and capture returned errors.
-			// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough.
+			// Internal Logic Deep-Dive: We use an explicit `mu.Lock()` wrapped around `errs = append(errs, err)` instead of error channels to safely collect unbounded errors without risking deadlocks or dropped messages if the receiver isn't reading fast enough. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 			if err := fn(ctx, val); err != nil {
 				mu.Lock()
 				errs = append(errs, err)

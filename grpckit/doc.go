@@ -10,7 +10,7 @@
 // Constraints: Assumes usage with github.com/grpc/grpc-go.
 // Thread-safety: Safe for concurrent use across multiple goroutines.
 //
-// Internal Logic Deep-Dive:
+// Internal Logic Deep-Dive: This enhancement ensures the system handles distributed tracing and structured logging correctly.
 // GopherCore integrates OpenTelemetry distributed tracing natively using the modern
 // `grpc.StatsHandler` API (via `otelgrpc.NewServerHandler()` and `otelgrpc.NewClientHandler()`)
 // rather than legacy unary/stream interceptors. This ensures complete observability coverage

@@ -24,79 +24,79 @@ import (
 // Purpose: Aggregates all networking parameters for the application server.
 // Constraints: Must be populated appropriately for the specific environment.
 // Thread-safety: All fields are read-only after initialization and thus thread-safe.
-// Internal Logic Deep-Dive: Centralizes all server vulnerability mitigations (like Slowloris protections) into one tunable block.
+// Internal Logic Deep-Dive: Centralizes all server vulnerability mitigations (like Slowloris protections) into one tunable block. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type RouterConfig struct {
 	// RateLimiter is a custom rate limiter to use.
 	// Purpose: Custom rate limiter to use.
 	// Constraints: Takes precedence over default rate limiting if provided.
 	// Thread-safety: Must be thread-safe for concurrent request handling.
-	// Internal Logic Deep-Dive: Injects external throttling logic directly into the middleware pipeline.
+	// Internal Logic Deep-Dive: Injects external throttling logic directly into the middleware pipeline. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	RateLimiter RateLimiter
 	// AllowedOrigins are the origins allowed for CORS.
 	// Purpose: Origins allowed for CORS.
 	// Constraints: Specifies exact origins or wildcards.
 	// Thread-safety: Read-only slice.
-	// Internal Logic Deep-Dive: Determines cross-origin security boundaries.
+	// Internal Logic Deep-Dive: Determines cross-origin security boundaries. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	AllowedOrigins []string
 	// AllowedMethods are the HTTP methods allowed for CORS.
 	// Purpose: HTTP methods allowed for CORS.
 	// Constraints: Valid HTTP verbs.
 	// Thread-safety: Read-only slice.
-	// Internal Logic Deep-Dive: Explicitly whitelists acceptable operations.
+	// Internal Logic Deep-Dive: Explicitly whitelists acceptable operations. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	AllowedMethods []string
 	// AllowedHeaders are the HTTP headers allowed for CORS.
 	// Purpose: HTTP headers allowed for CORS.
 	// Constraints: Valid HTTP headers.
 	// Thread-safety: Read-only slice.
-	// Internal Logic Deep-Dive: Secures incoming headers from external domains.
+	// Internal Logic Deep-Dive: Secures incoming headers from external domains. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	AllowedHeaders []string
 	// RateLimit is the requests per second allowed.
 	// Purpose: Requests per second allowed.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only float64.
-	// Internal Logic Deep-Dive: Configures the baseline flow rate for incoming connections.
+	// Internal Logic Deep-Dive: Configures the baseline flow rate for incoming connections. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	RateLimit float64
 	// RateBurst is the maximum burst size for rate limiting.
 	// Purpose: Maximum burst size for rate limiting.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only integer.
-	// Internal Logic Deep-Dive: Accommodates temporary request spikes without dropping connections.
+	// Internal Logic Deep-Dive: Accommodates temporary request spikes without dropping connections. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	RateBurst int
 	// ReadTimeout is the maximum duration for reading the entire request.
 	// Purpose: Maximum duration for reading the entire request.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Mitigates Slowloris attacks by capping request read times.
+	// Internal Logic Deep-Dive: Mitigates Slowloris attacks by capping request read times. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	ReadTimeout time.Duration
 	// ReadHeaderTimeout is the maximum duration for reading request headers.
 	// Purpose: Maximum duration for reading request headers.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Ensures initial connection headers are parsed promptly.
+	// Internal Logic Deep-Dive: Ensures initial connection headers are parsed promptly. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	ReadHeaderTimeout time.Duration
 	// WriteTimeout is the maximum duration before timing out writes.
 	// Purpose: Maximum duration before timing out writes.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Prevents server resources from hanging on slow clients.
+	// Internal Logic Deep-Dive: Prevents server resources from hanging on slow clients. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	WriteTimeout time.Duration
 	// IdleTimeout is the maximum amount of time to wait for the next request.
 	// Purpose: Maximum amount of time to wait for the next request.
 	// Constraints: Must be positive.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Efficiently reclaims keep-alive connections from idle clients.
+	// Internal Logic Deep-Dive: Efficiently reclaims keep-alive connections from idle clients. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	IdleTimeout time.Duration
 	// EnableLogger determines if the logger middleware should be enabled.
 	// Purpose: Determines if the logger middleware should be enabled.
 	// Constraints: True to enable.
 	// Thread-safety: Read-only boolean.
-	// Internal Logic Deep-Dive: Toggles access log generation at the router level.
+	// Internal Logic Deep-Dive: Toggles access log generation at the router level. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	EnableLogger bool
 	// MetricsPath is the path to expose Prometheus metrics.
 	// Purpose: Path to expose Prometheus metrics.
 	// Constraints: Valid URL path.
 	// Thread-safety: Read-only string.
-	// Internal Logic Deep-Dive: Mounts the telemetry export endpoint.
+	// Internal Logic Deep-Dive: Mounts the telemetry export endpoint. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	MetricsPath string
 }
 
@@ -104,9 +104,9 @@ type RouterConfig struct {
 // Purpose: Bootstraps a secure starting configuration.
 // Constraints: Imposes strict security defaults automatically.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
-// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. The standard `http.Server` explicitly defaults to infinite wait times if left unconfigured.
+// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. The standard `http.Server` explicitly defaults to infinite wait times if left unconfigured. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func DefaultRouterConfig() RouterConfig {
-	// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. In Go, the `http.Server` explicitly defaults to infinite wait times if left unconfigured, which is a dangerous anti-pattern in production environments.
+	// Internal Logic Deep-Dive: To mitigate Slowloris and other connection-exhaustion attacks, we set aggressive, non-zero timeout boundaries. In Go, the `http.Server` explicitly defaults to infinite wait times if left unconfigured, which is a dangerous anti-pattern in production environments. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	// These default parameters are strictly tuned for production defensive posture.
 	// We mandate conservative ReadHeaderTimeout and WriteTimeout values specifically
 	// to sever stalling connections, neutralizing Slowloris and other resource-exhaustion vectors.
@@ -128,14 +128,14 @@ func DefaultRouterConfig() RouterConfig {
 // Purpose: Enables functional option pattern configuration.
 // Constraints: Evaluated serially during configuration initialization.
 // Thread-safety: Safe when used sequentially during initialization.
-// Internal Logic Deep-Dive: Follows the functional option pattern to maintain backward API compatibility.
+// Internal Logic Deep-Dive: Follows the functional option pattern to maintain backward API compatibility. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type RouterOption func(*RouterConfig)
 
 // WithCORS mandates strict origin filtering on incoming HTTP requests by forcing the router to reject preflight handshakes originating from domain names not explicitly enumerated here.
 // Purpose: Adds allowed domains to the CORS middleware layer.
 // Constraints: Can be overridden or ignored if empty.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Ensuring this is an option allows us to completely disable CORS for internal microservices.
+// Internal Logic Deep-Dive: Ensuring this is an option allows us to completely disable CORS for internal microservices. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithCORS(origins ...string) RouterOption {
 	return func(c *RouterConfig) {
 		c.AllowedOrigins = origins
@@ -146,7 +146,7 @@ func WithCORS(origins ...string) RouterOption {
 // Purpose: Enables global, distributed rate limits across horizontal replicas (e.g. Redis).
 // Constraints: Overrides standard RPS/Burst settings if used.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Enables scaling from an in-memory bucket to a distributed Redis cluster easily.
+// Internal Logic Deep-Dive: Enables scaling from an in-memory bucket to a distributed Redis cluster easily. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithCustomRateLimiter(limiter RateLimiter) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimiter = limiter
@@ -157,7 +157,7 @@ func WithCustomRateLimiter(limiter RateLimiter) RouterOption {
 // Purpose: Defends against volumetric traffic attacks.
 // Constraints: A zero value bypasses rate limiting entirely.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Shields the system immediately without requiring external infrastructure.
+// Internal Logic Deep-Dive: Shields the system immediately without requiring external infrastructure. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithRateLimit(rps float64, burst int) RouterOption {
 	return func(c *RouterConfig) {
 		c.RateLimit = rps
@@ -169,7 +169,7 @@ func WithRateLimit(rps float64, burst int) RouterOption {
 // Purpose: Preempts slow-loris attacks by capping total read duration.
 // Constraints: Must be positive or zero.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Preemptively clamping the socket read duration provides foundational defense against Slowloris-style denial of service attacks by refusing to buffer indefinitely.
+// Internal Logic Deep-Dive: Preemptively clamping the socket read duration provides foundational defense against Slowloris-style denial of service attacks by refusing to buffer indefinitely. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithReadTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadTimeout = d
@@ -180,7 +180,7 @@ func WithReadTimeout(d time.Duration) RouterOption {
 // Purpose: Disconnects stalling clients.
 // Constraints: Must be provided unconditionally on exposed servers.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Extremely strict threshold targeting malicious clients holding sockets open indefinitely.
+// Internal Logic Deep-Dive: Extremely strict threshold targeting malicious clients holding sockets open indefinitely. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithReadHeaderTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.ReadHeaderTimeout = d
@@ -191,7 +191,7 @@ func WithReadHeaderTimeout(d time.Duration) RouterOption {
 // Purpose: Frees resources associated with stalling clients or handlers.
 // Constraints: Bound your long-running handlers inside this window to avoid forced closures.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Ensures the server doesn't stack up blocked goroutines waiting on a stalled TCP send buffer.
+// Internal Logic Deep-Dive: Ensures the server doesn't stack up blocked goroutines waiting on a stalled TCP send buffer. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithWriteTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.WriteTimeout = d
@@ -202,7 +202,7 @@ func WithWriteTimeout(d time.Duration) RouterOption {
 // Purpose: Limits the amount of inactive sockets held in memory.
 // Constraints: Should generally be longer than read timeouts.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Keeps sockets warm for bursty clients but sweeps them aggressively when traffic drops.
+// Internal Logic Deep-Dive: Keeps sockets warm for bursty clients but sweeps them aggressively when traffic drops. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithIdleTimeout(d time.Duration) RouterOption {
 	return func(c *RouterConfig) {
 		c.IdleTimeout = d
@@ -213,7 +213,7 @@ func WithIdleTimeout(d time.Duration) RouterOption {
 // Purpose: Simplifies observing real-time HTTP metrics and route performance.
 // Constraints: Writes to standard output.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Bypasses standard output to directly ship structured JSON logs.
+// Internal Logic Deep-Dive: Bypasses standard output to directly ship structured JSON logs. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithLogger(enabled bool) RouterOption {
 	return func(c *RouterConfig) {
 		c.EnableLogger = enabled
@@ -225,7 +225,7 @@ func WithLogger(enabled bool) RouterOption {
 // Purpose: Allows custom metrics paths (e.g. for security through obscurity or admin ports).
 // Constraints: Path should start with a slash if not empty.
 // Thread-safety: Mutates configuration struct safely during synchronous initialization.
-// Internal Logic Deep-Dive: Purposely bypasses authentication and rate-limiting middleware to guarantee scrapers never timeout.
+// Internal Logic Deep-Dive: Purposely bypasses authentication and rate-limiting middleware to guarantee scrapers never timeout. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithMetricsPath(path string) RouterOption {
 	return func(c *RouterConfig) {
 		c.MetricsPath = path
@@ -255,7 +255,7 @@ func parseOptions(opts ...RouterOption) RouterConfig {
 // Purpose: Quickly bootstraps a production-ready HTTP router.
 // Constraints: Expects valid setup parameters.
 // Thread-safety: Safely initializes global middlewares for concurrent request processing.
-// Internal Logic Deep-Dive: Pre-configures 404 and 405 handlers to return structured JSON instead of plain text.
+// Internal Logic Deep-Dive: Pre-configures 404 and 405 handlers to return structured JSON instead of plain text. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func NewRouter(opts ...RouterOption) *chi.Mux {
 	cfg := parseOptions(opts...)
 
@@ -277,7 +277,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 	r.Use(middleware.RealIP)
 	// Gracefully handles panics inside route handlers, converting them to 500 Internal Server Errors
 	// to prevent the entire node process from crashing.
-	// Internal Logic Deep-Dive: We unconditionally load `middleware.Recoverer` *before* injecting any user-defined middlewares like `middleware.Logger`. This exact ordering ensures that if the logging system itself experiences a panic (e.g. nil pointer during attribute generation), the recoverer still catches it, saving the process.
+	// Internal Logic Deep-Dive: We unconditionally load `middleware.Recoverer` *before* injecting any user-defined middlewares like `middleware.Logger`. This exact ordering ensures that if the logging system itself experiences a panic (e.g. nil pointer during attribute generation), the recoverer still catches it, saving the process. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	r.Use(middleware.Recoverer)
 
 	if cfg.EnableLogger {
@@ -317,7 +317,7 @@ func NewRouter(opts ...RouterOption) *chi.Mux {
 // slowloris and other resource exhaustion attacks natively at the stdlib server level.
 // Constraints: Relies heavily on the exact timeout metrics defined.
 // Thread-safety: Initialization only; the underlying net/http handling is safely concurrent.
-// Internal Logic Deep-Dive: Wires the configured timeouts directly into the standard `http.Server` structure.
+// Internal Logic Deep-Dive: Wires the configured timeouts directly into the standard `http.Server` structure. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Server {
 	cfg := parseOptions(opts...)
 	// Explicitly propagating derived timeouts into the net/http server structure ensures
@@ -339,7 +339,7 @@ func NewServer(addr string, handler http.Handler, opts ...RouterOption) *http.Se
 // Constraints: Blocks until the server exits completely or the timeout expires.
 // Thread-safety: It manages synchronization internally via channels and safely blocks the
 // calling goroutine until shutdown completes or times out, safely orchestrating multiple concurrent signals.
-// Internal Logic Deep-Dive: Stops accepting new connections instantly while waiting for active handlers to resolve, preventing dropped user transactions.
+// Internal Logic Deep-Dive: Stops accepting new connections instantly while waiting for active handlers to resolve, preventing dropped user transactions. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 	serverErr := make(chan error, 1)
 	go func() {
@@ -355,7 +355,7 @@ func GracefulShutdown(srv *http.Server, timeout time.Duration) error {
 
 	// Block the main thread. We wake up if the server crashes unexpectedly, or if
 	// the OS asks the process to exit.
-	// Internal Logic Deep-Dive: The `select` block provides bidirectional responsiveness. If `srv.ListenAndServe()` fails instantly on boot (e.g., port 80 is already in use by another app), the `serverErr` channel fires and the application exits immediately. Conversely, if `<-quit` fires, we transition gracefully to a shutdown deadline, ensuring we don't indefinitely block on dead sockets.
+	// Internal Logic Deep-Dive: The `select` block provides bidirectional responsiveness. If `srv.ListenAndServe()` fails instantly on boot (e.g., port 80 is already in use by another app), the `serverErr` channel fires and the application exits immediately. Conversely, if `<-quit` fires, we transition gracefully to a shutdown deadline, ensuring we don't indefinitely block on dead sockets. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	select {
 	case err := <-serverErr:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

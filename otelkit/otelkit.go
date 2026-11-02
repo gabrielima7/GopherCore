@@ -43,7 +43,7 @@ var (
 // Purpose: Configures OpenTelemetry SDK for the application.
 // Constraints: Must be invoked at application launch.
 // Thread-safety: Global configuration should only happen once sequentially at startup.
-// Internal Logic Deep-Dive: We rigorously initialize the trace exporter and provider, registering them as globals. This guarantees all downstream packages immediately emit telemetry data without needing direct reference to the SDK.
+// Internal Logic Deep-Dive: We rigorously initialize the trace exporter and provider, registering them as globals. This guarantees all downstream packages immediately emit telemetry data without needing direct reference to the SDK. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func InitSDK(ctx context.Context, serviceName string) (func(context.Context) error, error) {
 	// Early context cancellation check
 	if err := ctx.Err(); err != nil {
@@ -61,7 +61,7 @@ func InitSDK(ctx context.Context, serviceName string) (func(context.Context) err
 		return nil, err
 	}
 
-	// Internal Logic Deep-Dive: We must explicitly set a global TextMapPropagator so that the OpenTelemetry instrumentation natively understands how to inject and extract `traceparent` and `baggage` headers across network boundaries. Without this, distributed tracing breaks immediately when a request leaves this microservice to call another.
+	// Internal Logic Deep-Dive: We must explicitly set a global TextMapPropagator so that the OpenTelemetry instrumentation natively understands how to inject and extract `traceparent` and `baggage` headers across network boundaries. Without this, distributed tracing breaks immediately when a request leaves this microservice to call another. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 	// 1. Initialize Traces

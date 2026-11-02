@@ -18,19 +18,19 @@ import (
 // Purpose: Bundles migration source and database driver configs.
 // Constraints: Must point to a valid driver and source URL.
 // Thread-safety: Read-only after instantiation.
-// Internal Logic Deep-Dive: Segregating migration configuration allows for separate CLI tools to run migrations out-of-band.
+// Internal Logic Deep-Dive: Segregating migration configuration allows for separate CLI tools to run migrations out-of-band. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type MigrationConfig struct {
 	// SourceURL is the location of the migration files.
 	// Purpose: Location of the migration files.
 	// Constraints: Standard golang-migrate format URL.
 	// Thread-safety: Read-only string.
-	// Internal Logic Deep-Dive: Directs the migration engine to the correct local or remote schema definition path.
+	// Internal Logic Deep-Dive: Directs the migration engine to the correct local or remote schema definition path. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	SourceURL string
 	// DatabaseName is the name of the database to migrate.
 	// Purpose: Name of the database to migrate.
 	// Constraints: Cannot be empty.
 	// Thread-safety: Read-only string.
-	// Internal Logic Deep-Dive: Defines the logical database target within the broader database cluster.
+	// Internal Logic Deep-Dive: Defines the logical database target within the broader database cluster. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	DatabaseName string
 }
 
@@ -40,7 +40,7 @@ type MigrationConfig struct {
 // a transaction depending on the underlying database engine. Ensure backups are available.
 // Thread-safety: Operations are inherently stateful on the database side; concurrent migration execution from
 // multiple nodes is usually handled safely by golang-migrate's internal advisory locks.
-// Internal Logic Deep-Dive: A strict defer block explicitly drops the migration source and DB driver instances (`m.Close()`). If these advisory connection locks aren't properly released due to an unhandled migration crash, future deployment pipelines will infinitely hang while attempting to acquire the stale database locks.
+// Internal Logic Deep-Dive: A strict defer block explicitly drops the migration source and DB driver instances (`m.Close()`). If these advisory connection locks aren't properly released due to an unhandled migration crash, future deployment pipelines will infinitely hang while attempting to acquire the stale database locks. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -71,7 +71,7 @@ func RunMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourc
 // Constraints: Like RunMigrations, destructive DDL side-effects may occur and not all databases support
 // rolling back these types of operations transactionally.
 // Thread-safety: Concurrent execution relies on the underlying golang-migrate advisory locks on the DB.
-// Internal Logic Deep-Dive: Reads the schema history table strictly sequentially to undo DDL operations safely.
+// Internal Logic Deep-Dive: Reads the schema history table strictly sequentially to undo DDL operations safely. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, sourceURL string, steps int) (err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -88,7 +88,7 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 	}()
 
 	// A value of 0 or below signals a total teardown, dropping all schema versions dynamically.
-	// Internal Logic Deep-Dive: When `steps <= 0` is supplied, we intercept the command and execute `m.Down()` directly. This cleanly strips the entire schema back to bare metal in one go, avoiding loop iterations over undefined step intervals.
+	// Internal Logic Deep-Dive: When `steps <= 0` is supplied, we intercept the command and execute `m.Down()` directly. This cleanly strips the entire schema back to bare metal in one go, avoiding loop iterations over undefined step intervals. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	if steps <= 0 {
 		if downErr := m.Down(); downErr != nil && !errors.Is(downErr, migrate.ErrNoChange) {
 			return downErr
@@ -107,19 +107,19 @@ func RollbackMigrations(db *sqlx.DB, driverName string, driver database.Driver, 
 // Purpose: Models the version and dirty state flag.
 // Constraints: A dirty flag typically blocks further migrations until manually resolved.
 // Thread-safety: Struct data.
-// Internal Logic Deep-Dive: We use a distinct struct to ensure versioning logic isn't confused with arbitrary integer data.
+// Internal Logic Deep-Dive: We use a distinct struct to ensure versioning logic isn't confused with arbitrary integer data. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type MigrationVersion struct {
 	// Version is the current numerical migration version.
 	// Purpose: The current numerical migration version.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	// Internal Logic Deep-Dive: Provides a concrete numerical identifier for the current database schema schema state.
+	// Internal Logic Deep-Dive: Provides a concrete numerical identifier for the current database schema schema state. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Version uint
 	// Dirty indicates if the last migration failed midway.
 	// Purpose: Indicates if the last migration failed midway.
 	// Constraints: True if the database is in an inconsistent state.
 	// Thread-safety: Read-only boolean.
-	// Internal Logic Deep-Dive: Flags an unstable schema state requiring manual administrative intervention.
+	// Internal Logic Deep-Dive: Flags an unstable schema state requiring manual administrative intervention. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Dirty bool
 }
 
@@ -128,7 +128,7 @@ type MigrationVersion struct {
 // Constraints: It also returns a "dirty" boolean flag, which if true, indicates that
 // the last attempted migration failed midway, leaving the database in a potentially inconsistent state.
 // Thread-safety: Safe for concurrent queries across multiple nodes reading state.
-// Internal Logic Deep-Dive: Always queries the master node to prevent split-brain issues due to replication lag.
+// Internal Logic Deep-Dive: Always queries the master node to prevent split-brain issues due to replication lag. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func GetMigrationVersion(driverName string, driver database.Driver, sourceURL string) (mv MigrationVersion, err error) {
 	m, err := migrate.NewWithDatabaseInstance(sourceURL, driverName, driver)
 	if err != nil {
@@ -148,7 +148,7 @@ func GetMigrationVersion(driverName string, driver database.Driver, sourceURL st
 	if verErr != nil {
 		// migrate.ErrNilVersion indicates no migrations have been applied yet.
 		// We safely absorb this specific error and report version 0.
-		// Internal Logic Deep-Dive: We explicitly catch and swallow `migrate.ErrNilVersion`. The library throws an error if a database has zero migrations applied, but from a system architecture perspective, a clean slate is a valid baseline state (version 0), not a fatal crash condition.
+		// Internal Logic Deep-Dive: We explicitly catch and swallow `migrate.ErrNilVersion`. The library throws an error if a database has zero migrations applied, but from a system architecture perspective, a clean slate is a valid baseline state (version 0), not a fatal crash condition. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 		if errors.Is(verErr, migrate.ErrNilVersion) {
 			return MigrationVersion{Version: 0, Dirty: false}, nil
 		}

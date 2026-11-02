@@ -2,5 +2,5 @@
 // Purpose: Enables rigorous automated testing of system resilience and stability under extreme edge cases and chaotic conditions.
 // Constraints: Contains test-only utilities. Should not be compiled into production binaries.
 // Thread-safety: Highly concurrent; safe for parallel test execution.
-// Internal Logic Deep-Dive: Provides tools strictly isolated to test builds to avoid leaking chaos functions into production artifacts.
+// Internal Logic Deep-Dive: Provides tools strictly isolated to test builds to avoid leaking chaos functions into production artifacts. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 package simulation

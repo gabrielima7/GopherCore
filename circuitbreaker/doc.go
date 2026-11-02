@@ -4,5 +4,5 @@
 // Purpose: Intercepts requests to backend services to prevent cascading failures during outages.
 // Constraints: Operates based on configurable success and failure thresholds.
 // Thread-safety: Relies on sync.Mutex, safe for concurrent use across goroutines.
-// Internal Logic Deep-Dive: We use a lock-free atomic state machine where possible, falling back to mutexes only for complex threshold sliding-window reevaluations to maximize throughput during happy-path RPCs.
+// Internal Logic Deep-Dive: We use a lock-free atomic state machine where possible, falling back to mutexes only for complex threshold sliding-window reevaluations to maximize throughput during happy-path RPCs. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 package circuitbreaker

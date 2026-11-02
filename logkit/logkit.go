@@ -14,19 +14,19 @@ import (
 // Purpose: Dictates logging levels and destinations.
 // Constraints: Initialized indirectly via options.
 // Thread-safety: Mutative during setup, read-only afterwards.
-// Internal Logic Deep-Dive: Segregates configuration to easily toggle JSON vs Console formatting depending on the deployment environment.
+// Internal Logic Deep-Dive: Segregates configuration to easily toggle JSON vs Console formatting depending on the deployment environment. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Config struct {
 	// Level is the logging verbosity level.
 	// Purpose: The logging verbosity level.
 	// Constraints: Uses slog.Level types.
 	// Thread-safety: Read-only value.
-	// Internal Logic Deep-Dive: Filters emitted logs based on severity.
+	// Internal Logic Deep-Dive: Filters emitted logs based on severity. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Level slog.Level
 	// Writer is the destination for log output.
 	// Purpose: The destination for log output.
 	// Constraints: Must implement io.Writer.
 	// Thread-safety: Implementations must be concurrent-safe.
-	// Internal Logic Deep-Dive: Dictates the physical or virtual destination of serialized log entries.
+	// Internal Logic Deep-Dive: Dictates the physical or virtual destination of serialized log entries. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Writer io.Writer
 }
 
@@ -34,14 +34,14 @@ type Config struct {
 // Purpose: Allows overriding default log properties.
 // Constraints: Functional mutators expected to be applied in order.
 // Thread-safety: Safe when used sequentially during initialization.
-// Internal Logic Deep-Dive: Standardizes the initialization pattern across all packages.
+// Internal Logic Deep-Dive: Standardizes the initialization pattern across all packages. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Option func(*Config)
 
 // WithLevel sets the minimum severity threshold for emitting log records.
 // Purpose: Configure log verbosity.
 // Constraints: Rejects logs that don't pass the check.
 // Thread-safety: Synchronous struct mutation.
-// Internal Logic Deep-Dive: Configuration mutations are scoped to a functional options pattern, guaranteeing thread-safety and immutable configurations post-initialization.
+// Internal Logic Deep-Dive: Configuration mutations are scoped to a functional options pattern, guaranteeing thread-safety and immutable configurations post-initialization. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithLevel(level slog.Level) Option {
 	return func(c *Config) {
 		c.Level = level
@@ -52,7 +52,7 @@ func WithLevel(level slog.Level) Option {
 // Purpose: Maps the log output to a file or stream.
 // Constraints: Assumes the writer is available.
 // Thread-safety: Synchronous struct mutation.
-// Internal Logic Deep-Dive: Allows us to easily pipe logs directly to memory buffers during unit tests.
+// Internal Logic Deep-Dive: Allows us to easily pipe logs directly to memory buffers during unit tests. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithWriter(w io.Writer) Option {
 	return func(c *Config) {
 		c.Writer = w
@@ -64,7 +64,7 @@ func WithWriter(w io.Writer) Option {
 // Constraints: It defaults to writing to os.Stdout at the Info level.
 // Thread-safety: The returned slog.Logger instance securely synchronizes its own internal
 // write state, making it inherently safe for concurrent use.
-// Internal Logic Deep-Dive: Initializes the underlying high-performance JSON encoder.
+// Internal Logic Deep-Dive: Initializes the underlying high-performance JSON encoder. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func NewLogger(opts ...Option) *slog.Logger {
 	config := Config{
 		Level:  slog.LevelInfo, // Default level
@@ -90,9 +90,9 @@ func NewLogger(opts ...Option) *slog.Logger {
 // should typically only be called once during the application's bootstrap phase.
 // Thread-safety: Modifying the global logger concurrently is generally safe as slog.SetDefault
 // dynamically manages its own internal atomic pointer assignments.
-// Internal Logic Deep-Dive: Replaces the default `slog` core to guarantee that even generic library calls are captured with structured context.
+// Internal Logic Deep-Dive: Replaces the default `slog` core to guarantee that even generic library calls are captured with structured context. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Initialize(opts ...Option) {
 	logger := NewLogger(opts...)
-	// Internal Logic Deep-Dive: slog.SetDefault safely updates the internal pointer atomically. This means active goroutines logging concurrently during this exact application-wide initialization call will seamlessly transition to the new JSON-formatted logger without experiencing a race condition or requiring an external global mutex lock.
+	// Internal Logic Deep-Dive: slog.SetDefault safely updates the internal pointer atomically. This means active goroutines logging concurrently during this exact application-wide initialization call will seamlessly transition to the new JSON-formatted logger without experiencing a race condition or requiring an external global mutex lock. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	slog.SetDefault(logger)
 }

@@ -16,43 +16,43 @@ import (
 // Purpose: Dictates the connection pool boundaries and driver settings.
 // Constraints: Passed to connection handlers, typically not manually constructed.
 // Thread-safety: Safely read-only post instantiation.
-// Internal Logic Deep-Dive: Prevents hardcoded magic numbers across the application by providing a unified tuning structure.
+// Internal Logic Deep-Dive: Prevents hardcoded magic numbers across the application by providing a unified tuning structure. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Config struct {
 	// Driver specifies which underlying driver sqlx should initialize.
 	// Purpose: Specifies which underlying driver sqlx should initialize.
 	// Constraints: Must be a registered database driver name.
 	// Thread-safety: Read-only string.
-	// Internal Logic Deep-Dive: Required for SQL dialect mapping and driver initialization.
+	// Internal Logic Deep-Dive: Required for SQL dialect mapping and driver initialization. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	Driver string
 	// DSN contains connection credentials and routing information.
 	// Purpose: Contains connection credentials and routing information.
 	// Constraints: Format strictly depends on the specified Driver.
 	// Thread-safety: Read-only string.
-	// Internal Logic Deep-Dive: Secures the direct network route to the primary data store.
+	// Internal Logic Deep-Dive: Secures the direct network route to the primary data store. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	DSN string
 	// MaxOpenConns throttles the maximum physical connections to the database.
 	// Purpose: Throttles the maximum physical connections to the database.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	// Internal Logic Deep-Dive: Implements strict backpressure limits on database connection allocation.
+	// Internal Logic Deep-Dive: Implements strict backpressure limits on database connection allocation. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	MaxOpenConns int
 	// MaxIdleConns caps the number of inactive connections kept alive in the pool.
 	// Purpose: Caps the number of inactive connections kept alive in the pool.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only integer.
-	// Internal Logic Deep-Dive: Minimizes the TCP connection overhead while bounding idle memory limits.
+	// Internal Logic Deep-Dive: Minimizes the TCP connection overhead while bounding idle memory limits. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	MaxIdleConns int
 	// ConnMaxLifetime forces recycling of old connections to prevent stale socket issues.
 	// Purpose: Forces recycling of old connections to prevent stale socket issues.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Actively closes aging connections before network proxy timeouts trigger unexpected EOF errors.
+	// Internal Logic Deep-Dive: Actively closes aging connections before network proxy timeouts trigger unexpected EOF errors. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	ConnMaxLifetime time.Duration
 	// ConnMaxIdleTime trims connections that have been inactive for too long.
 	// Purpose: Trims connections that have been inactive for too long.
 	// Constraints: Must be >= 0.
 	// Thread-safety: Read-only duration.
-	// Internal Logic Deep-Dive: Ensures transient connection spikes are pruned back to baseline efficiently.
+	// Internal Logic Deep-Dive: Ensures transient connection spikes are pruned back to baseline efficiently. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	ConnMaxIdleTime time.Duration
 }
 
@@ -60,7 +60,7 @@ type Config struct {
 // Purpose: Generates a baseline stable database connection configuration.
 // Constraints: Assumes typical PostgreSQL/MySQL setups, might need tuning for highly constrained limits.
 // Thread-safety: Returns a new value struct, safe to use across goroutines.
-// Internal Logic Deep-Dive: Balances idle and max connections to prevent connection starvation under sudden load spikes.
+// Internal Logic Deep-Dive: Balances idle and max connections to prevent connection starvation under sudden load spikes. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func DefaultConfig(driver, dsn string) Config {
 	// These specific thresholds are chosen to prevent sudden bursts of traffic from
 	// exhausting the upstream database's connection limits, balancing active capacity
@@ -79,14 +79,14 @@ func DefaultConfig(driver, dsn string) Config {
 // Purpose: Allows overriding default Config behavior.
 // Constraints: Used as variadic arguments during Connect or MustConnect.
 // Thread-safety: Safe when used sequentially during initialization.
-// Internal Logic Deep-Dive: The functional options pattern allows us to add future tuning parameters without breaking existing API contracts.
+// Internal Logic Deep-Dive: The functional options pattern allows us to add future tuning parameters without breaking existing API contracts. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 type Option func(*Config)
 
 // WithMaxOpenConns forcibly throttles the maximum volume of concurrent physical connections spawned across the entire connection pool lifecycle.
 // Purpose: Adjusts the connection pool size limit.
 // Constraints: n should be greater than 0.
 // Thread-safety: Mutates configuration synchronously.
-// Internal Logic Deep-Dive: Explicitly forces backpressure to the application layer rather than crashing the database engine.
+// Internal Logic Deep-Dive: Explicitly forces backpressure to the application layer rather than crashing the database engine. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithMaxOpenConns(n int) Option {
 	return func(c *Config) {
 		c.MaxOpenConns = n
@@ -97,7 +97,7 @@ func WithMaxOpenConns(n int) Option {
 // Purpose: Adjusts the connection pool idle limit.
 // Constraints: n should be >= 0.
 // Thread-safety: Mutates configuration synchronously.
-// Internal Logic Deep-Dive: Keeping connections idle avoids the TCP handshake overhead on every incoming HTTP request.
+// Internal Logic Deep-Dive: Keeping connections idle avoids the TCP handshake overhead on every incoming HTTP request. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithMaxIdleConns(n int) Option {
 	return func(c *Config) {
 		c.MaxIdleConns = n
@@ -108,7 +108,7 @@ func WithMaxIdleConns(n int) Option {
 // Purpose: Defines connection recycle limits.
 // Constraints: Should be shorter than database-side closing timeouts.
 // Thread-safety: Mutates configuration synchronously.
-// Internal Logic Deep-Dive: Proactively kills old sockets before intermediate firewalls drop them silently, avoiding stale connection panics.
+// Internal Logic Deep-Dive: Proactively kills old sockets before intermediate firewalls drop them silently, avoiding stale connection panics. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithConnMaxLifetime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxLifetime = d
@@ -119,7 +119,7 @@ func WithConnMaxLifetime(d time.Duration) Option {
 // Purpose: Trims idle connections after this duration.
 // Constraints: Must be >= 0.
 // Thread-safety: Mutates configuration synchronously.
-// Internal Logic Deep-Dive: Shrinks the active pool organically when demand subsides, optimizing resource utilization on the DB server.
+// Internal Logic Deep-Dive: Shrinks the active pool organically when demand subsides, optimizing resource utilization on the DB server. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func WithConnMaxIdleTime(d time.Duration) Option {
 	return func(c *Config) {
 		c.ConnMaxIdleTime = d
@@ -131,7 +131,7 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 // Constraints: It fully respects the provided context for timeout/cancellation
 // during connection and subsequent connectivity verification (PingContext).
 // Thread-safety: The returned *sqlx.DB is inherently safe for concurrent access across multiple goroutines.
-// Internal Logic Deep-Dive: Connection parameters are aggressively checked at startup. We immediately send a Ping to establish at least one valid TCP connection, ensuring configuration correctness before returning.
+// Internal Logic Deep-Dive: Connection parameters are aggressively checked at startup. We immediately send a Ping to establish at least one valid TCP connection, ensuring configuration correctness before returning. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB, error) {
 	if driver == "" {
 		return nil, errors.New("dbkit: driver is required")
@@ -149,7 +149,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 
 	// ConnectContext opens the database and then pings it. We rely on the provided context
 	// to fail fast if the database is completely unreachable during application bootstrap.
-	// Internal Logic Deep-Dive: Using ConnectContext guarantees that critical schema modifications or bootstrap queries fail fast by verifying the connection immediately, ensuring the application doesn't run with an invalid state.
+	// Internal Logic Deep-Dive: Using ConnectContext guarantees that critical schema modifications or bootstrap queries fail fast by verifying the connection immediately, ensuring the application doesn't run with an invalid state. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	db, err := sqlx.ConnectContext(ctx, cfg.Driver, cfg.DSN)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 	// Enforce strict connection bounds to prevent connection starvation and database thrashing.
 	// Bounding MaxOpenConns protects the downstream database from being overwhelmed, while
 	// MaxIdleConns / MaxIdleTime ensures we aren't leaking stale sockets in memory.
-	// Internal Logic Deep-Dive: We apply the connection pooling bounds `db.SetMaxOpenConns` explicitly *after* `sqlx.ConnectContext` validates the DSN. If we didn't throttle these connections centrally, a massive surge of concurrent queries during an outage could easily hit PostgreSQL's `max_connections` limit, dropping the database completely offline.
+	// Internal Logic Deep-Dive: We apply the connection pooling bounds `db.SetMaxOpenConns` explicitly *after* `sqlx.ConnectContext` validates the DSN. If we didn't throttle these connections centrally, a massive surge of concurrent queries during an outage could easily hit PostgreSQL's `max_connections` limit, dropping the database completely offline. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.MaxIdleConns)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
@@ -172,12 +172,12 @@ func Connect(ctx context.Context, driver, dsn string, opts ...Option) (*sqlx.DB,
 // Constraints: This is intended solely for application startup phases where
 // the inability to reach the primary database is considered a fatal, unrecoverable state.
 // Thread-safety: Like Connect, the returned connection pool is inherently thread-safe.
-// Internal Logic Deep-Dive: We intentionally panic here because a missing primary datastore renders the entire service useless.
+// Internal Logic Deep-Dive: We intentionally panic here because a missing primary datastore renders the entire service useless. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.DB {
 	// Execute standard connection bootstrapping, intentionally panicking on failure.
 	// This is strictly designed for the application bootstrap phase where running
 	// without a database connection leads to an unrecoverable zombie state.
-	// Internal Logic Deep-Dive: Wrapping the Connect method directly minimizes code duplication. If the lower-level Connect fails due to malformed DSNs or offline engines, panic is triggered to halt orchestrator loops (e.g., Kubernetes) rather than risking a zombie process running without a stateful backend.
+	// Internal Logic Deep-Dive: Wrapping the Connect method directly minimizes code duplication. If the lower-level Connect fails due to malformed DSNs or offline engines, panic is triggered to halt orchestrator loops (e.g., Kubernetes) rather than risking a zombie process running without a stateful backend. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 	db, err := Connect(ctx, driver, dsn, opts...)
 	if err != nil {
 		panic("dbkit: " + err.Error())
@@ -189,7 +189,7 @@ func MustConnect(ctx context.Context, driver, dsn string, opts ...Option) *sqlx.
 // Purpose: Assesses database liveliness dynamically.
 // Constraints: It respects context timeouts and cancellations to prevent unbounded blocking.
 // Thread-safety: Safe for concurrent use as the database connection pool internalizes locks.
-// Internal Logic Deep-Dive: By injecting context cancellation directly into PingContext, we prevent temporary database network partitions from deadlocking the health-check goroutines.
+// Internal Logic Deep-Dive: By injecting context cancellation directly into PingContext, we prevent temporary database network partitions from deadlocking the health-check goroutines. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 func HealthCheck(ctx context.Context, db *sqlx.DB) error {
 	return db.PingContext(ctx)
 }

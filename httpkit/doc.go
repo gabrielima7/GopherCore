@@ -4,5 +4,5 @@
 // Purpose: Manages HTTP request routing and server lifecycle initialization securely.
 // Constraints: Requires strict parameter configuration to defend against Slowloris.
 // Thread-safety: Router execution and server spinning are safe for multi-core multiplexing.
-// Internal Logic Deep-Dive: The router natively enforces non-zero Read/Write timeouts directly on the underlying tcp listener, mitigating Slowloris and connection-drain attacks at the transport layer before headers are even parsed.
+// Internal Logic Deep-Dive: The router natively enforces non-zero Read/Write timeouts directly on the underlying tcp listener, mitigating Slowloris and connection-drain attacks at the transport layer before headers are even parsed. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 package httpkit

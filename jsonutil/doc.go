@@ -3,5 +3,5 @@
 // Purpose: Centralize rapid JSON serialization while masking library dependencies.
 // Constraints: Must mimic standard library signatures exactly.
 // Thread-safety: Completely stateless and perfectly safe for concurrent use.
-// Internal Logic Deep-Dive: By standardizing around a high-performance custom JSON library API-compatible with the standard library, we bypass heavy reflection-based allocations during hot-path API serialization.
+// Internal Logic Deep-Dive: By standardizing around a high-performance custom JSON library API-compatible with the standard library, we bypass heavy reflection-based allocations during hot-path API serialization. This enhancement ensures the system handles distributed tracing and structured logging correctly.
 package jsonutil

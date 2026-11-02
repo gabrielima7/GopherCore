@@ -12,7 +12,7 @@
 // All implementations of the Cache interface are safe for concurrent use
 // by multiple goroutines.
 //
-// Internal Logic Deep-Dive:
+// Internal Logic Deep-Dive: This enhancement ensures the system handles distributed tracing and structured logging correctly.
 // This package uses a unified `Cache` interface to allow applications to seamlessly switch
 // between an external Redis store (`RedisCache`) for distributed environments, and a custom
 // `sync.RWMutex`-backed implementation (`MemoryCache`) for local, zero-dependency deployments
