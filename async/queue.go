@@ -62,7 +62,6 @@ func (q *QueueServer) HandleFunc(pattern string, handler func(context.Context, *
 	// Internal Logic Deep-Dive: By wrapping the user-provided handler, we strictly enforce a recovery boundary.
 	// If a background task triggers a panic (e.g. nil pointer dereference during complex data parsing),
 	// this recovery block converts the panic into a formalized PanicError. Asynq will then mark the task as failed
-	// and attempt retries based on its configuration, rather than crashing the overarching worker node entirely.
 	q.mux.HandleFunc(pattern, func(ctx context.Context, t *asynq.Task) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
