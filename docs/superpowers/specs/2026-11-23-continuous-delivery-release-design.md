@@ -7,7 +7,7 @@
 ---
 
 ## 1. Contexto e Motivação
-O projeto GopherCore é uma biblioteca Go pura (`github.com/fsvxavier/gophercore`) que necessita de um pipeline contínuo de publicação de artefatos e automação de releases. O objetivo é eliminar o processo manual de lançamento, garantindo entrega contínua sempre que houver commit na branch `main` ou tag `v*`, com controle rigoroso de concorrência, versionamento semântico automatizado com rollover em `.10`, e proteção na etapa de deploy.
+O projeto GopherCore é uma biblioteca Go pura (`github.com/gabrielima7/GopherCore`) que necessita de um pipeline contínuo de publicação de artefatos e automação de releases. O objetivo é eliminar o processo manual de lançamento, garantindo entrega contínua sempre que houver commit na branch `main` ou tag `v*`, com controle rigoroso de concorrência, versionamento semântico automatizado com rollover em `.10`, e proteção na etapa de deploy.
 
 ---
 
