@@ -2,6 +2,19 @@
 
 This document tracks all major additions, alterations, deletions, and pull requests merged for each version of the GopherCore project.
 
+## [v0.6.0] - Continuous Delivery, Automated Categorized Releases, and Protected Production Deployments
+
+This release introduces an enterprise-grade automated continuous delivery pipeline and release management system across GopherCore. It provides automated semantic versioning beginning at `v0.6.0` with patch rollover at `.10` (`0.5.10` -> `0.6.0`), non-cancelling concurrent execution (`cancel-in-progress: false`), automated release package distribution with SBOM and SLSA Provenance generation, categorized GitHub Releases changelog compilation, and protected production deployment gates featuring automatic `pkg.go.dev` / `proxy.golang.org` cache warmup.
+
+### 🚀 Additions (Features & Enhancements)
+- **Continuous Delivery & Automated Release Pipeline:** Configured unified CI/CD workflow in `.github/workflows/release.yml` triggering on `main` branch updates and `v*` tags with concurrency isolation.
+- **Semantic Version Rollover Automation:** Added `scripts/next-version.sh` and test suite `scripts/test-next-version.sh` enforcing automated version increments with patch bounds capped at 10.
+- **Categorized Release Notes:** Added `.github/release.yml` mapping pull requests and commits to Feature, Change, Fix, and Removal categories.
+- **Protected Deployment & Go Proxy Registration:** Added `deploy` job using protected `production` environment with automated registration against `proxy.golang.org` for instant `pkg.go.dev` documentation availability.
+
+### 🛠 Changes (Modifications & Optimizations)
+- **Dynamic SBOM Versioning:** Updated `Makefile` to dynamically detect repository release version during Syft scanning cycles.
+
 ## [v0.5.1] - Ultimate Chaos Fuzzing Engine, Concurrency Edge Hardening, Living Documentation Sync, and Dependency Modernization
 
 This release marks a major leap in system resilience, high-load formal stability verification, and enterprise concurrency hardening across GopherCore. It introduces Go's native chaos fuzzing engine (`FuzzUltimateChaos`) scaling up to 2,000 concurrent goroutines under strict leak verification (`goleak.VerifyNone`) alongside Section 13 formal empirical proofs, eliminates concurrency race conditions in `cachekit` eviction loops, fortifies `circuitbreaker` with nil-context tolerance and exhaustive state boundaries, expands edge-case test suites across `async` and `retry`, achieves rigorous 100% Living Documentation compliance with AST deep dives across all packages, and modernizes core networking and telemetry dependencies including `validator/v10` to `v10.30.6`, `go-json` to `v0.12.0`, `grpc` to `v1.85.0`, `grpc-gateway/v2` to `v2.33.0`, and Prometheus metric modules.
